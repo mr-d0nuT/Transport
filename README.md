@@ -17,6 +17,7 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
   - 🚊 **TRAM** (T1–T6)
   - 🚆 **Rodalies Renfe**
   - 🚞 **FGC**
+  - 🌙 **NitBus** (N0-N28, horarios del GTFS de AMB: de noche no hay tiempo real, pero sí a qué hora pasa)
   - 🚍 **Hispano Igualadina** (horarios GTFS precompilados)
 - **¿Cabeza o cola?** En cada tramo de metro te dice en qué parte del tren colocarte para bajar justo delante del transbordo o de la salida que te toca — y te nombra la salida ("al bajar en Espanya, la salida Exposició / Gran Via queda por ahí"). Sale de la geometría de los andenes, los accesos y las escaleras de OpenStreetMap, cruzada con el sentido de la marcha.
 - **Margen de transbordo.** Cada enlace muestra los minutos que quedan entre bajarte del anterior y salir el siguiente, en ámbar si va justo.
@@ -37,15 +38,19 @@ Es una **app estática de un solo archivo**: todo el HTML, CSS y JavaScript vive
 | `sw.js` | Service worker: cachea la carcasa para que arranque al instante |
 | `manifest.webmanifest` + `icon-*` | Instalación como PWA |
 | `hispano-igualadina.json` | Horarios de Hispano Igualadina precompilados desde el GTFS |
+| `nitbus.json` | Horarios del NitBus precompilados desde el GTFS de AMB |
 | `andenes-metro.json` | Ejes de los andenes, accesos y escaleras del metro (para el consejo de vagón) |
-| `scripts/build_hispano.py` | Genera el JSON de horarios desde el GTFS oficial de la Generalitat |
-| `scripts/build_andenes.py` | Genera el JSON de andenes desde OpenStreetMap (Overpass) |
-| `.github/workflows/` | Regeneran ambos automáticamente: horarios cada lunes, andenes cada mes |
+| `scripts/gtfs_compact.py` | Compila un GTFS al JSON compacto que lee la app |
+| `scripts/build_hispano.py` | Horarios de la Hispano desde el GTFS de la Generalitat |
+| `scripts/build_nitbus.py` | Horarios del NitBus desde el GTFS de AMB |
+| `scripts/build_andenes.py` | Andenes del metro desde OpenStreetMap (Overpass) |
+| `.github/workflows/` | Los regeneran solos: Hispano los lunes, NitBus los martes, andenes cada mes |
 
 ### Datos y servicios usados
 
 - [API de TMB](https://developer.tmb.cat/) — bus, metro, paradas y planificador
 - [Open Data TRAM](https://opendata.tram.cat/)
+- GTFS de la red metropolitana de [AMB](https://www.amb.cat/es/web/area-metropolitana/dades-obertes) — el NitBus
 - Horarios de Rodalies de [Renfe](https://horarios.renfe.com/)
 - [Dades obertes FGC](https://dadesobertes.fgc.cat/)
 - GTFS de buses interurbanos de la [Generalitat de Catalunya](https://analisi.transparenciacatalunya.cat/)
@@ -67,6 +72,10 @@ Para regenerar a mano los datos precompilados:
 
 ```bash
 python3 scripts/build_hispano.py
+```
+
+```bash
+python3 scripts/build_nitbus.py
 ```
 
 ```bash

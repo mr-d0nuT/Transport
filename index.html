@@ -335,6 +335,7 @@
         .wg-text { font-size: .78rem; color: var(--text); line-height: 1.35; }
         .wg-text b { color: var(--text); }
         .wg-why { color: var(--text-faint); }
+        .sched-tag { font-size: .62rem; color: var(--text-faint); text-align: center; margin-top: 1px; white-space: nowrap; }
         .jstep-sub b.slack { color: var(--green); }        /* gana a .jstep-body b */
         .jstep-sub b.slack.tight { color: var(--amber); }
         .trip-wagon {
@@ -724,6 +725,7 @@
         const MODE_ICON = { bus: '🚌', metro: 'Ⓜ️', tram: '🚊', train: '🚆', fgc: '🚞', hbus: '🚐' };
         const MODE_NAME = { bus: 'Bus', metro: 'Metro', tram: 'Tram', train: 'Rodalies · Renfe', fgc: 'FGC', hbus: 'Hispano Igualadina' };
         const HBUS_COLOR = '#7b3fa0';
+        const NITBUS_COLOR = '#1b3a6b';   // azul noche del NitBus
         const renfeColor = line => '#' + (RENFE_COLORS[line] || 'EC0000');
 
         // Colores oficiales TMB por familia de línea de bus
@@ -1153,11 +1155,13 @@
 
         // Modelo unificado de salida:
         // { line, color, dest, mins, arriveAt (epoch ms), next, occ, itin }
-        function etaHTML(arriveAt) {
+        function etaHTML(arriveAt, sched) {
             const secs = Math.round((arriveAt - Date.now()) / 1000);
-            if (secs <= 30) return `<div class="bus-time now" data-arrive="${arriveAt}">Llegando</div>`;
+            // los horarios (Hispano, NitBus) no son tiempo real: se marcan con la hora
+            const tag = sched ? `<div class="sched-tag">${new Date(arriveAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · horario</div>` : '';
+            if (secs <= 30) return `<div class="bus-time now" data-arrive="${arriveAt}">Llegando</div>${tag}`;
             const mins = Math.ceil(secs / 60);
-            return `<div class="bus-time ${mins <= 3 ? 'soon' : ''}" data-arrive="${arriveAt}">${mins}<small>min</small></div>`;
+            return `<div class="bus-time ${mins <= 3 ? 'soon' : ''}" data-arrive="${arriveAt}">${mins}<small>min</small></div>${tag}`;
         }
 
         // Cuenta atrás en vivo: entre refresco y refresco, los tiempos avanzan solos
@@ -1211,7 +1215,7 @@
                                 ${d.next ? `<div class="bus-next">${esc(d.next)}</div>` : ''}
                                 ${d.occ ? `<div class="occ-badge ${d.occ.high ? 'occ-high' : ''}">👥 ${esc(d.occ.label)}</div>` : ''}
                             </div>
-                            <div class="bus-eta">${etaHTML(d.arriveAt)}${tight ? '<span class="catch-warn" title="Justo de tiempo llegando andando">🏃</span>' : ''}</div>
+                            <div class="bus-eta">${etaHTML(d.arriveAt, d.sched)}${tight ? '<span class="catch-warn" title="Justo de tiempo llegando andando">🏃</span>' : ''}</div>
                             ${d.itin ? '<div class="bus-chevron">▼</div>' : ''}
                         </div>
                         <div class="bus-itinerary" style="display:${isExpanded ? 'block' : 'none'}" onclick="event.stopPropagation()">
@@ -1223,7 +1227,7 @@
         }
 
         // --- 10. LLEGADAS POR MODO ---
-        async function fetchBusArrivals(stop) {
+        async function liveBusArrivals(stop) {
             const res = await fetch(`https://api.tmb.cat/v1/ibus/stops/${stop.code}?${TMB_AUTH}`);
             if (!res.ok) throw new Error('Parada de bus no encontrada en TMB.');
             const data = await res.json();
@@ -1234,6 +1238,45 @@
                 next: null, occ: null,
                 itinKey: `bus:${b.routeId}`, itin: { mode: 'bus', routeId: b.routeId, stopCode: stop.code }
             }));
+        }
+
+        // El NitBus lo opera AMB, no TMB: no sale ni en iBus ni en la lista de
+        // paradas de TMB. Lo cruzamos por cercanía, no por número de parada: hay
+        // códigos que se repiten entre redes y apuntan a sitios distintos.
+        async function nitbusArrivals(stop) {
+            let { lat, lon } = stop;
+            if (lat == null && stop.code) {          // búsqueda por número: sacamos dónde cae
+                const all = await getTmbBusStops();
+                const hit = all.find(([code]) => String(code) === String(stop.code));
+                if (hit) { lat = hit[2]; lon = hit[3]; }
+            }
+            if (lat == null) return [];
+            const d = await ensureNitbus();
+            let best = null;
+            d.stops.forEach((s, i) => {
+                const dist = getDistance(lat, lon, s[2], s[3]);
+                if (dist <= 60 && (!best || dist < best.dist)) best = { i, dist };
+            });
+            if (!best) return [];
+            return scheduleDepartures(d, best.i, { color: NITBUS_COLOR, mode: 'nit' });
+        }
+
+        // Tiempo real de TMB + horario del NitBus: de noche solo hay lo segundo,
+        // de día solo lo primero, y en la franja de las 22-23 h conviven. El
+        // horario nocturno pesa, así que de día solo se baja si no hay nada en
+        // tiempo real (línea acabada por hoy, o parada solo de noche).
+        async function fetchBusArrivals(stop) {
+            const hour = new Date().getHours();
+            const nightTime = hour >= 21 || hour < 6;
+            const [liveRes, nightRes] = await Promise.allSettled([
+                liveBusArrivals(stop),
+                nightTime ? nitbusArrivals(stop) : Promise.resolve([])
+            ]);
+            const live = liveRes.status === 'fulfilled' ? liveRes.value : [];
+            let night = nightRes.status === 'fulfilled' ? nightRes.value : [];
+            if (!nightTime && !live.length) night = await nitbusArrivals(stop).catch(() => []);
+            if (!live.length && !night.length && liveRes.status === 'rejected') throw liveRes.reason;
+            return [...live, ...night];
         }
 
         async function fetchMetroArrivals(stop) {
@@ -1472,11 +1515,14 @@
 
         // --- 10D. HISPANO IGUALADINA (bus interurbà; horario oficial del GTFS de la
         // Generalitat, precompilado semanalmente en hispano-igualadina.json) ---
-        let hispanoData = null;
-        async function ensureHispano() {
-            if (hispanoData) return hispanoData;
-            const res = await fetch('./hispano-igualadina.json');
-            if (!res.ok) throw new Error('Horarios de la Hispano Igualadina no disponibles.');
+        // Horarios compilados (scripts/gtfs_compact.py): la Hispano Igualadina y
+        // el NitBus comparten formato, así que comparten también todo el código.
+        let hispanoData = null, hispanoReq = null;
+        let nitbusData = null, nitbusReq = null;
+
+        async function loadSchedule(url, errMsg) {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(errMsg);
             const d = await res.json();
             // deriva el índice de salidas por parada desde los viajes:
             // stopIdx -> [[lineIdx, svcIdx, depMin, headIdx, arrFinalMin], ...]
@@ -1489,10 +1535,69 @@
                 }
             });
             Object.values(d._deps).forEach(v => v.sort((a, b) => a[2] - b[2]));
-            hispanoData = d;
             return d;
         }
+        function ensureHispano() {
+            if (hispanoData) return Promise.resolve(hispanoData);
+            hispanoReq = hispanoReq || loadSchedule('./hispano-igualadina.json',
+                'Horarios de la Hispano Igualadina no disponibles.')
+                .then(d => (hispanoData = d))
+                .catch(e => { hispanoReq = null; throw e; });
+            return hispanoReq;
+        }
+        function ensureNitbus() {
+            if (nitbusData) return Promise.resolve(nitbusData);
+            nitbusReq = nitbusReq || loadSchedule('./nitbus.json', 'Horarios del NitBus no disponibles.')
+                .then(d => (nitbusData = d))
+                .catch(e => { nitbusReq = null; throw e; });
+            return nitbusReq;
+        }
         const hbusLine = short => short.replace(/^L0+/, 'L');
+        const fmtSchedMin = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+        // Próximas salidas de una parada según horario. Mira el día de servicio de
+        // hoy y el de ayer a la vez: los nocturnos codifican la madrugada como
+        // horas 24-31 del día anterior, pero también hay viajes escritos como 01:30
+        // del día siguiente, y de madrugada conviven los dos.
+        function scheduleDepartures(d, idx, { color, mode, horizon = 480, lineFmt = (x => x) }) {
+            const now = new Date();
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            const dayKey = dt => dt.getFullYear() + String(dt.getMonth() + 1).padStart(2, '0') + String(dt.getDate()).padStart(2, '0');
+            const today = new Date(now); today.setHours(0, 0, 0, 0);
+            const yesterday = new Date(today.getTime() - 864e5);
+            const days = [
+                { start: today, off: 0, active: new Set(d.dates[dayKey(today)] || []) },
+                { start: yesterday, off: 1440, active: new Set(d.dates[dayKey(yesterday)] || []) }
+            ];
+
+            const groups = new Map();
+            (d._deps[idx] || []).forEach(([li, svc, dep, hi, arrEnd]) => {
+                days.forEach(day => {
+                    if (!day.active.has(svc)) return;
+                    const rel = dep - day.off;      // minutos desde la medianoche de hoy
+                    if (rel < nowMin || rel > nowMin + horizon) return;
+                    const k = li + '|' + hi;
+                    (groups.get(k) || groups.set(k, []).get(k))
+                        .push({ dep, rel, arrEnd, li, hi, at: day.start.getTime() + dep * 60000 });
+                });
+            });
+
+            const departures = [];
+            groups.forEach(items => {
+                items.sort((a, b) => a.rel - b.rel);
+                const f = items[0];
+                departures.push({
+                    line: lineFmt(d.lines[f.li][0]), color, dest: d.heads[f.hi],
+                    mins: Math.max(0, f.rel - nowMin), arriveAt: f.at, sched: true,
+                    next: `Llegada a destino: ${fmtSchedMin(f.arrEnd)}` +
+                        (items[1] ? ` · Siguiente: ${fmtSchedMin(items[1].dep)}` : ''),
+                    occ: null,
+                    itinKey: `${mode}:${f.li}:${f.hi}:${f.dep}`,
+                    itin: { mode, li: f.li, hi: f.hi, dep: f.dep, idx }
+                });
+            });
+            return departures;
+        }
 
         async function fetchHbusArrivals(stop) {
             const d = await ensureHispano();
@@ -1502,37 +1607,7 @@
                 if (idx < 0) throw new Error('Parada no encontrada en los horarios.');
                 stop.idx = idx; stop.name = stop.name || d.stops[idx][1];
             }
-            const now = new Date();
-            let nowMin = now.getHours() * 60 + now.getMinutes();
-            let svcDay = new Date(now);
-            if (now.getHours() < 4) { svcDay = new Date(now.getTime() - 864e5); nowMin += 1440; } // madrugada = día de servicio anterior
-            const dateKey = svcDay.getFullYear() + String(svcDay.getMonth() + 1).padStart(2, '0') + String(svcDay.getDate()).padStart(2, '0');
-            const active = new Set(d.dates[dateKey] || []);
-            const dayStart = new Date(svcDay); dayStart.setHours(0, 0, 0, 0);
-
-            const groups = new Map();
-            (d._deps[idx] || []).forEach(x => {
-                const [li, svc, dep, hi, arrEnd] = x;
-                if (!active.has(svc) || dep < nowMin || dep > nowMin + 480) return;
-                const k = li + '|' + hi;
-                (groups.get(k) || groups.set(k, []).get(k)).push({ dep, arrEnd, li, hi });
-            });
-
-            const fmtMin = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-            const departures = [];
-            groups.forEach(items => {
-                items.sort((a, b) => a.dep - b.dep);
-                const f = items[0];
-                departures.push({
-                    line: hbusLine(d.lines[f.li][0]), color: HBUS_COLOR, dest: d.heads[f.hi],
-                    mins: Math.max(0, f.dep - nowMin),
-                    arriveAt: dayStart.getTime() + f.dep * 60000,
-                    next: `Llegada a destino: ${fmtMin(f.arrEnd)}` + (items[1] ? ` · Siguiente: ${fmtMin(items[1].dep)}` : ''),
-                    occ: null,
-                    itinKey: `hbus:${f.li}:${f.hi}:${f.dep}`,
-                    itin: { mode: 'hbus', li: f.li, hi: f.hi, dep: f.dep, idx }
-                });
-            });
+            const departures = scheduleDepartures(d, idx, { color: HBUS_COLOR, mode: 'hbus', lineFmt: hbusLine });
             if (departures.length === 0) throw new Error('Sin salidas previstas en las próximas 8 horas en esta parada.');
             return departures;
         }
@@ -1567,7 +1642,7 @@
                 else if (d.itin.mode === 'metro') nodes = await metroItinerary(d.itin);
                 else if (d.itin.mode === 'train') nodes = await renfeItinerary(d.itin);
                 else if (d.itin.mode === 'fgc') nodes = await fgcItinerary(d.itin);
-                else if (d.itin.mode === 'hbus') nodes = await hbusItinerary(d.itin);
+                else if (d.itin.mode === 'hbus' || d.itin.mode === 'nit') nodes = await hbusItinerary(d.itin);
                 else nodes = await tramItinerary(d.itin);
 
                 if (!activeRoute || activeRoute.key !== d.itinKey) return;
@@ -1665,7 +1740,7 @@
 
         // Recorrido de un bus de la Hispano: el patrón exacto del viaje, del GTFS local
         async function hbusItinerary(itin) {
-            const d = await ensureHispano();
+            const d = itin.mode === 'nit' ? await ensureNitbus() : await ensureHispano();
             const trip = (d.trips || []).find(([li, , hi, pat]) =>
                 li === itin.li && hi === itin.hi && pat.some(([si, tm]) => si === itin.idx && tm === itin.dep));
             if (!trip) throw new Error('No encuentro el recorrido de este bus.');
@@ -2901,14 +2976,29 @@
         }
 
         // --- 12. BÚSQUEDA MANUAL (paradas de bus) ---
-        function searchManual() {
+        async function searchManual() {
             const code = document.getElementById('stopCode').value.trim();
             if (!code) {
                 showError("Escribe el código de la parada de bus (está en el poste o marquesina).");
                 return;
             }
             document.getElementById('stopCode').blur();
-            fetchArrivals({ type: 'bus', code, name: `Parada ${code}` });
+            const stop = { type: 'bus', code, name: `Parada ${code}` };
+            // el listado de paradas de TMB (cacheado) da nombre y coordenadas:
+            // con ellas sale el nombre real, el mapa centrado y el cruce con el NitBus
+            try {
+                const hit = (await getTmbBusStops()).find(([c]) => String(c) === String(code));
+                if (hit) {
+                    stop.name = hit[1]; stop.lat = hit[2]; stop.lon = hit[3];
+                    map.setView([stop.lat, stop.lon], 17);
+                    markersLayer.clearLayers();
+                    stopMarkers = {};
+                    const marker = L.marker([stop.lat, stop.lon], { icon: stopPinIcon('bus', true) }).addTo(markersLayer);
+                    marker.bindPopup(`<b>${esc(stop.name)}</b>`);
+                    stopMarkers[stopKey(stop)] = marker;
+                }
+            } catch { /* sin lista de paradas seguimos con el número a secas */ }
+            fetchArrivals(stop);
         }
 
         // --- 13. ESTACIONES DE METRO (TMB, con caché de 7 días) ---
@@ -3061,7 +3151,15 @@
                 getMetroStations()
             ]);
 
-            const busStops = busRes.status === 'fulfilled' ? busRes.value : [];
+            // Overpass se satura y cae a menudo; el listado de paradas de TMB lo
+            // tenemos cacheado y no depende de nadie, así que hace de red de seguridad
+            let busStops = busRes.status === 'fulfilled' ? busRes.value : [];
+            if (busStops.length === 0) {
+                try {
+                    busStops = (await tmbBusStopsNear(lat, lon, 700, 12))
+                        .map(b => ({ type: 'bus', code: String(b.code), name: b.name, lat: b.lat, lon: b.lon, dist: b.dist }));
+                } catch { /* sin listado tampoco: seguimos con metro, tram y tren */ }
+            }
             const metroStops = (metroRes.status === 'fulfilled' ? metroRes.value : [])
                 .map(s => ({ type: 'metro', id: s.id, name: s.name, lines: s.lines, lat: s.lat, lon: s.lon, dist: getDistance(lat, lon, s.lat, s.lon) }))
                 .filter(s => s.dist <= 800);
@@ -3088,10 +3186,7 @@
                 .slice(0, 15);
 
             if (nearbyStops.length === 0) {
-                const reason = busRes.status === 'rejected'
-                    ? "El buscador de paradas está saturado. Inténtalo en unos minutos o busca por nº de parada."
-                    : "No hay paradas de bus, metro ni tram a menos de 900 m de este punto.";
-                showError(reason, "searchGPS");
+                showError("No hay paradas de bus, metro ni tram a menos de 900 m de este punto.", "searchGPS");
                 return;
             }
 
