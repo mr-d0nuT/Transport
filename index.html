@@ -321,6 +321,28 @@
         .jstep-det .itinerary-node { padding: 4px 0; }
         .jstep-det .node-name { font-size: .8rem; }
 
+        /* ---- Consejo de vagón (cabeza / centro / cola) ---- */
+        .wagon-tip {
+            display: flex; gap: 9px; align-items: center; margin: 6px 0 2px; padding: 6px 9px;
+            border-radius: 10px; background: color-mix(in srgb, var(--blue) 10%, var(--card));
+            border: 1px solid color-mix(in srgb, var(--blue) 22%, transparent);
+        }
+        .wg-train { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+        .wg-car { width: 8px; height: 15px; border-radius: 2px; background: color-mix(in srgb, var(--text) 20%, transparent); }
+        .wg-car.on { background: var(--blue); }
+        .wg-car.head { border-radius: 2px 7px 7px 2px; }   /* el morro marca el sentido */
+        .wg-arrow { font-size: .65rem; color: var(--text-faint); margin-left: 1px; }
+        .wg-text { font-size: .78rem; color: var(--text); line-height: 1.35; }
+        .wg-text b { color: var(--text); }
+        .wg-why { color: var(--text-faint); }
+        .jstep-sub b.slack { color: var(--green); }        /* gana a .jstep-body b */
+        .jstep-sub b.slack.tight { color: var(--amber); }
+        .trip-wagon {
+            display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 8px;
+            background: color-mix(in srgb, var(--blue) 16%, transparent); color: var(--blue);
+            font-size: .78rem; font-weight: 800;
+        }
+
         footer { text-align: center; font-size: .72rem; color: var(--text-faint); padding: 26px 0 10px; }
 
         /* ---- Iniciar trayecto (botón dentro del detalle) ---- */
@@ -660,6 +682,7 @@
 
         const OVERPASS_ENDPOINTS = [
             "https://overpass-api.de/api/interpreter",
+            "https://overpass.openstreetmap.fr/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
             "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
         ];
@@ -1705,7 +1728,212 @@
             return stops.map(([name, lat, lon]) => ({ name, lat, lon, hl: name === stopName }));
         }
 
-        // --- 11B. PLANIFICADOR DE RUTAS (TMB Planner: bus + metro + tram) ---
+        // --- 11B. ¿CABEZA O COLA? EN QUÉ PARTE DEL TREN CONVIENE IR ---
+        // andenes-metro.json (generado desde OpenStreetMap por scripts/build_andenes.py)
+        // trae el eje de cada andén, sus accesos a la calle y sus escaleras. Con el
+        // sentido de la marcha sabemos dónde queda la cabeza del tren, y con eso en
+        // qué vagón colocarse para bajar justo delante del transbordo o de la salida.
+        let andenesData = null, andenesReq = null;
+        function ensureAndenes() {
+            if (andenesData !== null) return Promise.resolve(andenesData);
+            if (!andenesReq) andenesReq = fetch('./andenes-metro.json')
+                .then(r => r.ok ? r.json() : null)
+                .then(d => (andenesData = d || false))
+                .catch(() => (andenesData = false));
+            return andenesReq;
+        }
+
+        // L9 Nord, L9N, l9 nord… todo al mismo saco
+        const lineKey = s => String(s || '').toUpperCase().replace(/[\s.]/g, '')
+            .replace('NORD', 'N').replace('SUD', 'S').replace('SUR', 'S');
+        const isMetroLine = l => /^L\d+[NS]?$/.test(lineKey(l));
+
+        function andenStation(lat, lon, line) {
+            if (!andenesData || lat == null) return null;
+            const want = lineKey(line);
+            let best = null;
+            for (const st of andenesData.s) {
+                const d = getDistance(lat, lon, st.c[0], st.c[1]);
+                if (d > 500) continue;
+                if (want && !Object.keys(st.p).some(k => lineKey(k) === want)) continue;
+                if (!best || d < best.d) best = { st, d };
+            }
+            return best && best.st;
+        }
+
+        function stationAxis(st, line) {
+            const want = lineKey(line);
+            for (const k in st.p) if (lineKey(k) === want) return st.p[k];
+            const ks = Object.keys(st.p);
+            return ks.length === 1 ? st.p[ks[0]] : null;   // estación de una sola línea
+        }
+
+        // Coordenadas locales en metros para proyectar sobre el eje del andén
+        function axisFrame(axis) {
+            const mx = 111320 * Math.cos(axis[0][0] * Math.PI / 180);
+            const rel = p => [(p[1] - axis[0][1]) * mx, (p[0] - axis[0][0]) * 110540];
+            const v = rel(axis[1]);
+            const len2 = v[0] * v[0] + v[1] * v[1];
+            return {
+                v, len: Math.sqrt(len2),
+                frac: p => len2 ? (rel(p)[0] * v[0] + rel(p)[1] * v[1]) / len2 : .5,
+                at: t => [axis[0][0] + (axis[1][0] - axis[0][0]) * t,
+                          axis[0][1] + (axis[1][1] - axis[0][1]) * t]
+            };
+        }
+
+        // Orienta el eje en el sentido de la marcha: [cola, cabeza]. Si el tren
+        // entra casi de lado (andén en curva o datos raros) devolvemos null.
+        function orientAxis(axis, from, to) {
+            const mx = 111320 * Math.cos(axis[0][0] * Math.PI / 180);
+            const v = [(to.lon - from.lon) * mx, (to.lat - from.lat) * 110540];
+            const a = axisFrame(axis).v;
+            const nv = Math.hypot(v[0], v[1]), na = Math.hypot(a[0], a[1]);
+            if (nv < 30 || !na) return null;
+            const cos = (v[0] * a[0] + v[1] * a[1]) / (nv * na);
+            if (Math.abs(cos) < .35) return null;
+            return cos > 0 ? axis : [axis[1], axis[0]];
+        }
+
+        // Parada anterior a la bajada: da el rumbo con el que llega el tren
+        function prevStop(leg) {
+            const seq = (leg.intermediateStops && leg.intermediateStops.length) ? leg.intermediateStops
+                : (leg._stops && leg._stops.length ? leg._stops : null);
+            if (seq) {
+                for (let i = seq.length - 1; i >= 0; i--) {
+                    const s = seq[i];
+                    if (s.lat != null && getDistance(s.lat, s.lon, leg.to.lat, leg.to.lon) > 120)
+                        return { lat: s.lat, lon: s.lon };
+                }
+            }
+            return (leg.from && leg.from.lat != null) ? { lat: leg.from.lat, lon: leg.from.lon } : null;
+        }
+
+        // Punto del andén A más cercano al andén B (muestreo: 100 m no dan para más)
+        function closestOnAxis(axisA, axisB) {
+            const fa = axisFrame(axisA), fb = axisFrame(axisB);
+            let best = null;
+            for (let i = 0; i <= 20; i++) {
+                const pa = fa.at(i / 20);
+                for (let j = 0; j <= 20; j++) {
+                    const pb = fb.at(j / 20);
+                    const d = getDistance(pa[0], pa[1], pb[0], pb[1]);
+                    if (!best || d < best.d) best = { d, a: pa, b: pb };
+                }
+            }
+            return best;
+        }
+
+        // Si el andén tiene escaleras o ascensores dibujados, se sale por la que
+        // cae más cerca del destino: es más fino que el rumbo al andén de al lado
+        function stairsToward(st, axis, target) {
+            const f = axisFrame(axis);
+            let best = null;
+            for (const s of (st.x || [])) {
+                const t = f.frac(s);
+                if (t < -.12 || t > 1.12) continue;
+                const onAxis = f.at(Math.max(0, Math.min(1, t)));
+                if (getDistance(s[0], s[1], onAxis[0], onAxis[1]) > 25) continue;
+                const d = getDistance(s[0], s[1], target[0], target[1]);
+                if (!best || d < best.d) best = { d, pt: s };
+            }
+            return best && best.pt;
+        }
+
+        // Acceso a la calle más cercano a donde seguimos después de bajar
+        function bestEntrance(st, to) {
+            let best = null;
+            for (const e of (st.e || [])) {
+                const d = getDistance(e[0], e[1], to.lat, to.lon);
+                if (!best || d < best.d) best = { d, e };
+            }
+            return best && best.e;
+        }
+
+        const WAGON_ZONES = {
+            cabeza: { key: 'cabeza', label: 'cabeza', txt: 'en los primeros vagones', cars: [3, 4] },
+            centro: { key: 'centro', label: 'centro', txt: 'por el centro del tren', cars: [2] },
+            cola:   { key: 'cola',   label: 'cola',   txt: 'en los últimos vagones', cars: [0, 1] }
+        };
+        const wagonZone = f => f >= .62 ? WAGON_ZONES.cabeza : (f <= .38 ? WAGON_ZONES.cola : WAGON_ZONES.centro);
+
+        // Consejo para el tramo de metro `i`: en qué parte del tren ir y por qué.
+        // Devuelve null si no hay datos suficientes (mejor callar que inventar).
+        function wagonTip(it, i) {
+            const leg = it && it.legs[i];
+            if (!andenesData || !leg || !leg.transitLeg) return null;
+            if (leg.mode !== 'SUBWAY' && !isMetroLine(leg.routeShortName)) return null;
+            if (leg.to.lat == null) return null;
+
+            const st = andenStation(leg.to.lat, leg.to.lon, leg.routeShortName);
+            const raw = st && stationAxis(st, leg.routeShortName);
+            const prev = raw && prevStop(leg);
+            const axis = prev && orientAxis(raw, prev, leg.to);
+            if (!axis) return null;
+
+            // ¿qué hacemos al bajar? el siguiente tramo de transporte manda
+            let j = i + 1, walk = 0;
+            while (j < it.legs.length && !it.legs[j].transitLeg) { walk += it.legs[j].distance || 0; j++; }
+            const next = it.legs[j];
+
+            let target = null, kind = 'salida', toLine = null, exitName = null;
+            const sameStation = next && next.from.lat != null &&
+                getDistance(leg.to.lat, leg.to.lon, next.from.lat, next.from.lon) < 450;
+
+            if (next && sameStation && walk <= 400 &&
+                (next.mode === 'SUBWAY' || isMetroLine(next.routeShortName))) {
+                const stB = andenStation(next.from.lat, next.from.lon, next.routeShortName) || st;
+                const axisB = stationAxis(stB, next.routeShortName);
+                if (axisB) {
+                    const cp = closestOnAxis(axis, axisB);
+                    target = stairsToward(st, axis, cp.b) || cp.a;
+                    kind = 'transbordo';
+                    toLine = next.routeShortName;
+                }
+            }
+            if (!target) {
+                // salimos a la calle: el acceso que pilla de camino a lo siguiente
+                const onward = next && next.from.lat != null ? next.from
+                    : (journeyDest && journeyDest.lat != null ? journeyDest : null);
+                if (!onward) return null;
+                const ent = bestEntrance(st, onward);
+                if (!ent) return null;
+                exitName = ent[2] || null;
+                target = stairsToward(st, axis, ent) || ent;
+                kind = next ? 'enlace' : 'salida';
+            }
+
+            const f = Math.max(0, Math.min(1, axisFrame(axis).frac(target)));
+            return { zone: wagonZone(f), f, kind, toLine, exitName, station: st.n };
+        }
+
+        function wagonTipHTML(tip) {
+            if (!tip) return '';
+            const cars = [0, 1, 2, 3, 4].map(n =>
+                `<span class="wg-car${tip.zone.cars.includes(n) ? ' on' : ''}${n === 4 ? ' head' : ''}"></span>`).join('');
+            const why = tip.kind === 'transbordo'
+                ? `el paso al <b>${esc(tip.toLine)}</b> queda por ahí`
+                : (tip.exitName ? `la salida <b>${esc(tip.exitName)}</b> queda por ahí`
+                                : 'la salida queda por ahí');
+            return `<div class="wagon-tip">
+                <div class="wg-train" aria-hidden="true">${cars}<span class="wg-arrow">▸</span></div>
+                <div class="wg-text">Ve <b>${tip.zone.txt}</b>
+                    <span class="wg-why">· al bajar en ${esc(tip.station)}, ${why}</span></div>
+            </div>`;
+        }
+
+        // Rellena los consejos de vagón del detalle en cuanto está el dataset
+        function fillWagonTips(it, container) {
+            ensureAndenes().then(() => {
+                if (!andenesData) return;
+                it.legs.forEach((l, i) => {
+                    const slot = container.querySelector(`.jstep-wagon[data-leg="${i}"]`);
+                    if (slot) slot.innerHTML = wagonTipHTML(wagonTip(it, i));
+                });
+            });
+        }
+
+        // --- 11C. PLANIFICADOR DE RUTAS (TMB Planner: bus + metro + tram) ---
         let journeyDest = null;   // { name, lat, lon }
         let journeyItins = [];
         let destDebounce = null;
@@ -2461,6 +2689,7 @@
         }
 
         function renderJourneys() {
+            ensureAndenes();   // lo vamos a necesitar en cuanto se abra un detalle
             document.getElementById('journeySection').style.display = 'block';
             document.getElementById('journeyTitle').innerText = `🧭 A ${journeyDest.name}`;
             document.getElementById('journeySub').innerText = `Desde tu ubicación · ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
@@ -2478,6 +2707,19 @@
                 </div>`).join('');
         }
 
+        // Minutos de colchón al enlazar: lo que sobra entre bajarse del anterior
+        // (andando hasta aquí) y la salida de este. Si va justo, más vale saberlo.
+        function slackHTML(it, i) {
+            let j = i - 1, walk = 0;
+            while (j >= 0 && !it.legs[j].transitLeg) { walk += it.legs[j].duration || 0; j--; }
+            const prev = it.legs[j];
+            if (!prev || !prev.transitLeg || !prev.endTime || !it.legs[i].startTime) return '';
+            const mins = Math.round((it.legs[i].startTime - prev.endTime) / 60000 - walk / 60);
+            if (!isFinite(mins) || mins < 0 || mins > 45) return '';
+            return mins <= 1 ? ' · <b class="slack tight">enlace justo</b>'
+                : ` · <b class="slack">${mins} min de margen</b>`;
+        }
+
         function journeyStepsHTML(it) {
             return it.legs.map((l, i) => {
                 if (!l.transitLeg) {
@@ -2493,7 +2735,8 @@
                 return `<div class="jstep">
                     <div class="jstep-icon"><span class="jleg-badge" style="background:${color}">${esc(l.routeShortName || l.mode)}</span></div>
                     <div class="jstep-body"><b>${esc(l.from.name)}</b> → <b>${esc(l.to.name)}</b>
-                        <div class="jstep-sub">dirección ${esc(l.headsign || '')} · ${nStops ? nStops + ' paradas · ' : ''}${Math.round(l.duration / 60)} min · ${fmtTime(l.startTime)}${l._est ? ' · llegada ≈' + fmtTime(l.endTime) : ''}</div>
+                        <div class="jstep-sub">dirección ${esc(l.headsign || '')} · ${nStops ? nStops + ' paradas · ' : ''}${Math.round(l.duration / 60)} min · ${fmtTime(l.startTime)}${l._est ? ' · llegada ≈' + fmtTime(l.endTime) : ''}${slackHTML(it, i)}</div>
+                        <div class="jstep-wagon" data-leg="${i}"></div>
                         <div class="jstep-stops" data-leg="${i}"></div></div>
                 </div>`;
             }).join('');
@@ -2526,6 +2769,7 @@
             detail.innerHTML = `<button class="trip-start-btn" onclick="event.stopPropagation(); startTrip(${i})">▶ Iniciar trayecto</button>` + journeyStepsHTML(it);
             detail.style.display = 'block';
             fillStepStops(it, detail);
+            fillWagonTips(it, detail);
             drawJourney(it);
             // si algún tramo era una recta, repinta cuando llegue su trazado real
             ensureLegGeometry(it).then(changed => {
@@ -3043,7 +3287,9 @@
                 return `🚶 Sigue caminando hasta <b>${esc(journeyDest.name)}</b>`;
             }
             const c = leg.routeColor ? '#' + leg.routeColor : '#0a84ff';
-            return `<span class="trip-next-badge" style="background:${c}">${esc(leg.routeShortName || leg.mode)}</span> Baja en <b>${esc(leg.to.name)}</b>`;
+            const tip = wagonTip(it, rt.legIdx[proj.seg]);
+            const wagon = tip ? ` <span class="trip-wagon">🚇 ${esc(tip.zone.label)}</span>` : '';
+            return `<span class="trip-next-badge" style="background:${c}">${esc(leg.routeShortName || leg.mode)}</span> Baja en <b>${esc(leg.to.name)}</b>${wagon}`;
         }
 
         function showTripAlert(msg) { document.getElementById('tripAlertText').innerText = msg; document.getElementById('tripAlert').style.display = 'flex'; }
