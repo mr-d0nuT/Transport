@@ -20,6 +20,7 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
   - 🌙 **NitBus** (N0-N28, horarios del GTFS de AMB: de noche no hay tiempo real, pero sí a qué hora pasa)
   - 🚍 **Hispano Igualadina** (horarios GTFS precompilados)
 - **¿Cabeza o cola?** En cada tramo de metro te dice en qué parte del tren colocarte para bajar justo delante del transbordo o de la salida que te toca — y te nombra la salida ("al bajar en Espanya, la salida Exposició / Gran Via queda por ahí"). Sale de la geometría de los andenes, los accesos y las escaleras de OpenStreetMap, cruzada con el sentido de la marcha.
+- **Correspondencias en cada parada.** Al desplegar el recorrido de una línea, cada parada muestra a la derecha con qué otras líneas enlaza ahí (metro, tram, Rodalies, FGC y bus), con sus colores oficiales.
 - **Margen de transbordo.** Cada enlace muestra los minutos que quedan entre bajarte del anterior y salir el siguiente, en ámbar si va justo.
 - **Planificador de trayectos.** Escribe un destino (buscador sobre toda Cataluña vía Photon/OSM) y propone rutas combinando bus, metro, tram, tren, FGC y tramos a pie, ordenadas penalizando las caminatas largas. Cada ruta se dibuja sobre el mapa con el recorrido real, no en línea recta.
 - **Modo navegación.** Sigue el trayecto en vivo con el GPS, avisa del siguiente paso y de la bajada, y permite pedir una **alternativa** o replanificar sin salir de la ruta.
@@ -39,12 +40,14 @@ Es una **app estática de un solo archivo**: todo el HTML, CSS y JavaScript vive
 | `manifest.webmanifest` + `icon-*` | Instalación como PWA |
 | `hispano-igualadina.json` | Horarios de Hispano Igualadina precompilados desde el GTFS |
 | `nitbus.json` | Horarios del NitBus precompilados desde el GTFS de AMB |
+| `correspondencias.json` | Con qué líneas enlaza cada parada de bus |
 | `andenes-metro.json` | Ejes de los andenes, accesos y escaleras del metro (para el consejo de vagón) |
 | `scripts/gtfs_compact.py` | Compila un GTFS al JSON compacto que lee la app |
 | `scripts/build_hispano.py` | Horarios de la Hispano desde el GTFS de la Generalitat |
 | `scripts/build_nitbus.py` | Horarios del NitBus desde el GTFS de AMB |
+| `scripts/build_corresp.py` | Correspondencias entre líneas desde la API de TMB |
 | `scripts/build_andenes.py` | Andenes del metro desde OpenStreetMap (Overpass) |
-| `.github/workflows/` | Los regeneran solos: Hispano los lunes, NitBus los martes, andenes cada mes |
+| `.github/workflows/` | Los regeneran solos: Hispano los lunes, NitBus los martes, correspondencias los miércoles, andenes cada mes |
 
 ### Datos y servicios usados
 
@@ -76,6 +79,10 @@ python3 scripts/build_hispano.py
 
 ```bash
 python3 scripts/build_nitbus.py
+```
+
+```bash
+python3 scripts/build_corresp.py
 ```
 
 ```bash

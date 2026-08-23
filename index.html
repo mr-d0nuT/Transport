@@ -233,6 +233,14 @@
         .node-dot { width: 17px; height: 17px; border-radius: 50%; z-index: 2; flex-shrink: 0; border: 3.5px solid var(--card); box-shadow: 0 0 0 1px var(--border); }
         .node-name { font-size: .86rem; color: var(--text-soft); }
         .node-name.hl { font-weight: 800; color: var(--text); }
+        .node-corresp { margin-left: auto; display: flex; align-items: center; gap: 3px; flex-shrink: 0; padding-left: 8px; }
+        .corresp-badge {
+            display: inline-block; min-width: 20px; padding: 1px 5px; border-radius: 4px;
+            font-size: .65rem; font-weight: 800; color: #fff; text-align: center;
+            line-height: 1.5; letter-spacing: .2px;
+        }
+        .corresp-badge.bus { border-radius: 9px; }
+        .corresp-more { font-size: .65rem; font-weight: 700; color: var(--text-faint); }
         .loader-small { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 16px; height: 16px; animation: spin .9s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -1612,7 +1620,68 @@
             return departures;
         }
 
-        // --- 11. ITINERARIOS DESPLEGABLES ---
+        // --- 11. CORRESPONDENCIAS EN CADA PARADA DEL RECORRIDO ---
+        // correspondencias.json (scripts/build_corresp.py) dice, para cada parada
+        // de bus, con qué líneas se enlaza ahí. Se pide al abrir un recorrido.
+        let correspData = null, correspReq = null;
+        function ensureCorresp() {
+            if (correspData !== null) return Promise.resolve(correspData);
+            correspReq = correspReq || fetch('./correspondencias.json')
+                .then(r => r.ok ? r.json() : null)
+                .then(d => (correspData = d || false))
+                .catch(() => (correspData = false));
+            return correspReq;
+        }
+
+        // Enlaces de una parada, sin la línea en la que ya vas. Por código de
+        // parada, y si no lo tenemos (recorridos que solo traen coordenadas),
+        // por cercanía.
+        function correspAt(node, skipLine) {
+            if (!correspData) return [];
+            let entry = node.code != null ? correspData.s[String(node.code)] : null;
+            if (!entry && node.lat != null) {
+                let best = null;
+                for (const k in correspData.s) {
+                    const e = correspData.s[k];
+                    if (Math.abs(e[0] - node.lat) > .0006 || Math.abs(e[1] - node.lon) > .0008) continue;
+                    const dist = getDistance(node.lat, node.lon, e[0], e[1]);
+                    if (dist <= 50 && (!best || dist < best.dist)) best = { dist, e };
+                }
+                entry = best && best.e;
+            }
+            if (!entry) return [];
+            const skip = String(skipLine || '').toUpperCase();
+            return entry[2].filter(l => l[0].toUpperCase() !== skip);
+        }
+
+        // Las otras líneas de metro de una estación: el listado de estaciones de
+        // TMB (cacheado) ya trae los pictogramas de cada una
+        function metroLinksAt(pt, skipLine, stations) {
+            if (pt.lat == null) return [];
+            let best = null;
+            (stations || []).forEach(st => {
+                const dist = getDistance(pt.lat, pt.lon, st.lat, st.lon);
+                if (dist <= 250 && (!best || dist < best.dist)) best = { dist, st };
+            });
+            if (!best) return [];
+            const skip = String(skipLine || '').toUpperCase();
+            return (String(best.st.lines || '').match(/L\d+[NS]?|FM/g) || [])
+                .filter(l => l.toUpperCase() !== skip)
+                .map(l => [l, metroColor(l), 'M']);
+        }
+
+        // Distintivos a la derecha de la parada. Los de tren y metro van con la
+        // esquina cuadrada y los de bus redondeados, como en la señalética.
+        function correspHTML(lines, max = 4) {
+            if (!lines || !lines.length) return '';
+            const shown = lines.slice(0, max), rest = lines.length - shown.length;
+            return '<div class="node-corresp">' +
+                shown.map(([name, color, kind]) =>
+                    `<span class="corresp-badge${kind === 'B' ? ' bus' : ''}" style="background:${color.startsWith('#') ? color : '#' + color}">${esc(name)}</span>`).join('') +
+                (rest > 0 ? `<span class="corresp-more">+${rest}</span>` : '') + '</div>';
+        }
+
+        // --- 11B. ITINERARIOS DESPLEGABLES ---
         async function toggleItinerary(index, cardElement) {
             const d = (window._departures || [])[index];
             if (!d || !d.itin) return;
@@ -1646,6 +1715,8 @@
                 else nodes = await tramItinerary(d.itin);
 
                 if (!activeRoute || activeRoute.key !== d.itinKey) return;
+                await ensureCorresp();
+                if (!activeRoute || activeRoute.key !== d.itinKey) return;
 
                 let html = '<div>';
                 const latlngs = [];
@@ -1657,10 +1728,15 @@
                         radius: (isFirst || isLast || n.hl) ? 7 : 4.5,
                         color: dotColor, fillColor: '#fff', fillOpacity: 1, weight: 3
                     }).bindPopup(`<b>${esc(n.name)}</b>`).addTo(routeLayer);
+                    // las otras líneas que enlazan aquí: del recorrido si las trae
+                    // (metro), del dataset de correspondencias si no (bus)
+                    const links = n.lines ? n.lines.filter(l => l[0].toUpperCase() !== String(d.line).toUpperCase())
+                                          : correspAt(n, d.line);
                     html += `
                         <div class="itinerary-node">
                             <div class="node-dot" style="background:${dotColor}"></div>
                             <div class="node-name ${isFirst || isLast || n.hl ? 'hl' : ''}">${esc(n.name)}${n.hl ? ' 📍' : ''}</div>
+                            ${correspHTML(links)}
                         </div>`;
                 });
                 html += '</div>';
@@ -1780,7 +1856,10 @@
             return data.features
                 .filter(f => f.properties.SENTIT === current.properties.SENTIT && f.properties.ORDRE >= current.properties.ORDRE)
                 .sort((a, b) => a.properties.ORDRE - b.properties.ORDRE)
-                .map(f => ({ name: f.properties.NOM_PARADA, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], hl: false }));
+                .map(f => ({
+                    name: f.properties.NOM_PARADA, code: f.properties.CODI_PARADA,
+                    lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], hl: false
+                }));
         }
 
         async function metroItinerary({ lineCode, stationId }) {
@@ -1793,7 +1872,10 @@
                 .map(f => ({
                     name: f.properties.NOM_ESTACIO,
                     lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
-                    hl: f.properties.CODI_ESTACIO == stationId
+                    hl: f.properties.CODI_ESTACIO == stationId,
+                    // PICTO_GRUP ("L2L3L4") lista las líneas que paran en la estación
+                    lines: (String(f.properties.PICTO_GRUP || '').match(/L\d+[NS]?|FM/g) || [])
+                        .map(l => [l, metroColor(l), 'M'])
                 }));
         }
 
@@ -2821,15 +2903,24 @@
         function fillStepStops(it, container) {
             it.legs.forEach(async (l, i) => {
                 if (!l.transitLeg) return;
-                const stops = await legStops(l).catch(() => null);
+                const [stops, , stations] = await Promise.all([
+                    legStops(l).catch(() => null),
+                    ensureCorresp(),
+                    l.mode === 'SUBWAY' ? getMetroStations().catch(() => []) : Promise.resolve([])
+                ]);
                 const el = container.querySelector(`.jstep-stops[data-leg="${i}"]`);
                 if (!el || !stops || stops.length < 2) return;
                 const color = l.routeColor ? '#' + l.routeColor : '#da291c';
+                // El dataset de correspondencias va por parada de bus: en el metro
+                // se cruza con el listado de estaciones, que trae sus líneas
+                const links = j => l.mode === 'BUS' ? correspHTML(correspAt(stops[j], l.routeShortName), 3)
+                    : (l.mode === 'SUBWAY' ? correspHTML(metroLinksAt(stops[j], l.routeShortName, stations), 3) : '');
                 el.innerHTML = `<details class="jstep-det"><summary>Ver las ${stops.length} paradas</summary><div>` +
                     stops.map((s, j) => `
                         <div class="itinerary-node">
                             <div class="node-dot" style="background:${j === 0 ? '#da291c' : (j === stops.length - 1 ? '#0a8f4e' : color)}"></div>
                             <div class="node-name ${j === 0 || j === stops.length - 1 ? 'hl' : ''}">${esc(s.name)}</div>
+                            ${links(j)}
                         </div>`).join('') + '</div></details>';
             });
         }

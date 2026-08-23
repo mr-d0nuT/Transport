@@ -1,0 +1,38 @@
+name: Actualiza las correspondencias entre líneas
+
+on:
+  schedule:
+    - cron: '10 5 * * 3'   # miércoles 05:10 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerar correspondencias.json desde la API de TMB
+        run: python3 scripts/build_corresp.py
+      - name: Comprobar que el resultado tiene sentido
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open('correspondencias.json'))
+          paradas = len(d['s'])
+          enlaces = sum(len(v[2]) for v in d['s'].values())
+          print(f'{paradas} paradas con enlaces, {enlaces} enlaces')
+          if paradas < 2200 or enlaces < 6000:
+              sys.exit('Datos incompletos: no se commitea')
+          PY
+      - name: Commit si hay cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add correspondencias.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Correspondencias entre líneas actualizadas (API de TMB)"
+          git push
