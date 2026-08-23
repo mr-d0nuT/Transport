@@ -28,6 +28,7 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
 - **Modo realidad aumentada.** Con la cámara y la brújula del móvil, superpone las paradas cercanas sobre lo que estás viendo, con sus próximas salidas.
 - **Favoritos y recientes**, guardados en el navegador (`localStorage`), sin cuenta ni servidor.
 - **Compartir parada** con enlace directo: `#p=bus:<código>`, `#p=metro:<id>`, `#p=tram:<ida>:<vuelta>`, `#p=train:<código>`, `#p=fgc:<código>`, `#p=hbus:<código>`.
+- **Catalán, castellano e inglés**, con selector de banderas en la cabecera: cambia la interfaz al vuelo, sin recargar. Los nombres de paradas y estaciones se quedan como los publica cada operador.
 - **Tema claro/oscuro** automático y funcionamiento offline de la interfaz gracias al service worker (los datos en tiempo real nunca se cachean).
 
 ## Cómo funciona
