@@ -12,6 +12,7 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
 
 - **Línea de tiempo de llegadas.** Los próximos minutos dibujados: cada salida en su sitio, y la franja rayada de lo que tardas en llegar a la parada, para ver de un golpe cuáles no coges.
 - **Cinta del viaje a escala.** Cada ruta se dibuja proporcional al tiempo, con las caminatas y las esperas marcadas: se ve la forma del trayecto sin leer un número.
+- **Vuelta a casa.** Marca dónde vives y, de noche, la app te dice hasta cuándo puedes quedarte: la última salida que te lleva a casa **sin NitBus**, con cuenta atrás en vivo. Si el metro ya ha cerrado, te dice la ruta nocturna y a qué hora vuelve a haber metro.
 - **"Ahora mismo".** Al abrirla, sin tocar nada, enseña la parada que sueles usar a esta hora con sus próximas salidas ya cargadas. Aprende de tu uso, guardado solo en tu móvil. De noche avisa de la hora del último servicio.
 - **Funciona sin cobertura.** Los horarios oficiales de TMB van compilados en la app: bajo tierra, con las APIs caídas o en la L9 y la L10 —que no dan tiempo real— sigue diciendo a qué hora pasa el siguiente.
 - **Paradas cercanas por GPS.** Al abrirla busca tu ubicación y lista las paradas de alrededor, con el mapa marcándolas.
