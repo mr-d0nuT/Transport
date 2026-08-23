@@ -132,6 +132,7 @@ def build(gtfs_url, out_dir, color_default=("FFAA00", "343434"), keep_route=None
     by_stop = collections.defaultdict(list)
     lines_at = collections.defaultdict(set)
     trip_seq = collections.defaultdict(list)
+    seg_times = collections.defaultdict(list)
 
     def volcar(trip_id, filas):
         """Cierra un viaje: interpola las paradas sin hora y reparte sus salidas.
@@ -172,6 +173,10 @@ def build(gtfs_url, out_dir, color_default=("FFAA00", "343434"), keep_route=None
                     by_stop[sid].append([li, svc, hi, when + delta])
             lines_at[sid].add(lines[li][0])
         trip_seq[trip_id] = [(f[0], f[1], li, hi) for f in filas]
+        # tiempos entre paradas consecutivas: hacen falta para saber dónde está
+        # un tren cuando solo sabes en cuántos minutos llega a cada estación
+        for a, b in zip(filas, filas[1:]):
+            seg_times[(li, hi, a[1], b[1])].append(max(0, b[2] - a[2]))
 
     trip_actual, buffer = None, []
     for st in rows("stop_times.txt"):
@@ -194,6 +199,15 @@ def build(gtfs_url, out_dir, color_default=("FFAA00", "343434"), keep_route=None
         key = (seq[0][2], seq[0][3])
         if key not in patterns or len(seq) > len(patterns[key]):
             patterns[key] = [x[1] for x in seq]
+
+    def mediana(v):
+        v = sorted(v)
+        return v[len(v) // 2] if v else 1
+
+    # minutos de una parada a la siguiente, en cada línea y sentido
+    pattern_times = {}
+    for (li, hi), pat in patterns.items():
+        pattern_times[(li, hi)] = [mediana(seg_times.get((li, hi, a, b), [])) for a, b in zip(pat, pat[1:])]
 
     if os.path.isdir(out_dir):
         shutil.rmtree(out_dir)
@@ -245,7 +259,8 @@ def build(gtfs_url, out_dir, color_default=("FFAA00", "343434"), keep_route=None
         json.dump({"v": version, "s": stop_list}, f, ensure_ascii=False, separators=(",", ":"))
     with open(os.path.join(out_dir, "lines.json"), "w", encoding="utf-8") as f:
         json.dump({"v": version,
-                   "r": [[lines[li][0], heads[hi], pat] for (li, hi), pat in sorted(patterns.items())],
+                   "r": [[lines[li][0], heads[hi], pat, pattern_times[(li, hi)]]
+                         for (li, hi), pat in sorted(patterns.items())],
                    "c": {l[0]: [l[2], l[3]] for l in lines}},
                   f, ensure_ascii=False, separators=(",", ":"))
 
