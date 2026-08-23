@@ -2,7 +2,7 @@
 
 **App web para consultar en tiempo real los próximos buses, metros, trams y trenes de la parada más cercana a tu ubicación en Barcelona y su área.**
 
-### 👉 [mr-d0nut.github.io/TMB](https://mr-d0nut.github.io/TMB/)
+### 👉 [mr-d0nut.github.io/Transport](https://mr-d0nut.github.io/Transport/)
 
 Se abre en el navegador, detecta tu posición y muestra al instante qué llega y en cuántos minutos. Instalable como app (PWA) en móvil y escritorio.
 

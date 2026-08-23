@@ -1,8 +1,8 @@
 // Service worker de Transport BCN: cachea la carcasa de la app para que
 // arranque al instante y funcione la interfaz sin red. Los datos en tiempo
 // real (TMB, TRAM, Overpass) y los tiles del mapa NUNCA se cachean.
-const CACHE = 'transport-bcn-v20';
-const SHELL = ['./', './index.html', './icon.svg', './manifest.webmanifest', './assets/logo_donut.png'];
+const CACHE = 'transport-bcn-v21';
+const SHELL = ['./', './index.html', './icon-192.png', './favicon-64.png', './manifest.webmanifest', './assets/mark-donut.png'];
 
 self.addEventListener('install', e => {
     e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
@@ -46,7 +46,7 @@ self.addEventListener('fetch', e => {
     }
 
     // Recursos propios y librerías CDN: caché primero (son versionados/estables)
-    const isShellAsset = url.origin === location.origin || url.hostname === 'unpkg.com' || url.hostname === 'cdn-icons-png.flaticon.com';
+    const isShellAsset = url.origin === location.origin || url.hostname === 'unpkg.com';
     if (isShellAsset && e.request.method === 'GET') {
         e.respondWith(
             caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {

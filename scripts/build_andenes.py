@@ -57,7 +57,7 @@ def overpass(query):
             try:
                 req = urllib.request.Request(
                     ep, urllib.parse.urlencode({"data": query}).encode(),
-                    headers={"User-Agent": "transport-bcn-build/1.0 (+https://github.com/mr-d0nuT/TMB)"})
+                    headers={"User-Agent": "transport-bcn-build/1.0 (+https://github.com/mr-d0nuT/Transport)"})
                 with urllib.request.urlopen(req, timeout=300) as r:
                     els = json.load(r)["elements"]
                 if not els:

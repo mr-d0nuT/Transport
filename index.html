@@ -8,7 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="Consulta en tiempo real los próximos buses, metros y trams de la parada más cercana a tu ubicación en Barcelona.">
     <title>Transport BCN</title>
-    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon-64.png" type="image/png" sizes="64x64">
+    <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
 
@@ -19,46 +20,65 @@
         :root {
             --primary: #da291c;
             --primary-dark: #b01e13;
-            --bg: #f2f4f8;
+            --bg: #f4f5f8;
+            --bg-deep: #eceef3;          /* fondos hundidos: pestañas, itinerarios */
             --card: #ffffff;
-            --text: #1a1d21;
-            --text-soft: #5f6670;
-            --text-faint: #9aa1ab;
-            --border: #e4e7ec;
+            --text: #12161c;
+            --text-soft: #59616d;
+            --text-faint: #949cab;
+            --border: #e6e9ef;
+            --border-strong: #d5dae3;
             --chip-bg: #ffffff;
             --green: #0a8f4e;
             --amber: #c77700;
             --blue: #1a73e8;
             --tram: #008e78;
-            --shadow: 0 1px 3px rgba(16,24,40,.08), 0 4px 12px rgba(16,24,40,.06);
-            --shadow-lg: 0 8px 24px rgba(16,24,40,.14);
-            --radius: 16px;
+            /* elevación en tres niveles: apoyada, flotante y despegada */
+            --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+            --shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px -6px rgba(16,24,40,.12);
+            --shadow-lg: 0 10px 32px -8px rgba(16,24,40,.22);
+            --radius-sm: 10px;
+            --radius: 15px;
+            --radius-lg: 20px;
+            --ring: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
         }
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg: #101418;
-                --card: #1b2026;
-                --text: #eef1f4;
-                --text-soft: #aab2bc;
-                --text-faint: #6f7884;
-                --border: #2a3138;
-                --chip-bg: #232931;
-                --green: #34c373;
-                --amber: #f0a437;
+                --bg: #0c0f13;
+                --bg-deep: #14181e;
+                --card: #171c23;
+                --text: #f0f3f7;
+                --text-soft: #a7b0bd;
+                --text-faint: #6d7684;
+                --border: #262d36;
+                --border-strong: #333c47;
+                --chip-bg: #1d232b;
+                --green: #35c97a;
+                --amber: #f2ab3c;
+                --blue: #4c9aff;
                 --tram: #15b89d;
-                --shadow: 0 1px 3px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
-                --shadow-lg: 0 8px 24px rgba(0,0,0,.5);
+                --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+                --shadow: 0 1px 2px rgba(0,0,0,.45), 0 8px 20px -8px rgba(0,0,0,.6);
+                --shadow-lg: 0 14px 38px -10px rgba(0,0,0,.75);
             }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
         }
 
         * { box-sizing: border-box; }
         html { -webkit-text-size-adjust: 100%; }
         body {
             background: var(--bg); color: var(--text); margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", sans-serif;
             overflow-x: hidden;
             padding-bottom: env(safe-area-inset-bottom);
+            -webkit-font-smoothing: antialiased;
+            font-feature-settings: "cv05" 1;
         }
+        /* los números de tiempos y distancias, siempre a la misma anchura */
+        .bus-time, .jcard-mins, .jcard-times, .trip-stat-val, .chip-dist, .refresh-text { font-variant-numeric: tabular-nums; }
+        :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 8px; }
 
         /* ---------- SPLASH ---------- */
         #splash-screen {
@@ -66,48 +86,89 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 9999; transition: opacity .45s ease-out; gap: 34px;
         }
-        .img-donut { width: 150px; border-radius: 26px; box-shadow: var(--shadow-lg); animation: pulse 1.8s infinite; }
-        .img-app { width: 80px; border-radius: 18px; box-shadow: var(--shadow); }
+        #splash-screen { gap: 20px; }
+        .img-donut { width: 128px; border-radius: 30px; box-shadow: var(--shadow-lg); animation: pulse 1.8s infinite; }
+        .splash-name { font-size: 1.05rem; font-weight: 800; letter-spacing: -.3px; color: var(--text-soft); }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
         /* ---------- HEADER ---------- */
         .topbar {
             position: sticky; top: 0; z-index: 1100;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-            background: color-mix(in srgb, var(--bg) 82%, transparent);
-            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px;
+            padding: calc(11px + env(safe-area-inset-top)) 16px 11px;
+            background: color-mix(in srgb, var(--bg) 72%, transparent);
+            -webkit-backdrop-filter: saturate(180%) blur(16px); backdrop-filter: saturate(180%) blur(16px);
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
         }
-        .topbar h1 { margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: -.3px; }
-        .topbar .subtitle { font-size: .68rem; font-weight: 700; color: var(--text-faint); letter-spacing: .6px; text-transform: uppercase; margin-top: 1px; }
+        .topmark {
+            width: 34px; height: 34px; border-radius: 11px; flex-shrink: 0; overflow: hidden;
+            background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--primary) 60%, transparent);
+        }
+        .topmark img { width: 30px; height: 30px; object-fit: contain; display: block; }
+        .topbar > div:nth-child(2) { min-width: 0; }   /* deja que el título se recorte */
+        .topbar h1 { margin: 0; font-size: 1.06rem; font-weight: 800; letter-spacing: -.35px; white-space: nowrap; }
+        .topbar .subtitle {
+            font-size: .64rem; font-weight: 700; color: var(--text-faint); letter-spacing: .7px;
+            text-transform: uppercase; margin-top: 1px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
         .live-badge {
-            font-size: .7rem; font-weight: 700; color: var(--green);
-            display: flex; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: .5px;
+            margin-left: auto; flex-shrink: 0; font-size: .66rem; font-weight: 800; color: var(--green);
+            display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: .6px;
+            background: color-mix(in srgb, var(--green) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+            padding: 5px 10px 5px 8px; border-radius: 999px; white-space: nowrap;
         }
-        .live-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.6s infinite; }
+        .live-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.6s infinite; }
 
-        main { padding: 14px 14px 50px; max-width: 640px; margin: 0 auto; }
+        @media (max-width: 360px) {
+            .topbar .subtitle { display: none; }
+        }
+
+        main { padding: 12px 14px 50px; max-width: 660px; margin: 0 auto; }
 
         /* ---------- MAPA ---------- */
-        .map-wrap { position: relative; margin-bottom: 14px; }
+        .map-wrap { position: relative; margin-bottom: 12px; }
         #map {
-            height: 300px; border-radius: var(--radius); box-shadow: var(--shadow);
-            z-index: 1; border: 1px solid var(--border); background: var(--bg);
+            height: 300px; border-radius: var(--radius-lg); box-shadow: var(--shadow);
+            z-index: 1; border: 1px solid var(--border); background: var(--bg-deep);
         }
+        @media (min-width: 700px) { #map { height: 360px; } }
         .map-fab {
             position: absolute; right: 12px; bottom: 12px; z-index: 1000;
-            width: 48px; height: 48px; border-radius: 50%;
-            background: var(--card); color: var(--blue); border: 1px solid var(--border);
-            box-shadow: var(--shadow-lg); font-size: 22px; cursor: pointer;
+            width: 46px; height: 46px; border-radius: 14px;
+            background: color-mix(in srgb, var(--card) 92%, transparent);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            color: var(--text); border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg); font-size: 20px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            transition: transform .15s;
+            transition: transform .15s, background .15s;
         }
-        .map-fab:active { transform: scale(.9); }
+        .map-fab:active { transform: scale(.92); }
+        /* el aviso del mapa, dentro del mapa: ocupaba una línea entera de la pantalla */
+        .map-hint-pill {
+            position: absolute; left: 12px; bottom: 32px; z-index: 1000; max-width: calc(100% - 90px);
+            background: color-mix(in srgb, var(--card) 88%, transparent);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            border: 1px solid var(--border); border-radius: 999px; box-shadow: var(--shadow-sm);
+            padding: 7px 12px; font-size: .72rem; font-weight: 600; color: var(--text-soft);
+            display: flex; align-items: center; gap: 6px; pointer-events: none;
+        }
+        .map-hint-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .leaflet-container { font-family: inherit; }
         .leaflet-popup-content-wrapper { border-radius: 12px; background: var(--card); color: var(--text); box-shadow: var(--shadow-lg); }
         .leaflet-popup-tip { background: var(--card); }
         .leaflet-bar a { background: var(--card) !important; color: var(--text) !important; border-color: var(--border) !important; }
+        .leaflet-bar { border-radius: 10px; overflow: hidden; box-shadow: var(--shadow) !important; border: none !important; }
+        /* la atribución venía con fondo blanco fijo: cantaba en modo oscuro */
+        .leaflet-control-attribution {
+            background: color-mix(in srgb, var(--card) 80%, transparent) !important;
+            color: var(--text-faint) !important; font-size: .62rem !important;
+            border-radius: 8px 0 0 0; padding: 2px 6px !important;
+        }
+        .leaflet-control-attribution a { color: var(--text-soft) !important; }
 
         .stop-pin svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); transition: transform .15s; transform-origin: bottom center; }
         .stop-pin.selected svg { transform: scale(1.25); }
@@ -124,36 +185,59 @@
         @keyframes halo { 0% { transform: translate(-50%,-50%) scale(1); opacity: .4; } 100% { transform: translate(-50%,-50%) scale(3.2); opacity: 0; } }
 
         /* ---------- BUSCADOR ---------- */
-        .controls { display: flex; gap: 8px; margin-bottom: 14px; }
+        .search-card {
+            background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow); padding: 10px; margin-bottom: 14px;
+        }
+        .segmented { display: flex; gap: 3px; background: var(--bg-deep); border-radius: 12px; padding: 3px; margin-bottom: 10px; }
+        .seg-btn {
+            flex: 1; border: none; background: none; border-radius: 9px; padding: 9px 8px;
+            font-size: .86rem; font-weight: 700; color: var(--text-soft); cursor: pointer;
+            transition: background .18s, color .18s, box-shadow .18s; -webkit-tap-highlight-color: transparent;
+        }
+        .seg-btn.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-sm); }
+        .controls { display: flex; gap: 8px; }
         input[type=number] {
             flex: 1; min-width: 0; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px;
-            font-size: 1rem; font-weight: 700; text-align: center; background: var(--card); color: var(--text);
-            -moz-appearance: textfield; appearance: textfield; outline: none; transition: border-color .15s;
+            font-size: 1rem; font-weight: 700; background: var(--bg-deep); color: var(--text);
+            -moz-appearance: textfield; appearance: textfield; outline: none;
+            transition: border-color .15s, box-shadow .15s, background .15s;
         }
         input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-        input[type=number]:focus { border-color: var(--primary); }
+        input[type=number]:focus { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); background: var(--card); box-shadow: var(--ring); }
         input::placeholder { color: var(--text-faint); font-weight: 500; }
         button { font-family: inherit; }
         .btn {
-            border: none; border-radius: 12px; padding: 13px 16px; font-size: .95rem; font-weight: 700;
+            border: none; border-radius: 12px; padding: 13px 18px; font-size: .95rem; font-weight: 700;
             cursor: pointer; transition: transform .12s, filter .15s; white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
         }
-        .btn:active { transform: scale(.95); }
-        .btn-search { background: var(--primary); color: #fff; }
-        .btn-gps { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+        .btn:active { transform: scale(.96); }
+        .btn-search {
+            background: linear-gradient(160deg, var(--primary), var(--primary-dark)); color: #fff;
+            box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--primary) 90%, transparent);
+        }
+        .btn-gps { background: var(--card); color: var(--text); border: 1px solid var(--border-strong); }
+        .btn-wide { display: block; width: 100%; margin-top: 8px; }
 
         /* ---------- CHIPS DE PARADAS ---------- */
-        .chips-label { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--text-faint); margin: 2px 4px 7px; }
-        .chips-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .chips-label { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .9px; color: var(--text-faint); margin: 2px 4px 8px; }
+        .chips-row { display: flex; gap: 7px; overflow-x: auto; padding: 2px 2px 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .chips-row::-webkit-scrollbar { display: none; }
         .chip {
             flex-shrink: 0; display: flex; align-items: center; gap: 7px;
             background: var(--chip-bg); border: 1px solid var(--border); border-radius: 999px;
-            padding: 9px 14px; font-size: .85rem; font-weight: 600; color: var(--text);
-            cursor: pointer; box-shadow: var(--shadow); transition: transform .12s; max-width: 260px;
+            padding: 8px 14px; font-size: .84rem; font-weight: 600; color: var(--text);
+            cursor: pointer; box-shadow: var(--shadow-sm); transition: transform .12s, border-color .15s;
+            max-width: 260px; -webkit-tap-highlight-color: transparent;
         }
+        .chip:hover { border-color: var(--border-strong); }
         .chip:active { transform: scale(.96); }
-        .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .chip.active {
+            background: linear-gradient(160deg, var(--primary), var(--primary-dark));
+            border-color: transparent; color: #fff;
+            box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--primary) 85%, transparent);
+        }
         .chip.active .chip-dist, .chip.active .chip-star { color: rgba(255,255,255,.85); }
         .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .chip-dist { font-size: .75rem; color: var(--text-faint); font-weight: 700; white-space: nowrap; }
@@ -162,12 +246,12 @@
 
         /* ---------- PARADA ACTUAL ---------- */
         .stop-card {
-            background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-            box-shadow: var(--shadow); padding: 14px 16px 12px; margin-bottom: 12px; display: none;
+            background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow); padding: 15px 16px 13px; margin-bottom: 12px; display: none;
         }
         .stop-card-top { display: flex; align-items: flex-start; gap: 10px; }
         .stop-card-info { flex: 1; min-width: 0; }
-        .stop-name { font-size: 1.05rem; font-weight: 800; line-height: 1.25; }
+        .stop-name { font-size: 1.12rem; font-weight: 800; line-height: 1.25; letter-spacing: -.3px; }
         .stop-code { font-size: .8rem; color: var(--text-faint); font-weight: 600; margin-top: 2px; }
         .fav-btn {
             background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 2px 4px;
@@ -176,17 +260,17 @@
         .fav-btn:active { transform: scale(1.25); }
         .fav-btn.faved { color: var(--amber); }
         .refresh-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-        .progress-track { flex: 1; height: 4px; border-radius: 4px; background: var(--border); overflow: hidden; }
-        .progress-fill { height: 100%; width: 0%; border-radius: 4px; background: var(--green); transition: width 1s linear; }
+        .progress-track { flex: 1; height: 4px; border-radius: 4px; background: var(--bg-deep); overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, var(--green), color-mix(in srgb, var(--green) 55%, var(--blue))); transition: width 1s linear; }
         .refresh-text { font-size: .75rem; color: var(--text-faint); font-weight: 600; white-space: nowrap; }
         .refresh-now { background: none; border: none; font-size: 1.05rem; cursor: pointer; padding: 0 2px; color: var(--text-soft); }
 
         /* ---------- ESTADOS ---------- */
         .error-msg {
-            background: color-mix(in srgb, var(--primary) 10%, var(--card)); color: var(--primary);
-            border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
-            padding: 14px; border-radius: var(--radius); font-size: .92rem; font-weight: 600;
-            display: none; margin-bottom: 14px; text-align: center;
+            background: color-mix(in srgb, var(--primary) 9%, var(--card)); color: var(--primary);
+            border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+            padding: 15px 16px; border-radius: var(--radius); font-size: .92rem; font-weight: 600;
+            display: none; margin-bottom: 14px; text-align: center; line-height: 1.45;
         }
         .error-msg button { margin-top: 10px; display: inline-block; background: var(--primary); color: #fff; }
         .status-msg { text-align: center; color: var(--text-soft); padding: 14px 0 6px; font-weight: 600; font-size: .92rem; display: none; }
@@ -199,22 +283,30 @@
         /* ---------- TARJETAS DE LLEGADAS ---------- */
         .bus-list { display: flex; flex-direction: column; gap: 10px; }
         .bus-card {
-            background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+            position: relative; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
             box-shadow: var(--shadow); overflow: hidden; animation: slideUp .3s ease both;
+            transition: border-color .15s, box-shadow .2s;
         }
+        /* filo del color de la línea: la lista se lee de un vistazo */
+        .bus-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: var(--line, var(--primary)); opacity: .9;
+        }
+        .bus-card.open { border-color: var(--border-strong); box-shadow: var(--shadow-lg); }
         @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .bus-card-content { padding: 13px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .bus-card-content { padding: 13px 16px 13px 18px; display: flex; align-items: center; gap: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .bus-card-content:active { background: color-mix(in srgb, var(--text) 4%, var(--card)); }
         .bus-line {
-            color: #fff; padding: 8px 10px; border-radius: 9px; font-size: 1.15rem; font-weight: 900;
-            min-width: 56px; text-align: center; letter-spacing: -.5px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.18);
+            color: #fff; padding: 7px 10px; border-radius: 10px; font-size: 1.1rem; font-weight: 900;
+            min-width: 54px; text-align: center; letter-spacing: -.5px;
+            box-shadow: 0 3px 10px -4px rgba(0,0,0,.45);
         }
         .bus-info { flex: 1; min-width: 0; }
         .bus-dest { font-size: .82rem; color: var(--text-soft); font-weight: 700; text-transform: uppercase; letter-spacing: .2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .bus-dest-label { font-size: .68rem; color: var(--text-faint); font-weight: 600; }
         .bus-next { font-size: .72rem; color: var(--text-faint); font-weight: 600; margin-top: 2px; }
         .bus-eta { text-align: right; }
-        .bus-time { font-size: 1.55rem; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+        .bus-time { font-size: 1.6rem; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -1px; }
         .bus-time small { font-size: .75rem; font-weight: 600; color: var(--text-faint); margin-left: 3px; }
         .bus-time.soon { color: var(--green); }
         .bus-time.now { color: var(--primary); animation: blinkSoft 1.1s infinite; font-size: 1.15rem; text-transform: uppercase; }
@@ -244,11 +336,13 @@
         .loader-small { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 16px; height: 16px; animation: spin .9s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .empty-state { text-align: center; padding: 28px 16px; color: var(--text-faint); font-weight: 600; }
-        .empty-state .big { font-size: 2.2rem; margin-bottom: 8px; }
+        .empty-state {
+            text-align: center; padding: 30px 18px; color: var(--text-faint); font-weight: 600;
+            background: var(--card); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg);
+        }
+        .empty-state .big { font-size: 2rem; margin-bottom: 8px; opacity: .75; }
 
         /* ---------- EXTRAS ---------- */
-        .map-hint { text-align: center; font-size: .72rem; color: var(--text-faint); font-weight: 600; margin: 6px 0 0; }
         .stop-actions { display: flex; gap: 2px; }
         .share-btn { background: none; border: none; font-size: 1.25rem; cursor: pointer; padding: 4px; color: var(--text-soft); line-height: 1; transition: transform .15s; }
         .share-btn:active { transform: scale(1.2); }
@@ -296,21 +390,27 @@
 
         .journey-head {
             display: flex; align-items: center; gap: 10px; background: var(--card);
-            border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-            padding: 12px 16px; margin-bottom: 12px;
+            border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+            padding: 13px 16px; margin-bottom: 12px; position: sticky; top: 64px; z-index: 900;
         }
         .journey-head-title { flex: 1; min-width: 0; font-weight: 800; font-size: .98rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .journey-head-sub { font-size: .75rem; color: var(--text-faint); font-weight: 600; }
         .journey-head button { background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-soft); padding: 4px; }
 
         .jcard { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; animation: slideUp .3s ease both; }
-        .jcard.best { border-color: color-mix(in srgb, var(--green) 55%, var(--border)); }
+        .jcard.best { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent); }
         .jcard-main { padding: 13px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .jcard-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; row-gap: 3px; }
         .jcard-mins { font-size: 1.45rem; font-weight: 900; font-variant-numeric: tabular-nums; }
         .jcard-mins small { font-size: .75rem; font-weight: 600; color: var(--text-faint); }
         .jcard-times { font-size: .85rem; color: var(--text-soft); font-weight: 600; flex: 1; }
-        .jcard-best-tag { font-size: .68rem; font-weight: 800; color: var(--green); text-transform: uppercase; letter-spacing: .5px; }
+        .jcard-best-tag {
+            font-size: .68rem; font-weight: 800; color: var(--green); text-transform: uppercase;
+            letter-spacing: .5px; order: 2; margin-left: auto; white-space: nowrap;
+            background: color-mix(in srgb, var(--green) 12%, transparent);
+            border-radius: 999px; padding: 3px 9px;
+        }
+        .jcard-top .leg-eta { order: 3; flex-basis: 100%; }
         .jlegs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
         .jleg-badge {
             color: #fff; border-radius: 7px; padding: 3px 8px; font-size: .82rem; font-weight: 900;
@@ -531,16 +631,17 @@
 <body>
 
     <div id="splash-screen">
-        <img src="./assets/logo_donut.png" alt="Mr Donut" class="img-donut" onerror="this.style.display='none'">
-        <img src="https://cdn-icons-png.flaticon.com/512/3448/3448339.png" alt="Bus App Logo" class="img-app">
+        <img src="./icon-512.png" alt="Transport BCN" class="img-donut" onerror="this.style.display='none'">
+        <div class="splash-name">Transport BCN</div>
     </div>
 
     <header class="topbar">
+        <div class="topmark" aria-hidden="true"><img src="./assets/mark-donut.png" alt="" width="34" height="34"></div>
         <div>
-            <h1>🚍 Transport BCN</h1>
+            <h1>Transport BCN</h1>
             <div class="subtitle">Bus · Metro · Tram · Rodalies · FGC</div>
         </div>
-        <div class="live-badge">En directo</div>
+        <div class="live-badge"><span>En directo</span></div>
     </header>
 
     <main>
@@ -549,20 +650,31 @@
             <button class="map-fab" onclick="searchGPS()" title="Buscar transporte cerca de mí" aria-label="Buscar transporte cerca de mí">📍</button>
             <button class="map-fab ar" onclick="openAR()" title="Ver en realidad aumentada" aria-label="Ver paradas en realidad aumentada con la cámara">📷</button>
             <button id="tripRecenter" onclick="recenterTrip()" title="Centrar en mi posición" aria-label="Centrar el mapa en mi posición">🧭</button>
-        </div>
-        <div class="map-hint">💡 Mantén pulsado cualquier punto del mapa para ver cómo llegar o explorar la zona</div>
-
-        <div class="controls">
-            <input type="number" id="stopCode" placeholder="Nº parada de bus" inputmode="numeric" onkeydown="if(event.key==='Enter')searchManual()">
-            <button class="btn btn-search" onclick="searchManual()">Buscar</button>
-            <button class="btn btn-gps" onclick="searchGPS()">📍 Cerca de mí</button>
+            <div class="map-hint-pill"><span>Mantén pulsado el mapa para explorar</span></div>
         </div>
 
-        <div class="dest-wrap">
-            <input type="text" id="destInput" class="dest-input" placeholder="🧭 ¿A dónde vas? Busca una dirección o lugar…"
-                   autocomplete="off" oninput="onDestInput()" onkeydown="if(event.key==='Escape')clearDest()">
-            <button class="dest-clear" id="destClear" onclick="clearDest()" aria-label="Borrar destino">✕</button>
-            <div class="dest-suggestions" id="destSuggestions"></div>
+        <div class="search-card">
+            <div class="segmented" role="tablist" aria-label="Qué quieres buscar">
+                <button class="seg-btn active" id="segStop" role="tab" aria-selected="true" onclick="setSearchMode('stop')">🚏 Llegadas</button>
+                <button class="seg-btn" id="segDest" role="tab" aria-selected="false" onclick="setSearchMode('dest')">🧭 Ir a…</button>
+            </div>
+
+            <div class="search-pane" id="paneStop">
+                <div class="controls">
+                    <input type="number" id="stopCode" placeholder="Nº de parada" inputmode="numeric" onkeydown="if(event.key==='Enter')searchManual()">
+                    <button class="btn btn-search" onclick="searchManual()">Buscar</button>
+                </div>
+                <button class="btn btn-gps btn-wide" onclick="searchGPS()">📍 Ver qué pasa cerca de mí</button>
+            </div>
+
+            <div class="search-pane" id="paneDest" hidden>
+                <div class="dest-wrap">
+                    <input type="text" id="destInput" class="dest-input" placeholder="Busca una dirección o lugar…"
+                           autocomplete="off" oninput="onDestInput()" onkeydown="if(event.key==='Escape')clearDest()">
+                    <button class="dest-clear" id="destClear" onclick="clearDest()" aria-label="Borrar destino">✕</button>
+                    <div class="dest-suggestions" id="destSuggestions"></div>
+                </div>
+            </div>
         </div>
 
         <div id="journeySection" style="display:none">
@@ -1233,7 +1345,7 @@
                 const isExpanded = activeRoute && activeRoute.key === d.itinKey;
                 const tight = wSecs && (d.arriveAt - Date.now()) / 1000 < wSecs;
                 html += `
-                    <div class="bus-card ${isExpanded ? 'open' : ''}">
+                    <div class="bus-card ${isExpanded ? 'open' : ''}" style="--line:${d.color}">
                         <div class="bus-card-content ${isSilent ? 'blink' : ''}" onclick="toggleItinerary(${i}, this.parentElement)">
                             <div class="bus-line" style="background:${d.color}${d.textColor ? ';color:' + d.textColor : ''}">${esc(d.line)}</div>
                             <div class="bus-info">
@@ -3293,6 +3405,19 @@
         }
 
         // --- 12. BÚSQUEDA MANUAL (paradas de bus) ---
+        // Dos tareas distintas en el mismo sitio: mirar una parada o ir a algún
+        // lado. Con pestañas, cada una se queda con la pantalla para ella sola.
+        function setSearchMode(mode) {
+            const stop = mode === 'stop';
+            document.getElementById('paneStop').hidden = !stop;
+            document.getElementById('paneDest').hidden = stop;
+            document.getElementById('segStop').classList.toggle('active', stop);
+            document.getElementById('segDest').classList.toggle('active', !stop);
+            document.getElementById('segStop').setAttribute('aria-selected', String(stop));
+            document.getElementById('segDest').setAttribute('aria-selected', String(!stop));
+            if (!stop) setTimeout(() => document.getElementById('destInput').focus(), 60);
+        }
+
         async function searchManual() {
             const code = document.getElementById('stopCode').value.trim();
             if (!code) {
