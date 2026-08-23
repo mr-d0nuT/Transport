@@ -306,7 +306,7 @@
         .jcard { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; animation: slideUp .3s ease both; }
         .jcard.best { border-color: color-mix(in srgb, var(--green) 55%, var(--border)); }
         .jcard-main { padding: 13px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .jcard-top { display: flex; align-items: baseline; gap: 10px; }
+        .jcard-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; row-gap: 3px; }
         .jcard-mins { font-size: 1.45rem; font-weight: 900; font-variant-numeric: tabular-nums; }
         .jcard-mins small { font-size: .75rem; font-weight: 600; color: var(--text-faint); }
         .jcard-times { font-size: .85rem; color: var(--text-soft); font-weight: 600; flex: 1; }
@@ -343,6 +343,16 @@
         .wg-text { font-size: .78rem; color: var(--text); line-height: 1.35; }
         .wg-text b { color: var(--text); }
         .wg-why { color: var(--text-faint); }
+        .jstep-live { display: block; margin-top: 3px; }
+        .leg-eta { font-size: .78rem; font-weight: 800; color: var(--blue); white-space: nowrap; }
+        .leg-eta.gone { color: var(--text-faint); font-weight: 600; }
+        .leg-delay {
+            display: inline-block; margin-left: 5px; padding: 0 6px; border-radius: 7px;
+            font-size: .7rem; font-weight: 800; vertical-align: 1px;
+        }
+        .leg-delay.late { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
+        .leg-delay.ok { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+        .leg-delay.early { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
         .sched-tag { font-size: .62rem; color: var(--text-faint); text-align: center; margin-top: 1px; white-space: nowrap; }
         .jstep-sub b.slack { color: var(--green); }        /* gana a .jstep-body b */
         .jstep-sub b.slack.tight { color: var(--amber); }
@@ -1172,6 +1182,16 @@
             return `<div class="bus-time ${mins <= 3 ? 'soon' : ''}" data-arrive="${arriveAt}">${mins}<small>min</small></div>${tag}`;
         }
 
+        // Cuenta atrás de los tramos de una ruta ("en 6 min", "¡sale ya!")
+        setInterval(() => {
+            document.querySelectorAll('.leg-eta[data-leave]').forEach(el => {
+                const at = parseInt(el.dataset.leave, 10);
+                const txt = leaveText(at);
+                if (el.innerText !== txt) el.innerText = txt;
+                el.classList.toggle('gone', at < Date.now() - 90000);
+            });
+        }, 5000);
+
         // Cuenta atrás en vivo: entre refresco y refresco, los tiempos avanzan solos
         setInterval(() => {
             document.querySelectorAll('.bus-time[data-arrive]').forEach(el => {
@@ -1618,6 +1638,99 @@
             const departures = scheduleDepartures(d, idx, { color: HBUS_COLOR, mode: 'hbus', lineFmt: hbusLine });
             if (departures.length === 0) throw new Error('Sin salidas previstas en las próximas 8 horas en esta parada.');
             return departures;
+        }
+
+        // --- 10D. CUÁNTO FALTA PARA CADA TRAMO, Y SI VA CON RETRASO ---
+        // El planner de TMB da horarios teóricos (devuelve realTime: false), así
+        // que el retraso hay que preguntárselo a la parada: iBus, iMetro o el
+        // TRAM. Solo tiene sentido para lo que sale pronto; más allá de 20
+        // minutos ninguna de esas fuentes sabe nada todavía.
+        const LIVE_HORIZON_MIN = 20;
+        const SAME_TRIP_MIN = 8;    // un paso más lejos que esto ya es otro vehículo
+
+        function leaveText(at) {
+            const secs = Math.round((at - Date.now()) / 1000);
+            if (secs <= -90) return `⏱ salió hace ${Math.round(-secs / 60)} min`;
+            if (secs <= 45) return '⏱ ¡sale ya!';
+            const mins = Math.round(secs / 60);
+            return mins >= 90 ? `⏱ sale en ${Math.floor(mins / 60)} h ${mins % 60} min`
+                              : `⏱ sale en ${mins} min`;
+        }
+
+        function legEtaHTML(leg, live) {
+            const at = live ? live.at : leg.startTime;
+            const gone = at < Date.now() - 90000;
+            let tag = '';
+            if (live) {
+                const delay = Math.round((live.at - leg.startTime) / 60000);
+                tag = delay >= 1 ? `<span class="leg-delay late">+${delay} min tarde</span>`
+                    : (delay <= -1 ? `<span class="leg-delay early">${-delay} min antes</span>`
+                                   : '<span class="leg-delay ok">en hora</span>');
+            } else if (leg._lineDelays) {
+                tag = '<span class="leg-delay late">retrasos en la línea</span>';
+            }
+            return `<span class="leg-eta${gone ? ' gone' : ''}" data-leave="${at}">${leaveText(at)}</span>${tag ? ' ' + tag : ''}`;
+        }
+
+        function nearestTramStop(lat, lon) {
+            let best = null;
+            TRAM_STOPS.forEach(([name, slat, slon, out, ret]) => {
+                const dist = getDistance(lat, lon, slat, slon);
+                if (dist <= 250 && (!best || dist < best.dist)) best = { dist, stop: { name, out, ret } };
+            });
+            return best && best.stop;
+        }
+
+        // Paso real de este tramo según la parada de subida, o null si no se sabe
+        async function legLive(leg) {
+            const mins = (leg.startTime - Date.now()) / 60000;
+            if (!(mins > -3 && mins <= LIVE_HORIZON_MIN)) return null;
+            let deps = null;
+            try {
+                if (leg.mode === 'BUS' && leg.from.stopCode) {
+                    deps = await liveBusArrivals({ code: leg.from.stopCode });
+                } else if (leg.mode === 'SUBWAY' && leg.from.stopCode) {
+                    deps = await fetchMetroArrivals({ id: leg.from.stopCode });
+                } else if (leg.mode === 'TRAM' && leg.from.lat != null) {
+                    const st = nearestTramStop(leg.from.lat, leg.from.lon);
+                    if (st) deps = await fetchTramArrivals(st);
+                }
+            } catch { return null; }        // L9/L10 y compañía no dan tiempo real
+            if (!deps || !deps.length) return null;
+
+            const line = String(leg.routeShortName || '').toUpperCase();
+            const pool = deps.filter(d => String(d.line).toUpperCase() === line);
+            if (!pool.length) return null;
+            // con dos sentidos en la misma parada, manda el destino del tramo
+            const head = String(leg.headsign || '').toLowerCase().slice(0, 8);
+            const byDest = head ? pool.filter(d => String(d.dest || '').toLowerCase().includes(head)) : [];
+            const cands = byDest.length ? byDest : pool;
+
+            let best = null;
+            cands.forEach(d => {
+                const diff = Math.abs(d.arriveAt - leg.startTime);
+                if (!best || diff < best.diff) best = { diff, at: d.arriveAt };
+            });
+            // si el paso más cercano se va a más de 8 minutos del horario, es otro
+            // vehículo distinto del que propone la ruta: mejor no decir nada
+            return (best && best.diff <= SAME_TRIP_MIN * 60000) ? { at: best.at } : null;
+        }
+
+        // Rellena la cuenta atrás real de cada tramo en cuanto se resuelve
+        function fillLegLive(it, container) {
+            it.legs.forEach(async (l, i) => {
+                if (!l.transitLeg) return;
+                const slot = container.querySelector(`.jstep-live[data-leg="${i}"]`);
+                if (!slot) return;
+                // FGC no da el paso concreto, pero sí si la línea acumula retrasos
+                if (l.agencyName === 'FGC' && l.routeShortName) {
+                    const byLine = await fgcLiveStatus().catch(() => ({}));
+                    const e = byLine[l.routeShortName];
+                    if (e && e.delayed > 0) { l._lineDelays = true; slot.innerHTML = legEtaHTML(l, null); }
+                }
+                const live = await legLive(l).catch(() => null);
+                if (live && container.isConnected) slot.innerHTML = legEtaHTML(l, live);
+            });
         }
 
         // --- 11. CORRESPONDENCIAS EN CADA PARADA DEL RECORRIDO ---
@@ -2856,6 +2969,7 @@
                         <div class="jcard-top">
                             <div class="jcard-mins">${Math.round(it.duration / 60)}<small> min</small></div>
                             <div class="jcard-times">${fmtTime(it.startTime)} → ${fmtTime(it.endTime)}</div>
+                            ${(() => { const t = it.legs.find(l => l.transitLeg); return t ? `<span class="leg-eta" data-leave="${t.startTime}">${leaveText(t.startTime)}</span>` : ''; })()}
                             ${i === 0 ? '<div class="jcard-best-tag">⚡ Llega antes</div>' : ''}
                         </div>
                         <div class="jlegs">${legStrip(it)}</div>
@@ -2892,7 +3006,8 @@
                 return `<div class="jstep">
                     <div class="jstep-icon"><span class="jleg-badge" style="background:${color}">${esc(l.routeShortName || l.mode)}</span></div>
                     <div class="jstep-body"><b>${esc(l.from.name)}</b> → <b>${esc(l.to.name)}</b>
-                        <div class="jstep-sub">dirección ${esc(l.headsign || '')} · ${nStops ? nStops + ' paradas · ' : ''}${Math.round(l.duration / 60)} min · ${fmtTime(l.startTime)}${l._est ? ' · llegada ≈' + fmtTime(l.endTime) : ''}${slackHTML(it, i)}</div>
+                        <div class="jstep-sub">dirección ${esc(l.headsign || '')} · ${nStops ? nStops + ' paradas · ' : ''}${Math.round(l.duration / 60)} min · ${fmtTime(l.startTime)}${l._est ? ' · llegada ≈' + fmtTime(l.endTime) : ''}${slackHTML(it, i)}
+                            <span class="jstep-live" data-leg="${i}">${legEtaHTML(l, null)}</span></div>
                         <div class="jstep-wagon" data-leg="${i}"></div>
                         <div class="jstep-stops" data-leg="${i}"></div></div>
                 </div>`;
@@ -2936,6 +3051,7 @@
             detail.style.display = 'block';
             fillStepStops(it, detail);
             fillWagonTips(it, detail);
+            fillLegLive(it, detail);
             drawJourney(it);
             // si algún tramo era una recta, repinta cuando llegue su trazado real
             ensureLegGeometry(it).then(changed => {

@@ -21,6 +21,7 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
   - 🚍 **Hispano Igualadina** (horarios GTFS precompilados)
 - **¿Cabeza o cola?** En cada tramo de metro te dice en qué parte del tren colocarte para bajar justo delante del transbordo o de la salida que te toca — y te nombra la salida ("al bajar en Espanya, la salida Exposició / Gran Via queda por ahí"). Sale de la geometría de los andenes, los accesos y las escaleras de OpenStreetMap, cruzada con el sentido de la marcha.
 - **Correspondencias en cada parada.** Al desplegar el recorrido de una línea, cada parada muestra a la derecha con qué otras líneas enlaza ahí (metro, tram, Rodalies, FGC y bus), con sus colores oficiales.
+- **Cuenta atrás y retrasos.** Cada tramo de la ruta dice cuánto falta para que salga ("sale en 6 min", actualizado solo) y, cuando la parada tiene tiempo real, si va con retraso, en hora o adelantado.
 - **Margen de transbordo.** Cada enlace muestra los minutos que quedan entre bajarte del anterior y salir el siguiente, en ámbar si va justo.
 - **Planificador de trayectos.** Escribe un destino (buscador sobre toda Cataluña vía Photon/OSM) y propone rutas combinando bus, metro, tram, tren, FGC y tramos a pie, ordenadas penalizando las caminatas largas. Cada ruta se dibuja sobre el mapa con el recorrido real, no en línea recta.
 - **Modo navegación.** Sigue el trayecto en vivo con el GPS, avisa del siguiente paso y de la bajada, y permite pedir una **alternativa** o replanificar sin salir de la ruta.
