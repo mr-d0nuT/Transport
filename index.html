@@ -2236,7 +2236,7 @@
             }
             if (kind === 'B') {
                 try {   // primero la red de TMB
-                    const data = await busLineStops(up);
+                    const data = await busLineStops(await getBusLineCode(up));
                     const feats = data.features.filter(f => f.properties.SENTIT === data.features[0].properties.SENTIT);
                     if (feats.length > 1) return feats
                         .sort((a, b) => a.properties.ORDRE - b.properties.ORDRE)
@@ -2477,6 +2477,22 @@
 
         // Topología de una línea de bus (paradas con orden y sentido), cacheada
         const busLineCache = new Map();
+        // El endpoint de paradas quiere el código numérico: "47" vale, pero "V15"
+        // no (es la línea 215). Cacheamos el listado para poder traducir el nombre.
+        let busLineCodes = null;
+        async function getBusLineCode(nombre) {
+            const up = String(nombre).toUpperCase();
+            if (/^\d+$/.test(up)) return up;
+            if (!busLineCodes) {
+                const res = await fetch(`https://api.tmb.cat/v1/transit/linies/bus?${TMB_AUTH}`);
+                if (!res.ok) return up;
+                const data = await res.json();
+                busLineCodes = {};
+                data.features.forEach(f => { busLineCodes[String(f.properties.NOM_LINIA).toUpperCase()] = f.properties.CODI_LINIA; });
+            }
+            return busLineCodes[up] || up;
+        }
+
         async function busLineStops(lineCode) {
             if (busLineCache.has(lineCode)) return busLineCache.get(lineCode);
             const res = await fetch(`https://api.tmb.cat/v1/transit/linies/bus/${lineCode}/parades?${TMB_AUTH}`);
@@ -3028,14 +3044,14 @@
                         all.push({
                             startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
                             duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000,
-                            legs, _oStop: oSt
+                            legs, _oStop: oSt, _dStop: dSt
                         });
                     });
                 }
             }
             all.sort((a, b) => a.endTime - b.endTime);
             // estación de subida lejana: ofrece también llegar en metro/bus
-            return (await chainAccess(origin, all.slice(0, 6))).slice(0, 6);
+            return (await chainEgress(dest, await chainAccess(origin, all.slice(0, 6)))).slice(0, 6);
         }
 
         // Buses directos para trayectos cortos: el planner de TMB poda el transporte
@@ -3290,12 +3306,164 @@
                         return {
                             startTime: acc.startTime, endTime: it.endTime,
                             duration: (it.endTime - acc.startTime) / 1000,
-                            legs: [...accLegs, ...it.legs.slice(tIdx)]
+                            legs: [...accLegs, ...it.legs.slice(tIdx)],
+                            _dStop: it._dStop   // la salida al destino se encadena después
                         };
                     });
                 if (!ups.length) out.push(it);
                 else if (o.dist > 1200) out.push(...ups);
                 else out.push(it, ...ups);
+            }
+            out.sort((a, b) => a.endTime - b.endTime);
+            return out;
+        }
+
+        // El último kilómetro también es transporte: si al bajar del tren quedan
+        // más de 600 m hasta el destino, se mira qué bus o metro te acerca desde
+        // la propia estación, a la hora a la que llegas (no a la de ahora).
+        const egressMemo = new Map();
+        function bestEgressFrom(st, dest, whenMs) {
+            const k = `${st.lat.toFixed(3)},${st.lon.toFixed(3)}|${dest.lat.toFixed(3)},${dest.lon.toFixed(3)}|${Math.floor(whenMs / 300000)}`;
+            if (!egressMemo.has(k)) {
+                egressMemo.set(k, (async () => {
+                    const d = new Date(whenMs), p2 = n => String(n).padStart(2, '0');
+                    const url = `https://api.tmb.cat/v1/planner/plan?${TMB_AUTH}` +
+                        `&fromPlace=${st.lat},${st.lon}&toPlace=${dest.lat},${dest.lon}` +
+                        `&mode=TRANSIT,WALK&numItineraries=3&locale=es&showIntermediateStops=true` +
+                        `&date=${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${d.getFullYear()}&time=${p2(d.getHours())}:${p2(d.getMinutes())}`;
+                    const res = await fetch(url);
+                    const data = res.ok ? await res.json() : null;
+                    return (((data || {}).plan || {}).itineraries || [])
+                        .filter(x => x.legs.some(l => l.transitLeg) && x.startTime >= whenMs - 60000);
+                })().catch(() => []));
+            }
+            return egressMemo.get(k);
+        }
+
+        // El planner es flojo en trayectos cortos: para ir de Passeig de Gràcia a
+        // Diagonal 335 propone metro + 12 min a pie e ignora los buses que suben
+        // por Diagonal. Aquí se componen esos saltos con la topología de líneas
+        // (qué línea pasa por las dos paradas), estimando la espera y el trayecto:
+        // no es tiempo real, así que los tramos van marcados como estimados.
+        const ESPERA_BUS_MIN = 7;      // media espera de una línea urbana
+        const MIN_POR_PARADA = 1.5;    // ritmo de bus en ciudad, parada a parada
+
+        async function busHopTopology(from, to, whenMs) {
+            const recta = getDistance(from.lat, from.lon, to.lat, to.lon);
+            if (recta > 3500 || recta < 350) return [];
+            try {
+                const [oStops, dNear] = await Promise.all([
+                    tmbBusStopsNear(from.lat, from.lon, 350, 10),
+                    tmbBusStopsNear(to.lat, to.lon, 350, 12)
+                ]);
+                const dCodes = new Map(dNear.map(x => [String(x.code), x]));
+                if (!oStops.length || !dCodes.size) return [];
+
+                // líneas que pasan por cada parada de salida, según las correspondencias
+                await ensureCorresp();
+                const its = [], vistas = new Set();
+                for (const o of oStops.slice(0, 6)) {
+                    const entry = correspData && correspData.s[String(o.code)];
+                    const lineas = entry ? entry[2].filter(l => l[2] === 'B').map(l => l[0]) : [];
+                    for (const linea of lineas.slice(0, 8)) {
+                        if (vistas.has(linea)) continue;
+                        let data;
+                        try { data = await busLineStops(await getBusLineCode(linea)); } catch { continue; }
+                        const oFs = data.features.filter(f => f.properties.CODI_PARADA == o.code);
+                        let oF = null, dF = null;
+                        for (const cand of oFs) {
+                            const sentit = cand.properties.SENTIT;
+                            const down = data.features
+                                .filter(f => f.properties.SENTIT === sentit && f.properties.ORDRE > cand.properties.ORDRE
+                                          && dCodes.has(String(f.properties.CODI_PARADA)))
+                                .sort((a, b) => dCodes.get(String(a.properties.CODI_PARADA)).dist - dCodes.get(String(b.properties.CODI_PARADA)).dist)[0];
+                            if (down) { oF = cand; dF = down; break; }
+                        }
+                        if (!oF || !dF) continue;
+                        vistas.add(linea);
+
+                        const dStop = dCodes.get(String(dF.properties.CODI_PARADA));
+                        const seq = data.features
+                            .filter(f => f.properties.SENTIT === oF.properties.SENTIT
+                                      && f.properties.ORDRE >= oF.properties.ORDRE && f.properties.ORDRE <= dF.properties.ORDRE)
+                            .sort((a, b) => a.properties.ORDRE - b.properties.ORDRE)
+                            .map(f => ({ name: f.properties.NOM_PARADA, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] }));
+                        if (seq.length < 2) continue;
+
+                        const andarO = (o.dist / 1.25) * 1000;
+                        const andarD = (dStop.dist / 1.25) * 1000;
+                        const subir = whenMs + andarO + ESPERA_BUS_MIN * 60000;
+                        const bajar = subir + Math.max(2, (seq.length - 1) * MIN_POR_PARADA) * 60000;
+                        const legs = [];
+                        if (o.dist > 80) legs.push({
+                            transitLeg: false, mode: 'WALK', duration: andarO / 1000, distance: o.dist,
+                            from: { name: from.name || 'Origen' }, to: { name: o.name },
+                            startTime: whenMs, endTime: whenMs + andarO,
+                            _pts: [[from.lat, from.lon], [o.lat, o.lon]]
+                        });
+                        legs.push({
+                            transitLeg: true, mode: 'BUS', routeShortName: linea, routeColor: 'DA291C',
+                            headsign: seq[seq.length - 1].name, agencyName: 'TMB',
+                            from: { name: o.name, lat: o.lat, lon: o.lon, stopCode: String(o.code) },
+                            to: { name: dStop.name, lat: dStop.lat, lon: dStop.lon },
+                            startTime: subir, endTime: bajar, duration: (bajar - subir) / 1000,
+                            intermediateStops: null, _stops: seq, _est: true,
+                            _pts: seq.map(x => [x.lat, x.lon])
+                        });
+                        if (dStop.dist > 80) legs.push({
+                            transitLeg: false, mode: 'WALK', duration: andarD / 1000, distance: dStop.dist,
+                            from: { name: dStop.name }, to: { name: 'Destination' },
+                            startTime: bajar, endTime: bajar + andarD,
+                            _pts: [[dStop.lat, dStop.lon], [to.lat, to.lon]]
+                        });
+                        its.push({
+                            startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
+                            duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000, legs, _est: true
+                        });
+                        if (its.length >= 3) break;
+                    }
+                    if (its.length >= 3) break;
+                }
+                return its;
+            } catch { return []; }
+        }
+
+        async function chainEgress(dest, its) {
+            const out = [];
+            for (const it of its) {
+                const d = it._dStop;
+                delete it._dStop;
+                const lastTransit = it.legs.map(l => l.transitLeg).lastIndexOf(true);
+                // 450 m ya son 6 minutos andando con maletas: a partir de ahí se mira
+                // si hay algo que te acerque, y la opción a pie se mantiene igual
+                if (!d || d.dist <= 450 || lastTransit < 0) { out.push(it); continue; }
+                const llegada = it.legs[lastTransit].endTime;
+                const [planner, buses] = await Promise.all([
+                    bestEgressFrom(d, dest, llegada).catch(() => []),
+                    busHopTopology({ ...d, name: d.name }, dest, llegada).catch(() => [])
+                ]);
+                const aPie = it.endTime;
+                const aPieMetros = it.legs.slice(lastTransit + 1).reduce((m, l) => m + (l.distance || 0), 0);
+                // El criterio no es llegar antes, es no comerse la caminata: vale si
+                // ahorra al menos 300 m a pie y no llega más de 6 minutos más tarde.
+                const mejores = [...planner, ...buses]
+                    .filter(sal => journeyWalkDist(sal) <= aPieMetros - 300)
+                    .filter(sal => sal.endTime <= aPie + 6 * 60000)
+                    .filter(sal => longestWalkMin(sal) <= MAX_WALK_MIN)
+                    .sort((a, b) => a.endTime - b.endTime)
+                    .slice(0, 2)
+                    .map(sal => {
+                        const salLegs = sal.legs.map(l => (!l.transitLeg && l.from.name === 'Origin')
+                            ? { ...l, from: { name: d.name } } : l);
+                        return {
+                            startTime: it.startTime, endTime: sal.endTime,
+                            duration: (sal.endTime - it.startTime) / 1000,
+                            legs: [...it.legs.slice(0, lastTransit + 1), ...salLegs]
+                        };
+                    });
+                if (!mejores.length) out.push(it);
+                else if (d.dist > 1200) out.push(...mejores);
+                else out.push(it, ...mejores);   // a media distancia, tú eliges
             }
             out.sort((a, b) => a.endTime - b.endTime);
             return out;
@@ -3375,14 +3543,14 @@
                     its.push({
                         startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
                         duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000, legs,
-                        _oStop: oStop
+                        _oStop: oStop, _dStop: dStop
                     });
                     return;
                 }
             });
             its.sort((a, b) => a.endTime - b.endTime);
             // parada de subida lejana: ofrece también llegar en metro/bus
-            return (await chainAccess(origin, its.slice(0, 5))).slice(0, 4);
+            return (await chainEgress(dest, await chainAccess(origin, its.slice(0, 5)))).slice(0, 4);
         }
 
         // --- Rutas con FGC: se componen con el open data oficial (viajes-de-hoy) y
@@ -3492,7 +3660,7 @@
                             its.push({
                                 startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
                                 duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000,
-                                legs, _oStop: oSt
+                                legs, _oStop: oSt, _dStop: dSt
                             });
                         }
                     });
@@ -3500,7 +3668,7 @@
             }
             its.sort((a, b) => a.endTime - b.endTime);
             // estación de subida lejana: ofrece también llegar en metro/bus
-            return (await chainAccess(origin, its.slice(0, 4))).slice(0, 4);
+            return (await chainEgress(dest, await chainAccess(origin, its.slice(0, 4)))).slice(0, 4);
         }
 
         function legStrip(it) {
