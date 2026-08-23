@@ -1,0 +1,39 @@
+name: Actualiza horarios de TMB
+
+on:
+  schedule:
+    - cron: '30 4 * * 4'   # jueves 04:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerar tmb-sched/ desde el GTFS de TMB
+        run: python3 scripts/build_tmb.py
+      - name: Comprobar que el resultado tiene sentido
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          stops = json.load(open('tmb-sched/stops.json'))['s']
+          trozos = [f for f in os.listdir('tmb-sched') if f not in ('stops.json', 'lines.json')]
+          metro = [s for s in stops if s[0].startswith('m')]
+          print(f'{len(stops)} paradas ({len(metro)} de metro), {len(trozos)} trozos')
+          # la red son ~2700 paradas y ~160 andenes de metro: mucho menos es un GTFS a medias
+          if len(stops) < 2300 or len(metro) < 120 or len(trozos) < 15:
+              sys.exit('Datos incompletos: no se commitea')
+          PY
+      - name: Commit si hay cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A tmb-sched
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios de TMB actualizados (GTFS oficial)"
+          git push

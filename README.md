@@ -10,6 +10,8 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
 
 ## Qué hace
 
+- **"Ahora mismo".** Al abrirla, sin tocar nada, enseña la parada que sueles usar a esta hora con sus próximas salidas ya cargadas. Aprende de tu uso, guardado solo en tu móvil. De noche avisa de la hora del último servicio.
+- **Funciona sin cobertura.** Los horarios oficiales de TMB van compilados en la app: bajo tierra, con las APIs caídas o en la L9 y la L10 —que no dan tiempo real— sigue diciendo a qué hora pasa el siguiente.
 - **Paradas cercanas por GPS.** Al abrirla busca tu ubicación y lista las paradas de alrededor, con el mapa marcándolas.
 - **Llegadas en tiempo real**, refrescadas cada 20 segundos:
   - 🚌 **Bus TMB** (iBus)
@@ -44,14 +46,17 @@ Es una **app estática de un solo archivo**: todo el HTML, CSS y JavaScript vive
 | `manifest.webmanifest` + `icon-*` | Instalación como PWA |
 | `hispano-igualadina.json` | Horarios de Hispano Igualadina precompilados desde el GTFS |
 | `amb-bus/` | Horarios del bus de AMB (metropolitano y NitBus), troceados por zonas |
+| `tmb-sched/` | Horarios de metro y bus de TMB, troceados por zonas |
 | `correspondencias.json` | Con qué líneas enlaza cada parada de bus |
 | `andenes-metro.json` | Ejes de los andenes, accesos y escaleras del metro (para el consejo de vagón) |
 | `scripts/gtfs_compact.py` | Compila un GTFS al JSON compacto que lee la app |
 | `scripts/build_hispano.py` | Horarios de la Hispano desde el GTFS de la Generalitat |
+| `scripts/gtfs_shards.py` | Compila un GTFS grande a horarios por parada, troceados |
 | `scripts/build_ambbus.py` | Horarios del bus de AMB desde su GTFS |
+| `scripts/build_tmb.py` | Horarios de metro y bus desde el GTFS oficial de TMB |
 | `scripts/build_corresp.py` | Correspondencias entre líneas desde la API de TMB |
 | `scripts/build_andenes.py` | Andenes del metro desde OpenStreetMap (Overpass) |
-| `.github/workflows/` | Los regeneran solos: Hispano los lunes, AMB los martes, correspondencias los miércoles, andenes cada mes |
+| `.github/workflows/` | Los regeneran solos: Hispano los lunes, AMB los martes, correspondencias los miércoles, TMB los jueves, andenes cada mes |
 
 ### Datos y servicios usados
 
@@ -83,6 +88,10 @@ python3 scripts/build_hispano.py
 
 ```bash
 python3 scripts/build_ambbus.py
+```
+
+```bash
+python3 scripts/build_tmb.py
 ```
 
 ```bash
