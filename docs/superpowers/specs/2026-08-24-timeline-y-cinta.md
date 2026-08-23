@@ -39,3 +39,21 @@ otra que es "todo en bus", sin leer un número.
 
 Se mantiene la tira de iconos encima porque en los tramos estrechos la cinta no
 puede escribir el nombre de la línea; las dos juntas se complementan.
+
+---
+
+## Pulido posterior (mismo día)
+
+- **Bienvenida en vez de error.** Sin permiso de ubicación, lo primero que veía
+  alguien nuevo era un cuadro rojo de error. Ahora, si no hay ni favoritas ni
+  historial, sale una tarjeta de bienvenida con el logo y las dos maneras de
+  empezar (ubicación o número de parada). El aviso rojo se reserva para quien ya
+  usa la app y de repente se queda sin GPS, que ahí sí es un problema.
+- **El panel de navegación, al día.** Se había quedado con colores fijos de
+  antes del sistema de tokens (#34c759, #ff9f0a, #1a1a1a…). Ahora usa los mismos
+  tokens que el resto, con asa de hoja, fondo translúcido y las estadísticas
+  apiladas: "1.2 km restante" se partía por la mitad en pantallas de 420 px.
+- **Entrada en cascada.** Las tarjetas de llegadas y de rutas aparecen escalonadas
+  (45 ms entre cada una) en vez de todas a la vez.
+- **Esqueleto de carga fiel.** Imita la tarjeta real, con su filo de color, para
+  que al llegar los datos no salte el diseño.
