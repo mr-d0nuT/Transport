@@ -1,0 +1,39 @@
+name: Actualiza horarios del bus de AMB
+
+on:
+  schedule:
+    - cron: '50 4 * * 2'   # martes 04:50 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerar amb-bus/ desde el GTFS de AMB
+        run: python3 scripts/build_ambbus.py
+      - name: Comprobar que el resultado tiene sentido
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          stops = json.load(open('amb-bus/stops.json'))['s']
+          trozos = [f for f in os.listdir('amb-bus') if f not in ('stops.json', 'lines.json')]
+          nocturnas = {l for s in stops for l in s[5] if l.startswith('N')}
+          print(f'{len(stops)} paradas, {len(trozos)} trozos, {len(nocturnas)} líneas nocturnas')
+          # la red son ~3500 paradas y 24 líneas N: bastante menos es un GTFS a medias
+          if len(stops) < 3000 or len(trozos) < 20 or len(nocturnas) < 18:
+              sys.exit('Datos incompletos: no se commitea')
+          PY
+      - name: Commit si hay cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A amb-bus
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios del bus de AMB actualizados (GTFS AMB)"
+          git push

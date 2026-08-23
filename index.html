@@ -616,7 +616,7 @@
 
         <div id="results" class="bus-list"></div>
 
-        <footer>Datos en tiempo real de TMB y TRAM · Mapa © OpenStreetMap © CARTO</footer>
+        <footer>Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © CARTO</footer>
     </main>
 
     <!-- Panel de navegación en vivo (Iniciar trayecto) -->
@@ -743,7 +743,6 @@
         const MODE_ICON = { bus: '🚌', metro: 'Ⓜ️', tram: '🚊', train: '🚆', fgc: '🚞', hbus: '🚐' };
         const MODE_NAME = { bus: 'Bus', metro: 'Metro', tram: 'Tram', train: 'Rodalies · Renfe', fgc: 'FGC', hbus: 'Hispano Igualadina' };
         const HBUS_COLOR = '#7b3fa0';
-        const NITBUS_COLOR = '#1b3a6b';   // azul noche del NitBus
         const renfeColor = line => '#' + (RENFE_COLORS[line] || 'EC0000');
 
         // Colores oficiales TMB por familia de línea de bus
@@ -1236,7 +1235,7 @@
                 html += `
                     <div class="bus-card ${isExpanded ? 'open' : ''}">
                         <div class="bus-card-content ${isSilent ? 'blink' : ''}" onclick="toggleItinerary(${i}, this.parentElement)">
-                            <div class="bus-line" style="background:${d.color}">${esc(d.line)}</div>
+                            <div class="bus-line" style="background:${d.color}${d.textColor ? ';color:' + d.textColor : ''}">${esc(d.line)}</div>
                             <div class="bus-info">
                                 <div class="bus-dest-label">hacia</div>
                                 <div class="bus-dest">${esc(d.dest)}</div>
@@ -1268,43 +1267,146 @@
             }));
         }
 
-        // El NitBus lo opera AMB, no TMB: no sale ni en iBus ni en la lista de
-        // paradas de TMB. Lo cruzamos por cercanía, no por número de parada: hay
-        // códigos que se repiten entre redes y apuntan a sitios distintos.
-        async function nitbusArrivals(stop) {
-            let { lat, lon } = stop;
-            if (lat == null && stop.code) {          // búsqueda por número: sacamos dónde cae
-                const all = await getTmbBusStops();
-                const hit = all.find(([code]) => String(code) === String(stop.code));
-                if (hit) { lat = hit[2]; lon = hit[3]; }
+        // La red de bus de AMB (metropolitanos B, L, M, SB… y el NitBus) no está
+        // ni en iBus ni en la lista de paradas de TMB: otro operador y códigos de
+        // seis cifras. Sus horarios se compilan aparte (scripts/build_ambbus.py)
+        // y van troceados por zonas: la app baja solo la del sitio que miras.
+        let ambStopsMem = null, ambStopsReq = null, ambLinesReq = null;
+        const ambShardReq = new Map();
+
+        function ensureAmbStops() {
+            if (ambStopsMem) return Promise.resolve(ambStopsMem);
+            const KEY = 'busbcn_ambstops_v1';
+            if (!ambStopsReq) {
+                let cached = null;
+                try { cached = JSON.parse(localStorage.getItem(KEY)); } catch {}
+                if (cached && Date.now() - cached.t < 7 * 864e5) {
+                    ambStopsMem = cached.s;
+                    return Promise.resolve(ambStopsMem);
+                }
+                ambStopsReq = fetch('./amb-bus/stops.json')
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => {
+                        ambStopsMem = (d && d.s) || [];
+                        try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), s: ambStopsMem })); } catch {}
+                        return ambStopsMem;
+                    })
+                    .catch(() => { ambStopsReq = null; return (ambStopsMem = cached ? cached.s : []); });
             }
-            if (lat == null) return [];
-            const d = await ensureNitbus();
-            let best = null;
-            d.stops.forEach((s, i) => {
-                const dist = getDistance(lat, lon, s[2], s[3]);
-                if (dist <= 60 && (!best || dist < best.dist)) best = { i, dist };
-            });
-            if (!best) return [];
-            return scheduleDepartures(d, best.i, { color: NITBUS_COLOR, mode: 'nit' });
+            return ambStopsReq;
         }
 
-        // Tiempo real de TMB + horario del NitBus: de noche solo hay lo segundo,
-        // de día solo lo primero, y en la franja de las 22-23 h conviven. El
-        // horario nocturno pesa, así que de día solo se baja si no hay nada en
-        // tiempo real (línea acabada por hoy, o parada solo de noche).
+        function ambShard(name) {
+            if (!ambShardReq.has(name)) {
+                ambShardReq.set(name, fetch(`./amb-bus/${name}.json`)
+                    .then(r => r.ok ? r.json() : null)
+                    .catch(() => null));
+            }
+            return ambShardReq.get(name);
+        }
+
+        function ensureAmbLines() {
+            ambLinesReq = ambLinesReq || fetch('./amb-bus/lines.json')
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null);
+            return ambLinesReq;
+        }
+
+        // La parada AMB que corresponde a esta: por cercanía, no por número, que
+        // hay códigos repetidos entre redes que apuntan a sitios distintos
+        async function ambStopFor(stop) {
+            const all = await ensureAmbStops();
+            if (!all.length) return null;
+            const code = String(stop.code || '');
+            let { lat, lon } = stop;
+            if (lat == null && code) {
+                const tmb = (await getTmbBusStops()).find(([c]) => String(c) === code);
+                if (tmb) { lat = tmb[2]; lon = tmb[3]; }
+                else {
+                    // código que TMB no conoce: será de la propia red de AMB
+                    const exact = all.find(x => parseInt(x[0], 10) === parseInt(code, 10));
+                    if (exact) return exact;
+                }
+            }
+            if (lat == null) return null;
+            let best = null;
+            for (const x of all) {
+                if (Math.abs(x[2] - lat) > .0008 || Math.abs(x[3] - lon) > .0011) continue;
+                const dist = getDistance(lat, lon, x[2], x[3]);
+                if (dist <= 60 && (!best || dist < best.dist)) best = { dist, x };
+            }
+            return best && best.x;
+        }
+
+        // Próximas salidas de una parada de AMB, según su horario compilado.
+        // Dos horas por delante: más allá es ruido en una parada urbana.
+        async function ambArrivals(stop, horizon = 120) {
+            const st = await ambStopFor(stop);
+            if (!st) return [];
+            const data = await ambShard(st[4]);
+            const groups = data && data.stops && data.stops[st[0]];
+            if (!groups) return [];
+
+            const now = new Date();
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            const key = dt => dt.getFullYear() + String(dt.getMonth() + 1).padStart(2, '0') + String(dt.getDate()).padStart(2, '0');
+            const today = new Date(now); today.setHours(0, 0, 0, 0);
+            const yesterday = new Date(today.getTime() - 864e5);
+            // el día de servicio de ayer sigue vivo de madrugada (horas 24-31)
+            const days = [
+                { start: today, off: 0, active: new Set(data.dates[key(today)] || []) },
+                { start: yesterday, off: 1440, active: new Set(data.dates[key(yesterday)] || []) }
+            ];
+
+            const collect = horizon => {
+                const found = [];
+                groups.forEach(([li, hi, svc, mins]) => {
+                    days.forEach(day => {
+                        if (!day.active.has(svc)) return;
+                        const next = mins.filter(m => m - day.off >= nowMin && m - day.off <= nowMin + horizon).slice(0, 2);
+                        if (!next.length) return;
+                        const line = data.lines[li];
+                        found.push({
+                            line: line[0], color: '#' + line[2], textColor: '#' + line[3],
+                            dest: data.heads[hi] || '',
+                            mins: Math.max(0, next[0] - day.off - nowMin),
+                            arriveAt: day.start.getTime() + next[0] * 60000, sched: true,
+                            next: next[1] ? `Siguiente: ${fmtSchedMin(next[1])}` : null,
+                            occ: null,
+                            itinKey: `amb:${line[0]}:${hi}:${next[0]}`,
+                            itin: { mode: 'amb', line: line[0], head: data.heads[hi] || '', code: st[0] }
+                        });
+                    });
+                });
+                // una sola entrada por línea y destino: la que sale antes
+                const best = new Map();
+                found.sort((a, b) => a.arriveAt - b.arriveAt).forEach(d => {
+                    const k = d.line + '|' + d.dest;
+                    if (!best.has(k)) best.set(k, d);
+                });
+                return [...best.values()];
+            };
+
+            return collect(horizon);
+        }
+
+        // En una parada pueden convivir las dos redes: tiempo real de TMB para
+        // sus líneas y horario de AMB para las metropolitanas y el NitBus. Los
+        // códigos de TMB no pasan de cuatro cifras, así que con uno más largo ni
+        // se pregunta a iBus.
         async function fetchBusArrivals(stop) {
-            const hour = new Date().getHours();
-            const nightTime = hour >= 21 || hour < 6;
-            const [liveRes, nightRes] = await Promise.allSettled([
-                liveBusArrivals(stop),
-                nightTime ? nitbusArrivals(stop) : Promise.resolve([])
+            const tmbCode = String(stop.code || '').length <= 4;
+            const [liveRes, ambRes] = await Promise.allSettled([
+                tmbCode ? liveBusArrivals(stop) : Promise.resolve([]),
+                ambArrivals(stop)
             ]);
             const live = liveRes.status === 'fulfilled' ? liveRes.value : [];
-            let night = nightRes.status === 'fulfilled' ? nightRes.value : [];
-            if (!nightTime && !live.length) night = await nitbusArrivals(stop).catch(() => []);
-            if (!live.length && !night.length && liveRes.status === 'rejected') throw liveRes.reason;
-            return [...live, ...night];
+            let amb = ambRes.status === 'fulfilled' ? ambRes.value : [];
+            // si no queda nada en las próximas dos horas (madrugada, o una línea
+            // de paso escaso), al menos decimos a qué hora vuelve a pasar
+            if (!live.length && !amb.length) amb = await ambArrivals(stop, 480).catch(() => []);
+            if (!live.length && !amb.length && liveRes.status === 'rejected') throw liveRes.reason;
+            return [...live, ...amb];
         }
 
         async function fetchMetroArrivals(stop) {
@@ -1543,10 +1645,8 @@
 
         // --- 10D. HISPANO IGUALADINA (bus interurbà; horario oficial del GTFS de la
         // Generalitat, precompilado semanalmente en hispano-igualadina.json) ---
-        // Horarios compilados (scripts/gtfs_compact.py): la Hispano Igualadina y
-        // el NitBus comparten formato, así que comparten también todo el código.
+        // Horarios compilados de la Hispano Igualadina (scripts/build_hispano.py)
         let hispanoData = null, hispanoReq = null;
-        let nitbusData = null, nitbusReq = null;
 
         async function loadSchedule(url, errMsg) {
             const res = await fetch(url);
@@ -1572,13 +1672,6 @@
                 .then(d => (hispanoData = d))
                 .catch(e => { hispanoReq = null; throw e; });
             return hispanoReq;
-        }
-        function ensureNitbus() {
-            if (nitbusData) return Promise.resolve(nitbusData);
-            nitbusReq = nitbusReq || loadSchedule('./nitbus.json', 'Horarios del NitBus no disponibles.')
-                .then(d => (nitbusData = d))
-                .catch(e => { nitbusReq = null; throw e; });
-            return nitbusReq;
         }
         const hbusLine = short => short.replace(/^L0+/, 'L');
         const fmtSchedMin = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -1824,7 +1917,8 @@
                 else if (d.itin.mode === 'metro') nodes = await metroItinerary(d.itin);
                 else if (d.itin.mode === 'train') nodes = await renfeItinerary(d.itin);
                 else if (d.itin.mode === 'fgc') nodes = await fgcItinerary(d.itin);
-                else if (d.itin.mode === 'hbus' || d.itin.mode === 'nit') nodes = await hbusItinerary(d.itin);
+                else if (d.itin.mode === 'amb') nodes = await ambItinerary(d.itin);
+                else if (d.itin.mode === 'hbus') nodes = await hbusItinerary(d.itin);
                 else nodes = await tramItinerary(d.itin);
 
                 if (!activeRoute || activeRoute.key !== d.itinKey) return;
@@ -1928,8 +2022,24 @@
         }
 
         // Recorrido de un bus de la Hispano: el patrón exacto del viaje, del GTFS local
+        // Recorrido de una línea de AMB: el trazado va en lines.json y el nombre
+        // y las coordenadas de cada parada, en stops.json
+        async function ambItinerary(itin) {
+            const [lines, stops] = await Promise.all([ensureAmbLines(), ensureAmbStops()]);
+            const route = lines && (lines.r || []).find(r => r[0] === itin.line && r[1] === itin.head);
+            if (!route) throw new Error('No encuentro el recorrido de esta línea.');
+            const byCode = new Map(stops.map(x => [x[0], x]));
+            const from = route[2].indexOf(itin.code);
+            const nodes = route[2].slice(Math.max(0, from)).map((code, j, arr) => {
+                const x = byCode.get(code);
+                return x ? { name: x[1], lat: x[2], lon: x[3], hl: j === 0 || j === arr.length - 1 } : null;
+            }).filter(Boolean);
+            if (nodes.length < 2) throw new Error('No encuentro el recorrido de esta línea.');
+            return nodes;
+        }
+
         async function hbusItinerary(itin) {
-            const d = itin.mode === 'nit' ? await ensureNitbus() : await ensureHispano();
+            const d = await ensureHispano();
             const trip = (d.trips || []).find(([li, , hi, pat]) =>
                 li === itin.li && hi === itin.hi && pat.some(([si, tm]) => si === itin.idx && tm === itin.dep));
             if (!trip) throw new Error('No encuentro el recorrido de este bus.');
@@ -3194,7 +3304,12 @@
             // el listado de paradas de TMB (cacheado) da nombre y coordenadas:
             // con ellas sale el nombre real, el mapa centrado y el cruce con el NitBus
             try {
-                const hit = (await getTmbBusStops()).find(([c]) => String(c) === String(code));
+                let hit = (await getTmbBusStops()).find(([c]) => String(c) === String(code));
+                if (!hit) {
+                    // los códigos de seis cifras son de la red de AMB
+                    const a = (await ensureAmbStops()).find(x => parseInt(x[0], 10) === parseInt(code, 10));
+                    if (a) hit = [a[0], a[1], a[2], a[3]];
+                }
                 if (hit) {
                     stop.name = hit[1]; stop.lat = hit[2]; stop.lon = hit[3];
                     map.setView([stop.lat, stop.lon], 17);
@@ -3386,8 +3501,18 @@
                     .map((s, i) => ({ type: 'hbus', code: s[0], name: s[1], lat: s[2], lon: s[3], idx: i, dist: getDistance(lat, lon, s[2], s[3]) }))
                     .filter(s => s.dist <= 800);
             } catch (e) { /* horarios no disponibles: seguimos sin este modo */ }
+            // Paradas de la red de AMB (metropolitanas y NitBus): ni TMB ni, en
+            // muchos municipios, Overpass las tienen. Se descartan las que ya
+            // están en la lista como parada de TMB (son el mismo poste).
+            let ambStops = [];
+            try {
+                ambStops = (await ensureAmbStops())
+                    .map(a => ({ type: 'bus', code: a[0], name: a[1], lat: a[2], lon: a[3], amb: true, lines: a[5], dist: getDistance(lat, lon, a[2], a[3]) }))
+                    .filter(a => a.dist <= 700)
+                    .filter(a => !busStops.some(b => getDistance(a.lat, a.lon, b.lat, b.lon) <= 40));
+            } catch (e) { /* sin listado de AMB seguimos con el resto */ }
 
-            nearbyStops = [...busStops, ...metroStops, ...tramStops, ...trainStops, ...fgcStops, ...hbusStops]
+            nearbyStops = [...busStops, ...ambStops, ...metroStops, ...tramStops, ...trainStops, ...fgcStops, ...hbusStops]
                 .map(s => ({ ...s, walkable }))
                 .sort((a, b) => a.dist - b.dist)
                 .slice(0, 15);
