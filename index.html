@@ -4303,11 +4303,12 @@
         // lejos (>1,2 km) sustituye la caminata; a media distancia (600 m–1,2 km)
         // añade la variante con transporte y deja también la de a pie
         async function chainAccess(origin, its) {
-            const out = [];
-            for (const it of its) {
+            // en paralelo: cada itinerario pide su acceso al planner y encadenarlos
+            // de uno en uno se iba a quince segundos desde Barcelona
+            const grupos = await Promise.all(its.map(async it => {
                 const o = it._oStop;
                 delete it._oStop;
-                if (!o || o.dist <= 600) { out.push(it); continue; }
+                if (!o || o.dist <= 600) return [it];
                 const tIdx = it.legs.findIndex(l => l.transitLeg);
                 let accs = [];
                 try { accs = (await bestAccessTo(origin, o, o.code != null ? o.code : (o.i != null ? o.i : o.name))) || []; } catch {}
@@ -4322,10 +4323,11 @@
                             _dStop: it._dStop   // la salida al destino se encadena después
                         };
                     });
-                if (!ups.length) out.push(it);
-                else if (o.dist > 1200) out.push(...ups);
-                else out.push(it, ...ups);
-            }
+                if (!ups.length) return [it];
+                if (o.dist > 1200) return ups;
+                return [it, ...ups];
+            }));
+            const out = grupos.flat();
             out.sort((a, b) => a.endTime - b.endTime);
             return out;
         }
@@ -4441,14 +4443,13 @@
         }
 
         async function chainEgress(dest, its) {
-            const out = [];
-            for (const it of its) {
+            const grupos = await Promise.all(its.map(async it => {
                 const d = it._dStop;
                 delete it._dStop;
                 const lastTransit = it.legs.map(l => l.transitLeg).lastIndexOf(true);
                 // 450 m ya son 6 minutos andando con maletas: a partir de ahí se mira
                 // si hay algo que te acerque, y la opción a pie se mantiene igual
-                if (!d || d.dist <= 450 || lastTransit < 0) { out.push(it); continue; }
+                if (!d || d.dist <= 450 || lastTransit < 0) return [it];
                 const llegada = it.legs[lastTransit].endTime;
                 const [planner, buses] = await Promise.all([
                     bestEgressFrom(d, dest, llegada).catch(() => []),
@@ -4473,10 +4474,11 @@
                             legs: [...it.legs.slice(0, lastTransit + 1), ...salLegs]
                         };
                     });
-                if (!mejores.length) out.push(it);
-                else if (d.dist > 1200) out.push(...mejores);
-                else out.push(it, ...mejores);   // a media distancia, tú eliges
-            }
+                if (!mejores.length) return [it];
+                if (d.dist > 1200) return mejores;
+                return [it, ...mejores];   // a media distancia, tú eliges
+            }));
+            const out = grupos.flat();
             out.sort((a, b) => a.endTime - b.endTime);
             return out;
         }
@@ -4486,14 +4488,19 @@
         // destino, FGC no llega al origen y la Hispano no pasa por Altafulla.
         // Pero Renfe te deja en Martorell y desde ahí FGC o la Hispano te llevan.
         // Aquí se compone ese relevo: origen → intercambiador → destino.
+        // La zona agrupa los nudos de una misma ciudad: por Barcelona se prueba
+        // uno solo (el que caiga mejor), no cuatro búsquedas para lo mismo.
         const RELAY_HUBS = [
-            { name: 'Barcelona Sants', lat: 41.3793, lon: 2.1400 },
-            { name: 'Barcelona Plaça Espanya', lat: 41.3751, lon: 2.1490 },
-            { name: 'Barcelona Plaça Catalunya', lat: 41.3866, lon: 2.1700 },
-            { name: 'Martorell', lat: 41.4744, lon: 1.9290 },
-            { name: 'Sant Vicenç de Calders', lat: 41.2103, lon: 1.5548 },
-            { name: 'Manresa', lat: 41.7266, lon: 1.8265 },
-            { name: 'Granollers', lat: 41.6083, lon: 2.2872 }
+            { name: 'Barcelona Sants', zona: 'bcn', lat: 41.3793, lon: 2.1400 },
+            { name: 'Barcelona Plaça Espanya', zona: 'bcn', lat: 41.3751, lon: 2.1490 },
+            { name: 'Barcelona Plaça Catalunya', zona: 'bcn', lat: 41.3866, lon: 2.1700 },
+            // Diagonal-Maria Cristina: de aquí salen los interurbanos de la Hispano
+            // hacia Esparreguera, Olesa, Igualada y Manresa
+            { name: 'Barcelona Maria Cristina', zona: 'bcn', lat: 41.3877, lon: 2.1258 },
+            { name: 'Martorell', zona: 'martorell', lat: 41.4744, lon: 1.9290 },
+            { name: 'Sant Vicenç de Calders', zona: 'svc', lat: 41.2103, lon: 1.5548 },
+            { name: 'Manresa', zona: 'manresa', lat: 41.7266, lon: 1.8265 },
+            { name: 'Granollers', zona: 'granollers', lat: 41.6083, lon: 2.2872 }
         ];
 
         // Todas las fuentes a la vez entre dos puntos, opcionalmente a partir de
@@ -4528,18 +4535,32 @@
                     out.push(l);
                 }
             }
-            return out;
+            // el final de un tramo era "Destination" y el principio del siguiente
+            // "Origen": en medio del viaje eso es mentira, ahí hay una parada
+            const generico = n => !n || n === 'Destination' || n === 'Destino' || n === 'Origin' || n === 'Origen';
+            return out.map((l, i) => {
+                if (l.transitLeg) return l;
+                const sig = out[i + 1], ant = out[i - 1];
+                let to = l.to, from = l.from;
+                if (sig && generico(to && to.name) && sig.from && !generico(sig.from.name)) to = { ...to, name: sig.from.name };
+                if (ant && generico(from && from.name) && ant.to && !generico(ant.to.name)) from = { ...from, name: ant.to.name };
+                return to === l.to && from === l.from ? l : { ...l, to, from };
+            });
         }
 
         async function relayJourneys(origin, dest) {
             const directo = getDistance(origin.lat, origin.lon, dest.lat, dest.lon);
             if (directo < 8000) return [];      // cerca: si no hay ruta, no es por falta de relevo
             // solo intercambiadores que estén "de camino": nada de rodeos absurdos
-            const hubs = RELAY_HUBS
+            const porZona = new Map();
+            RELAY_HUBS
                 .map(h => ({ h, coste: getDistance(origin.lat, origin.lon, h.lat, h.lon) + getDistance(h.lat, h.lon, dest.lat, dest.lon) }))
                 .filter(x => x.coste <= directo * 1.7 + 15000)
                 .sort((a, b) => a.coste - b.coste)
-                .slice(0, 2);
+                .forEach(x => { if (!porZona.has(x.h.zona)) porZona.set(x.h.zona, x); });
+            // tres ciudades distintas: por geometría Barcelona nunca gana (siempre
+            // es un rodeo), pero es donde enlaza todo — que al menos compita
+            const hubs = [...porZona.values()].slice(0, 3);
             if (!hubs.length) return [];
 
             // los intercambiadores, a la vez: encadenar dos búsquedas completas
@@ -4861,9 +4882,14 @@
         function journeyStepsHTML(it) {
             return it.legs.map((l, i) => {
                 if (!l.transitLeg) {
+                    // "Destination" en un paso intermedio es el nombre que trae el
+                    // planner, no tu destino: ahí lo que hay es la siguiente parada
+                    const hasta = l.to.name !== 'Destination' ? l.to.name
+                        : (i === it.legs.length - 1 ? journeyDest.name
+                            : ((it.legs[i + 1] || {}).from || {}).name || journeyDest.name);
                     return `<div class="jstep">
                         <div class="jstep-icon">🚶</div>
-                        <div class="jstep-body">${t('Camina {d} hasta {x}', { d: `<b>${fmtDist(l.distance)}</b>`, x: `<b>${esc(l.to.name === 'Destination' ? journeyDest.name : l.to.name)}</b>` })}
+                        <div class="jstep-body">${t('Camina {d} hasta {x}', { d: `<b>${fmtDist(l.distance)}</b>`, x: `<b>${esc(hasta)}</b>` })}
                             <div class="jstep-sub">${Math.max(1, Math.round(l.duration / 60))} min</div></div>
                     </div>`;
                 }
