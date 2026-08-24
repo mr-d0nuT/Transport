@@ -1,0 +1,51 @@
+name: Actualiza horarios del bus interurbano de Catalunya
+
+on:
+  schedule:
+    - cron: '40 4 * * 1'   # lunes 04:40 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerar catbus.json desde el GTFS de la Generalitat
+        run: python3 scripts/build_catbus.py
+      - name: Comprobar que el resultado tiene sentido
+        run: |
+          python3 - <<'PY'
+          import json, sys, collections
+          d = json.load(open('catbus.json'))
+          exped = sum(len(p[4]) // 2 for p in d['pats'])
+          # el id de parada lleva el código INE de provincia: PF08…, PF43…, PF17…, PF25…
+          prov = collections.Counter()
+          for s in d['stops']:
+              for i in range(len(s[0]) - 1):
+                  if s[0][i:i+2] in ('08', '43', '17', '25'):
+                      prov[s[0][i:i+2]] += 1
+                      break
+          print(f"{len(d['stops'])} paradas · {len(d['lines'])} líneas · {len(d['pats'])} patrones · "
+                f"{exped} expediciones · provincias {dict(prov)}")
+          # la red son ~9000 paradas y ~28000 expediciones, y las cuatro provincias
+          # tienen que estar: si falta una, el GTFS ha venido a medias
+          if len(d['stops']) < 7000 or len(d['pats']) < 5000 or exped < 20000:
+              sys.exit('Datos incompletos: no se commitea')
+          if min(prov.get(p, 0) for p in ('08', '43', '17', '25')) < 500:
+              sys.exit(f'Falta cobertura de alguna provincia ({dict(prov)}): no se commitea')
+          if not d['dates']:
+              sys.exit('Sin calendario: no se commitea')
+          PY
+      - name: Commit si hay cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A catbus.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios del bus interurbano actualizados (GTFS Generalitat)"
+          git push

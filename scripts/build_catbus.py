@@ -1,28 +1,42 @@
 #!/usr/bin/env python3
-"""Compila un GTFS en el JSON compacto que consume la app.
+"""Genera catbus.json: TODO el bus interurbano de Catalunya.
 
-Lo usan build_hispano.py (bus interurbano de la Generalitat) y build_nitbus.py
-(NitBus metropolitano de AMB): mismo formato de salida, así que la app lee los
-dos con el mismo código.
+Fuente: el GTFS que publica la Generalitat en analisi.transparenciacatalunya.cat
+con los 111 operadores de transporte interurbano por carretera (Sagalés, Hispano
+Igualadina, Teisa, Plana, Sarfa, Alsina Graells, Barcelona Bus…). Cubre las
+cuatro provincias, así que la app deja de ser solo del área de Barcelona.
+
+Antes se compilaba solo la Hispano Igualadina porque el fichero entero pesaba
+6 MB. La clave para meterlo todo es que 28.000 viajes son en realidad ~9.000
+patrones: la misma línea, con la misma secuencia de paradas y los mismos
+minutos entre ellas, repetida a lo largo del día. Guardando el patrón una vez y
+solo la hora de salida de cada expedición, el fichero baja a menos de 1 MB.
 
 {
-  "v": "YYYY-MM-DD",                                    # día de compilación
-  "lines": [[short, long], ...],
+  "v": "YYYY-MM-DD",                                   # día de compilación
+  "lines": [[código, nombre, operador], ...],          # código público: e24, 530…
   "heads": ["destino", ...],
   "stops": [[stop_id, nombre, lat, lon], ...],
-  "dates": {"YYYYMMDD": [svcIdx, ...], ...},          # de ayer a DAYS_AHEAD días
-  "trips": [[lineIdx, svcIdx, headIdx, [[stopIdx, depMin], ...]], ...]
+  "dates": {"YYYYMMDD": [svcIdx, ...], ...},           # de ayer a DAYS_AHEAD días
+  "pats":  [[lineIdx, headIdx, [stopIdx...], [dt...], [svcIdx, salida, ...]], ...]
 }
 
-Los minutos son desde medianoche del día de servicio (pueden superar 1440: el
-GTFS de los nocturnos usa horas 24-31 para la madrugada). La app deriva el
-índice de salidas por parada y puede componer trayectos origen→destino
-recorriendo la secuencia de paradas de cada viaje.
+`dt` son los minutos entre parada y parada, y `salida` el minuto (desde
+medianoche del día de servicio) en que esa expedición sale de la primera parada
+del patrón. Puede pasar de 1440: el GTFS escribe la madrugada como horas 24-31
+del día anterior. La app reconstruye cada expedición sumando.
 """
-import collections, csv, hashlib, io, json, os, sys, urllib.request, zipfile
+import collections, csv, hashlib, io, json, os, re, sys, urllib.request, zipfile
 from datetime import date, timedelta
 
+GTFS_URL = "https://analisi.transparenciacatalunya.cat/download/bca2-b4i3/application/zip"
+OUT = "catbus.json"
 DAYS_AHEAD = 30
+
+# El código con el que la gente conoce la línea va entre paréntesis al principio
+# del nombre largo: "(e24) Esparreguera - Barcelona". El route_short_name es un
+# identificador interno ("L1990") que no sirve de nada en una parada.
+CODIGO = re.compile(r"^\s*\(([^)]{1,8})\)")
 
 
 def fetch_gtfs(url):
@@ -38,16 +52,22 @@ def fetch_gtfs(url):
             return zipfile.ZipFile(cache)
     print("Descargando GTFS…", file=sys.stderr)
     req = urllib.request.Request(url, headers={"User-Agent": "transport-bcn-build/1.0"})
-    raw = urllib.request.urlopen(req, timeout=300).read()
+    raw = urllib.request.urlopen(req, timeout=600).read()
     if cache:
         with open(cache, "wb") as f:
             f.write(raw)
     return zipfile.ZipFile(io.BytesIO(raw))
 
 
-def build(gtfs_url, keep_route, out_path, days_ahead=DAYS_AHEAD):
-    """Compila el GTFS de `gtfs_url` quedándose con las rutas para las que
-    `keep_route(route_row, agency_name)` devuelve True."""
+def limpia_operador(nombre):
+    """Los nombres del GTFS vienen con la forma jurídica pegada y comillas
+    sueltas: "Empresa Sagalés, SA" → "Empresa Sagalés"."""
+    n = (nombre or "").strip().strip('"').strip()
+    n = re.sub(r"[,\s]+(S\.?A\.?U?|S\.?L\.?U?|SCCL|SCP)\.?$", "", n, flags=re.I)
+    return n.strip(" ,;")
+
+
+def build(gtfs_url=GTFS_URL, out_path=OUT, days_ahead=DAYS_AHEAD):
     zf = fetch_gtfs(gtfs_url)
 
     def rows(name):
@@ -55,18 +75,23 @@ def build(gtfs_url, keep_route, out_path, days_ahead=DAYS_AHEAD):
             for r in csv.DictReader(io.TextIOWrapper(f, "utf-8-sig")):
                 yield {(k or "").strip(): (v or "").strip() for k, v in r.items()}
 
-    agencies = {a.get("agency_id", ""): a.get("agency_name", "") for a in rows("agency.txt")}
+    agencies = {a.get("agency_id", ""): limpia_operador(a.get("agency_name", ""))
+                for a in rows("agency.txt")}
 
-    routes = {r["route_id"]: (r["route_short_name"], r["route_long_name"])
-              for r in rows("routes.txt")
-              if keep_route(r, agencies.get(r.get("agency_id", ""), ""))}
+    routes = {}
+    for r in rows("routes.txt"):
+        largo = r.get("route_long_name", "")
+        m = CODIGO.match(largo)
+        codigo = m.group(1) if m else re.sub(r"^L0+", "L", r.get("route_short_name", ""))
+        nombre = CODIGO.sub("", largo).strip(" -–") or codigo
+        routes[r["route_id"]] = (codigo, nombre, agencies.get(r.get("agency_id", ""), ""))
     if not routes:
-        sys.exit("Ninguna ruta coincide con el filtro")
+        sys.exit("El GTFS no trae rutas")
 
     lines, line_idx = [], {}
-    for rid, (short, long_) in sorted(routes.items()):
+    for rid, datos in sorted(routes.items()):
         line_idx[rid] = len(lines)
-        lines.append([short, long_])
+        lines.append(list(datos))
 
     trips = {t["trip_id"]: t for t in rows("trips.txt") if t["route_id"] in routes}
 
@@ -117,7 +142,7 @@ def build(gtfs_url, keep_route, out_path, days_ahead=DAYS_AHEAD):
 
     heads, head_idx = [], {}
     stops, stop_idx = [], {}
-    out_trips = []
+    patrones = collections.defaultdict(list)   # (línea, destino, paradas, saltos) → [(svc, salida)]
 
     for tid, seq in trip_stops.items():
         t = trips[tid]
@@ -128,35 +153,48 @@ def build(gtfs_url, keep_route, out_path, days_ahead=DAYS_AHEAD):
         if head not in head_idx:
             head_idx[head] = len(heads)
             heads.append(head)
-        pattern = []
-        prev_dep = None
+        paradas, tiempos = [], []
+        prev = None
         for _, sid, dep, arr in seq:
             if sid not in stops_meta:
                 continue
             when = dep if dep is not None else arr
             if when is None:
-                when = prev_dep  # parada sin timepoint: hereda la anterior
+                when = prev          # parada sin timepoint: hereda la anterior
             if when is None:
                 continue
-            prev_dep = when
+            prev = when
             if sid not in stop_idx:
                 stop_idx[sid] = len(stops)
                 name, lat, lon = stops_meta[sid]
                 stops.append([sid, name, lat, lon])
-            pattern.append([stop_idx[sid], when])
-        if len(pattern) < 2:
+            paradas.append(stop_idx[sid])
+            tiempos.append(when)
+        if len(paradas) < 2:
             continue
-        out_trips.append([line_idx[t["route_id"]], svc_idx[t["service_id"]], head_idx[head], pattern])
+        saltos = tuple(tiempos[i + 1] - tiempos[i] for i in range(len(tiempos) - 1))
+        clave = (line_idx[t["route_id"]], head_idx[head], tuple(paradas), saltos)
+        patrones[clave].append((svc_idx[t["service_id"]], tiempos[0]))
 
-    # salida determinista: si no, el commit semanal cambia solo por el orden
-    # en que Python recorre los conjuntos de fechas
-    out = {"v": today.isoformat(), "lines": lines, "heads": heads,
-           "stops": stops,
+    # salida determinista: si no, el commit semanal cambia solo por el orden en
+    # que Python recorre los diccionarios
+    pats = []
+    for (li, hi, paradas, saltos), salidas in patrones.items():
+        salidas.sort()
+        pats.append([li, hi, list(paradas), list(saltos), [x for par in salidas for x in par]])
+    pats.sort(key=lambda p: (p[0], p[1], p[4][1] if len(p[4]) > 1 else 0, p[2]))
+
+    expediciones = sum(len(p[4]) // 2 for p in pats)
+    out = {"v": today.isoformat(), "lines": lines, "heads": heads, "stops": stops,
            "dates": {k: sorted(v) for k, v in sorted(dates.items())},
-           "trips": out_trips}
+           "pats": pats}
     data = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(data)
     print(f"{out_path}: {len(data)} bytes · {len(stops)} paradas · {len(lines)} líneas · "
-          f"{len(out_trips)} viajes", file=sys.stderr)
+          f"{len(pats)} patrones · {expediciones} expediciones", file=sys.stderr)
     return out
+
+
+if __name__ == "__main__":
+    build(out_path=sys.argv[1] if len(sys.argv) > 1 else OUT)
