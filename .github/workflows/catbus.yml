@@ -60,7 +60,11 @@ jobs:
           r = json.load(open('renfe-md.json'))
           trenes = sum(len(p[4]) // 2 for p in r['pats'])
           print(f"renfe-md: {len(r['stops'])} estaciones · {len(r['pats'])} patrones · {trenes} trenes")
-          if len(r['stops']) < 60 or trenes < 300:
+          rodalies = {l[0] for l in r['lines'] if l[0].startswith('R')}
+          print(f"  líneas de Rodalies: {len(rodalies)}")
+          # 305 estaciones y ~41.000 circulaciones; si Rodalies se cae del GTFS
+          # el fichero encoge de golpe y se acabaron los enlaces bus-tren-bus
+          if len(r['stops']) < 200 or trenes < 20000 or len(rodalies) < 10:
               sys.exit('Horario de Renfe incompleto: no se commitea')
           PY
       - name: Commit si hay cambios
