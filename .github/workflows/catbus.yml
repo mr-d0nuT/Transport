@@ -1,4 +1,4 @@
-name: Actualiza horarios del bus interurbano de Catalunya
+name: Actualiza horarios de bus y tren de Catalunya
 
 on:
   schedule:
@@ -21,6 +21,8 @@ jobs:
           # sin la clave el fichero se genera igual, solo con el interurbano
           NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
         run: python3 scripts/build_catbus.py
+      - name: Regenerar renfe-md.json (Regionales y Media Distancia de Renfe)
+        run: python3 scripts/build_renfemd.py
       - name: Comprobar que el resultado tiene sentido
         env:
           NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
@@ -52,11 +54,19 @@ jobs:
           import os
           if os.environ.get('NAP_API_KEY') and len(urbanos) < 3:
               sys.exit(f'Faltan redes urbanas ({dict(urbanos)}): no se commitea')
+
+          # los trenes que la API de cercanías no cubre: sin ellos, Lleida y las
+          # Terres de l'Ebre se quedan sin conexión de larga distancia
+          r = json.load(open('renfe-md.json'))
+          trenes = sum(len(p[4]) // 2 for p in r['pats'])
+          print(f"renfe-md: {len(r['stops'])} estaciones · {len(r['pats'])} patrones · {trenes} trenes")
+          if len(r['stops']) < 60 or trenes < 300:
+              sys.exit('Horario de Renfe incompleto: no se commitea')
           PY
       - name: Commit si hay cambios
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A catbus.json
-          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios del bus de Catalunya actualizados (Generalitat + urbanos)"
+          git add -A catbus.json renfe-md.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios de Catalunya actualizados (bus de la Generalitat, urbanos y Renfe)"
           git push

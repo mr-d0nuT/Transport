@@ -147,6 +147,9 @@ class Acumulador:
 def compilar(zf, fuente, acc, horizon):
     tag = fuente["tag"]
     pref = (tag + ":") if tag else ""
+    # (lat_min, lon_min, lat_max, lon_max): las fuentes nacionales (Renfe) traen
+    # toda España y aquí solo interesa el trozo catalán
+    bbox = fuente.get("bbox")
 
     def rows(name, obligatorio=True):
         if name not in zf.namelist():
@@ -168,7 +171,7 @@ def compilar(zf, fuente, acc, horizon):
         codigo = m.group(1) if m else re.sub(r"^L0+", "L", corto) or largo[:6]
         nombre = CODIGO.sub("", largo).strip(" -–") or codigo
         operador = fuente["operador"] or agencies.get(r.get("agency_id", ""), "")
-        routes[r["route_id"]] = (codigo, nombre, operador)
+        routes[r["route_id"]] = (codigo, nombre, operador, fuente.get("modo", "B"))
     if not routes:
         return 0
 
@@ -221,10 +224,12 @@ def compilar(zf, fuente, acc, horizon):
     stops_meta = {}
     for s in rows("stops.txt"):
         try:
-            stops_meta[s["stop_id"]] = (s.get("stop_name") or "?",
-                                        round(float(s["stop_lat"]), 5), round(float(s["stop_lon"]), 5))
+            lat, lon = round(float(s["stop_lat"]), 5), round(float(s["stop_lon"]), 5)
         except (ValueError, KeyError, TypeError):
             continue
+        if bbox and not (bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]):
+            continue
+        stops_meta[s["stop_id"]] = (s.get("stop_name") or "?", lat, lon)
 
     puestos = 0
     for tid, seq in trip_stops.items():
@@ -250,7 +255,10 @@ def compilar(zf, fuente, acc, horizon):
             tiempos.append(when)
         if len(paradas) < 2:
             continue
-        li = acc.linea(pref + t["route_id"], routes[t["route_id"]])
+        # la línea se indexa por su contenido, no por route_id: Renfe publica el
+        # mismo AVE bajo varios route_id y así no sale tres veces en la lista
+        datos = routes[t["route_id"]]
+        li = acc.linea(pref + "|".join(datos), datos)
         saltos = tuple(tiempos[i + 1] - tiempos[i] for i in range(len(tiempos) - 1))
         acc.patrones[(li, hi, tuple(paradas), saltos)].append(
             (acc.servicio(pref + t["service_id"]), tiempos[0]))
@@ -282,7 +290,7 @@ def build(out_path=OUT, days_ahead=DAYS_AHEAD):
     # que Python recorre los diccionarios
     pats = []
     for (li, hi, paradas, saltos), salidas in acc.patrones.items():
-        salidas.sort()
+        salidas = sorted(set(salidas))
         pats.append([li, hi, list(paradas), list(saltos), [x for par in salidas for x in par]])
     pats.sort(key=lambda p: (p[0], p[1], p[4][1] if len(p[4]) > 1 else 0, p[2]))
 
