@@ -2217,7 +2217,7 @@
                 accesibilidadTrenes: false
             });
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 10000);
+            const timer = setTimeout(() => ctrl.abort(), 7000);
             try {
                 const res = await fetch('https://corsproxy.io/?url=' + encodeURIComponent('https://horarios.renfe.com/cer/HorariosServlet'), {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: ctrl.signal
@@ -4674,7 +4674,11 @@
             // el coste no es solo llegar antes: media hora a pie al final pesa
             // (journeyScore va en milisegundos de época, ahí la caminata no se nota)
             const coste = x => x.endTime / 60000 + longestWalkMin(x) * 4;
-            const intentos = await Promise.all(hubs.map(async ({ h }) => {
+            // Diez segundos de tope: encadenar tres intercambiadores por una ruta
+            // que probablemente no existe puede irse a medio minuto, y el usuario
+            // se queda mirando el reloj. Con lo que haya a los diez, basta.
+            const limite = new Promise(r => setTimeout(() => r([]), 10000));
+            const intentos = await Promise.race([limite, Promise.all(hubs.map(async ({ h }) => {
                 const primeros = await allSources(origin, h).catch(() => []);
                 // las dos primeras salidas se miran enteras y gana la mejor
                 // combinación: quedarse con la primera que enlaza te hace perder
@@ -4694,8 +4698,8 @@
                     } : null;
                 }));
                 return combis.filter(Boolean).sort((a, b) => coste(a) - coste(b))[0] || null;
-            }));
-            return intentos.filter(Boolean);
+            }))]);
+            return (intentos || []).filter(Boolean);
         }
 
         // Rutas en bus interurbano para destinos fuera del área del planner:
