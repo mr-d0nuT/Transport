@@ -215,12 +215,6 @@ def compilar(zf, fuente, acc, horizon):
         for d in svc_dates[s]:
             acc.dates[d.strftime("%Y%m%d")].add(si)
 
-    trip_stops = collections.defaultdict(list)
-    for st in rows("stop_times.txt"):
-        if st["trip_id"] in trips:
-            trip_stops[st["trip_id"]].append(
-                (int(st["stop_sequence"]), st["stop_id"], to_min(st.get("departure_time")), to_min(st.get("arrival_time"))))
-
     stops_meta = {}
     for s in rows("stops.txt"):
         try:
@@ -230,6 +224,12 @@ def compilar(zf, fuente, acc, horizon):
         if bbox and not (bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]):
             continue
         stops_meta[s["stop_id"]] = (s.get("stop_name") or "?", lat, lon)
+
+    trip_stops = collections.defaultdict(list)
+    for st in rows("stop_times.txt"):
+        if st["trip_id"] in trips and st["stop_id"] in stops_meta:
+            trip_stops[st["trip_id"]].append(
+                (int(st["stop_sequence"]), st["stop_id"], to_min(st.get("departure_time")), to_min(st.get("arrival_time"))))
 
     puestos = 0
     for tid, seq in trip_stops.items():
@@ -242,8 +242,6 @@ def compilar(zf, fuente, acc, horizon):
         paradas, tiempos = [], []
         prev = None
         for _, sid, dep, arr in seq:
-            if sid not in stops_meta:
-                continue
             when = dep if dep is not None else arr
             if when is None:
                 when = prev          # parada sin timepoint: hereda la anterior

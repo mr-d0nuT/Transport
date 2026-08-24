@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera renfe-md.json: los trenes de Renfe que la API de cercanías no ve.
+"""Genera renfe-md.json: el horario de tren de Catalunya, Rodalies incluida.
 
 La app pregunta los horarios en directo a horarios.renfe.com/cer, pero ese
 servicio solo cubre Rodalies. Los Regionales, Media Distancia, Avant y AVE no
@@ -15,7 +15,11 @@ import sys
 
 import build_catbus as base
 
-GTFS_URL = "https://ssl.renfe.com/gtransit/Fichero_AV_LD/google_transit.zip"
+# Media y larga distancia (Regional, MD, Avant, AVE) y Rodalies. Los dos hacen
+# falta: sin Rodalies no se puede encadenar "bus del pueblo → tren → bus", que es
+# como se llega de verdad a media Catalunya.
+GTFS_MD = "https://ssl.renfe.com/gtransit/Fichero_AV_LD/google_transit.zip"
+GTFS_CER = "https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip"
 OUT = "renfe-md.json"
 # Catalunya con un margen: incluye Vinaròs y la Franja, que dan servicio a las
 # Terres de l'Ebre y al Segrià
@@ -23,10 +27,10 @@ BBOX = (40.45, 0.10, 42.95, 3.40)
 
 
 def build(out_path=OUT):
-    base.FUENTES = [{
-        "tag": "RNF", "operador": "Renfe", "url": GTFS_URL,
-        "bbox": BBOX, "modo": "T",
-    }]
+    base.FUENTES = [
+        {"tag": "RNF", "operador": "Renfe", "url": GTFS_MD, "bbox": BBOX, "modo": "T"},
+        {"tag": "RCE", "operador": "Rodalies de Catalunya", "url": GTFS_CER, "bbox": BBOX, "modo": "T"},
+    ]
     return base.build(out_path=out_path)
 
 

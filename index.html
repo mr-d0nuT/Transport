@@ -3870,11 +3870,13 @@
                 const cuando = new Date(base); cuando.setHours(h, 0, 0, 0);
                 // solo los horarios que llevamos dentro (bus de Catalunya y trenes
                 // de Renfe): son locales y responden al instante
-                const [bus, tren] = await Promise.all([
+                const [bus, tren, red] = await Promise.all([
                     hbusFallbackJourneys(origin, dest, cuando.getTime(), { sinEnlaces: true }).catch(() => []),
-                    renfeSchedJourneys(origin, dest, cuando.getTime(), { sinEnlaces: true }).catch(() => [])
+                    renfeSchedJourneys(origin, dest, cuando.getTime(), { sinEnlaces: true }).catch(() => []),
+                    // y la red entera, que es la que sabe encadenar bus y tren
+                    redJourneys(origin, dest, cuando.getTime()).catch(() => [])
                 ]);
-                const con = [...bus, ...tren].filter(it => it.legs.some(l => l.transitLeg));
+                const con = [...bus, ...tren, ...red].filter(it => it.legs.some(l => l.transitLeg));
                 if (con.length) return con.sort((a, b) => a.startTime - b.startTime).slice(0, 4);
             }
             // Sin servicio directo mañana tampoco: puede que sí lo haya con
@@ -4028,16 +4030,20 @@
             // montamos rutas con los horarios de Renfe (media distancia) y de la
             // Hispano Igualadina (bus interurbano), y fusionamos lo que salga
             if (!its.some(it => it.legs.some(l => l.transitLeg))) {
-                const [rF, hF, mF] = await Promise.allSettled([
+                const [rF, hF, mF, redF] = await Promise.allSettled([
                     renfeFallbackJourneys(origin, dest, whenMs),
                     hbusFallbackJourneys(origin, dest, whenMs),
-                    renfeSchedJourneys(origin, dest, whenMs)
+                    renfeSchedJourneys(origin, dest, whenMs),
+                    // la búsqueda por la red entera: la única que sabe encadenar
+                    // bus del pueblo, tren y bus del final
+                    redJourneys(origin, dest, whenMs)
                 ]);
                 its = [
                     ...its,
                     ...(rF.status === 'fulfilled' ? rF.value : []),
                     ...(hF.status === 'fulfilled' ? hF.value : []),
-                    ...(mF.status === 'fulfilled' ? mF.value : [])
+                    ...(mF.status === 'fulfilled' ? mF.value : []),
+                    ...(redF.status === 'fulfilled' ? redF.value : [])
                 ];
             }
             // Sigue sin haber nada: será un viaje que ninguna red cubre entera
@@ -4566,6 +4572,248 @@
             return out;
         }
 
+        // --- BÚSQUEDA POR LA RED ENTERA (bus + tren, con transbordos) ---
+        // Los compositores de antes solo saben de un vehículo: te llevan del
+        // origen al destino si hay una línea que pase por los dos. Fuera del área
+        // metropolitana casi nunca la hay: del pueblo se sale en bus hasta la
+        // estación, luego tren, y al llegar otro bus. Eso es lo que busca esto,
+        // encima de los horarios que ya llevamos dentro (todo el bus de Catalunya
+        // y todo el tren, Rodalies incluida). Es un RAPTOR pequeño: por rondas,
+        // cada ronda es un vehículo más.
+        let redCache = null, redReq = null;
+        function ensureRed() {
+            if (redCache) return Promise.resolve(redCache);
+            redReq = redReq || (async () => {
+                const ds = [];
+                for (const carga of [ensureCatBus, ensureRenfeMD]) {
+                    const d = await carga().catch(() => null);
+                    if (d) ds.push(d);
+                }
+                if (!ds.length) throw new Error('sin horarios');
+                // una sola numeración de paradas para las dos redes
+                const lat = [], lon = [], dsOf = [], locOf = [], base = [];
+                ds.forEach((d, di) => {
+                    base[di] = lat.length;
+                    d.stops.forEach((s, i) => { lat.push(s[2]); lon.push(s[3]); dsOf.push(di); locOf.push(i); });
+                });
+                // rejilla de ~500 m para encontrar transbordos a pie sin comparar
+                // diez mil paradas con diez mil paradas
+                const grid = new Map();
+                for (let g = 0; g < lat.length; g++) {
+                    const k = Math.round(lat[g] / 0.005) + ':' + Math.round(lon[g] / 0.005);
+                    let v = grid.get(k); if (!v) grid.set(k, v = []);
+                    v.push(g);
+                }
+                redCache = { ds, base, lat, lon, dsOf, locOf, grid, n: lat.length };
+                return redCache;
+            })().catch(e => { redReq = null; throw e; });
+            return redReq;
+        }
+
+        const A_PIE_MIN = m => m / 75;          // 1,25 m/s en minutos
+        const ENLACE_MIN = 2;                   // margen para subir al siguiente
+
+        async function redJourneys(origin, dest, whenMs, opts = {}) {
+            let red;
+            try { red = await ensureRed(); } catch { return []; }
+            // Cuatro vehículos: del pueblo al apeadero, tren, enlace y bus final.
+            // Con tres se quedaba a las puertas de Argentona.
+            const rondas = opts.rondas || 4;
+            const radio = opts.radio || 1200;   // metros hasta la primera parada
+            const desde = whenMs || Date.now();
+
+            // día de servicio: de madrugada circula todavía el día anterior, con
+            // horas 24-31, así que se cuenta en minutos desde su medianoche
+            const ahora = new Date(desde);
+            let minAhora = ahora.getHours() * 60 + ahora.getMinutes();
+            let diaSvc = new Date(ahora);
+            if (ahora.getHours() < 4) { diaSvc = new Date(ahora.getTime() - 864e5); minAhora += 1440; }
+            const clave = diaSvc.getFullYear() + String(diaSvc.getMonth() + 1).padStart(2, '0') + String(diaSvc.getDate()).padStart(2, '0');
+            const activos = red.ds.map(d => new Set(d.dates[clave] || []));
+            const dia0 = new Date(diaSvc); dia0.setHours(0, 0, 0, 0);
+            const T0 = dia0.getTime();
+
+            // Solo se miran las paradas que están de camino: sin esto, un viaje de
+            // veinte kilómetros acabaría explorando toda Catalunya.
+            const dOD = getDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+            const margen = Math.max(15000, dOD * 0.8);
+            const deCamino = g => getDistance(origin.lat, origin.lon, red.lat[g], red.lon[g]) +
+                                  getDistance(red.lat[g], red.lon[g], dest.lat, dest.lon) <= dOD + margen;
+
+            const INF = 1e9;
+            const label = new Float64Array(red.n).fill(INF);
+            const padre = new Array(red.n).fill(null);
+
+            const cercanas = (pt, max) => {
+                const out = [];
+                for (let g = 0; g < red.n; g++) {
+                    const dd = getDistance(pt.lat, pt.lon, red.lat[g], red.lon[g]);
+                    if (dd <= max) out.push({ g, dd });
+                }
+                return out.sort((a, b) => a.dd - b.dd).slice(0, 60);
+            };
+
+            const salida = cercanas(origin, radio);
+            const llegada = cercanas(dest, radio);
+            if (!salida.length || !llegada.length) return [];
+            const destinos = new Map(llegada.map(x => [x.g, x.dd]));
+
+            let marcadas = new Set();
+            salida.forEach(({ g, dd }) => {
+                label[g] = minAhora + A_PIE_MIN(dd);
+                padre[g] = { tipo: 'pie', desde: null, metros: dd };
+                marcadas.add(g);
+            });
+
+            const vecinas = g => {
+                const cy = Math.round(red.lat[g] / 0.005), cx = Math.round(red.lon[g] / 0.005);
+                const out = [];
+                for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+                    const v = red.grid.get((cy + a) + ':' + (cx + b));
+                    if (v) for (const h of v) if (h !== g) {
+                        const dd = getDistance(red.lat[g], red.lon[g], red.lat[h], red.lon[h]);
+                        if (dd <= 500) out.push({ h, dd });
+                    }
+                }
+                return out;
+            };
+
+            for (let r = 0; r < rondas && marcadas.size; r++) {
+                // De cada patrón interesa una sola subida: aquella en la que se
+                // pueda coger antes. Primero se eligen, después se recorren.
+                const porPatron = new Map();
+                for (const g of marcadas) {
+                    const di = red.dsOf[g], d = red.ds[di], loc = red.locOf[g];
+                    const at = d._at.get(loc);
+                    if (!at) continue;
+                    const listo = label[g] + (padre[g] && padre[g].tipo === 'viaje' ? ENLACE_MIN : 0);
+                    for (let n = 0; n < at.length; n += 2) {
+                        const pi = at[n], k = at[n + 1], p = d.pats[pi], cum = d._cum[pi], sal = p[4];
+                        let mejor = INF, svcMejor = -1, t0Mejor = 0;
+                        for (let e = 0; e < sal.length; e += 2) {
+                            if (!activos[di].has(sal[e])) continue;
+                            const dep = sal[e + 1] + cum[k];
+                            if (dep >= listo && dep < mejor) { mejor = dep; svcMejor = sal[e]; t0Mejor = sal[e + 1]; }
+                        }
+                        if (svcMejor < 0) continue;
+                        const clave2 = di + ':' + pi;
+                        const ya = porPatron.get(clave2);
+                        if (!ya || mejor < ya.dep) porPatron.set(clave2, { di, pi, k, dep: mejor, t0: t0Mejor, desde: g });
+                    }
+                }
+
+                const mejoradas = new Set();
+                for (const { di, pi, k, dep, t0, desde: g0 } of porPatron.values()) {
+                    const d = red.ds[di], p = d.pats[pi], cum = d._cum[pi], paradas = p[2];
+                    for (let j = k + 1; j < paradas.length; j++) {
+                        const gj = red.base[di] + paradas[j];
+                        const llega = t0 + cum[j];
+                        if (llega >= label[gj]) continue;
+                        if (!destinos.has(gj) && !deCamino(gj)) continue;
+                        label[gj] = llega;
+                        padre[gj] = { tipo: 'viaje', di, pi, k, j, dep, llega, desde: g0 };
+                        mejoradas.add(gj);
+                    }
+                }
+
+                // transbordo a pie entre paradas próximas (andén de enfrente,
+                // estación de tren al lado de la parada de bus…)
+                const conPie = new Set(mejoradas);
+                for (const g of mejoradas) {
+                    for (const { h, dd } of vecinas(g)) {
+                        const t = label[g] + A_PIE_MIN(dd) + 1;
+                        if (t < label[h] && (destinos.has(h) || deCamino(h))) {
+                            label[h] = t;
+                            padre[h] = { tipo: 'pie', desde: g, metros: dd };
+                            conPie.add(h);
+                        }
+                    }
+                }
+                // el frente crece rápido; se sigue por las mil doscientas paradas
+                // a las que se llega antes, que es por donde va a salir la ruta
+                marcadas = new Set([...conPie]
+                    .filter(g => label[g] <= minAhora + 420)
+                    .sort((a, b) => label[a] - label[b])
+                    .slice(0, 1200));
+            }
+
+            // mejor destino: lo que se tarda en llegar más lo que queda a pie
+            let mejorG = -1, mejorFin = INF;
+            for (const [g, dd] of destinos) {
+                if (label[g] >= INF) continue;
+                const fin = label[g] + A_PIE_MIN(dd);
+                if (fin < mejorFin) { mejorFin = fin; mejorG = g; }
+            }
+            if (mejorG < 0) return [];
+
+            // deshacer el camino: del destino hacia atrás
+            const pasos = [];
+            let g = mejorG, guarda = 0;
+            while (g != null && padre[g] && guarda++ < 40) {
+                pasos.unshift({ g, p: padre[g] });
+                g = padre[g].desde;
+            }
+            if (!pasos.some(x => x.p.tipo === 'viaje')) return [];
+
+            const legs = [];
+            const enMs = min => T0 + Math.round(min) * 60000;
+            const nombre = gi => red.ds[red.dsOf[gi]].stops[red.locOf[gi]][1];
+            pasos.forEach((paso, i) => {
+                const { g: gi, p } = paso;
+                if (p.tipo === 'pie') {
+                    if (!p.metros || p.metros < 80) return;
+                    const fin = label[gi];
+                    legs.push({
+                        transitLeg: false, mode: 'WALK', duration: A_PIE_MIN(p.metros) * 60, distance: p.metros,
+                        from: { name: p.desde == null ? 'Origen' : nombre(p.desde) }, to: { name: nombre(gi) },
+                        startTime: enMs(fin - A_PIE_MIN(p.metros)), endTime: enMs(fin),
+                        _pts: [p.desde == null ? [origin.lat, origin.lon] : [red.lat[p.desde], red.lon[p.desde]],
+                               [red.lat[gi], red.lon[gi]]]
+                    });
+                    return;
+                }
+                const d = red.ds[p.di], pat = d.pats[p.pi], linea = d.lines[pat[0]];
+                const esTren = linea[3] === 'T';
+                const tramo = pat[2].slice(p.k, p.j + 1).map(si => {
+                    const s = d.stops[si];
+                    return { name: s[1], lat: s[2], lon: s[3] };
+                });
+                legs.push({
+                    transitLeg: true, mode: esTren ? 'RAIL' : 'BUS',
+                    routeShortName: hbusLine(linea[0]), routeColor: esTren ? 'EC0000' : '7b3fa0',
+                    headsign: d.heads[pat[1]], agencyName: linea[2] || '',
+                    from: { name: tramo[0].name }, to: { name: tramo[tramo.length - 1].name },
+                    startTime: enMs(p.dep), endTime: enMs(p.llega), duration: (p.llega - p.dep) * 60,
+                    intermediateStops: null, _stops: tramo,
+                    _pts: tramo.map(x => [x.lat, x.lon])
+                });
+            });
+
+            const restan = destinos.get(mejorG);
+            if (restan > 80) legs.push({
+                transitLeg: false, mode: 'WALK', duration: A_PIE_MIN(restan) * 60, distance: restan,
+                from: { name: nombre(mejorG) }, to: { name: 'Destination' },
+                startTime: enMs(label[mejorG]), endTime: enMs(mejorFin),
+                _pts: [[red.lat[mejorG], red.lon[mejorG]], [dest.lat, dest.lon]]
+            });
+            if (!legs.length) return [];
+            const juntos = fusionaCaminatas(legs);
+            const viaje = {
+                startTime: juntos[0].startTime, endTime: juntos[juntos.length - 1].endTime,
+                duration: (juntos[juntos.length - 1].endTime - juntos[0].startTime) / 1000,
+                legs: juntos, _red: true
+            };
+            if (opts.unaSola) return [viaje];
+            // la siguiente opción: la misma búsqueda un minuto después de subirse
+            // a lo primero, que es como se pregunta "¿y si pierdo este?"
+            const primer = juntos.find(l => l.transitLeg);
+            const otra = primer
+                ? await redJourneys(origin, dest, primer.startTime + 60000, { ...opts, unaSola: true }).catch(() => [])
+                : [];
+            const firma = x => x.legs.filter(l => l.transitLeg).map(l => l.routeShortName + '@' + l.startTime).join('>');
+            return otra.length && firma(otra[0]) !== firma(viaje) ? [viaje, otra[0]] : [viaje];
+        }
+
         // --- RELEVOS: viajes que ninguna red cubre de punta a punta ---
         // De Altafulla a Esparreguera no hay nada directo: Renfe no llega al
         // destino, FGC no llega al origen y la Hispano no pasa por Altafulla.
@@ -4677,7 +4925,7 @@
             // Diez segundos de tope: encadenar tres intercambiadores por una ruta
             // que probablemente no existe puede irse a medio minuto, y el usuario
             // se queda mirando el reloj. Con lo que haya a los diez, basta.
-            const limite = new Promise(r => setTimeout(() => r([]), 10000));
+            const limite = new Promise(r => setTimeout(() => r([]), 7000));
             const intentos = await Promise.race([limite, Promise.all(hubs.map(async ({ h }) => {
                 const primeros = await allSources(origin, h).catch(() => []);
                 // las dos primeras salidas se miran enteras y gana la mejor
