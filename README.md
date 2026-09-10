@@ -23,16 +23,18 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
   - 🚊 **TRAM** (T1–T6)
   - 🚆 **Rodalies Renfe**
   - 🚞 **FGC**
-  - 🚏 **Bus metropolitano de AMB** (B, L, M, SB, EP… 114 líneas que TMB no conoce) y 🌙 **NitBus** (N0-N28), con horarios del GTFS de AMB: no hay tiempo real, pero sí a qué hora pasa
+  - 🚏 **Bus metropolitano de AMB** (B, L, M, SB, EP… 138 líneas que TMB no conoce) y 🌙 **NitBus** (N0-N28), **en tiempo real** con la API oficial de AMB a través del [relé](relay/README.md) —el mismo dato que su app, con destino y minutos—, más las alteraciones del servicio (desvíos, obras) en cada línea. Sin relé, tira del GTFS-RT público y, si tampoco llega, del horario oficial compilado
   - 🚍 **Hispano Igualadina** (horarios GTFS precompilados)
 - **¿Cabeza o cola?** En cada tramo de metro te dice en qué parte del tren colocarte para bajar justo delante del transbordo o de la salida que te toca — y te nombra la salida ("al bajar en Espanya, la salida Exposició / Gran Via queda por ahí"). Sale de la geometría de los andenes, los accesos y las escaleras de OpenStreetMap, cruzada con el sentido de la marcha.
 - **El último kilómetro, en transporte.** Si al bajar del tren quedan más de 450 m hasta el destino, la app busca el bus o metro que te acerca —incluidos los trayectos cortos que el planner oficial ignora— y te ofrece las dos opciones.
-- **Sin caminatas absurdas.** Ninguna ruta con un tramo a pie de más de 12 minutos: si todas lo tienen, la app avisa y solo las enseña si dices que sí.
+- **Sin caminatas absurdas.** Ninguna ruta con un tramo a pie de más de 12 minutos: si todas lo tienen, la app avisa y solo las enseña si dices que sí. El listón se mide sobre la ruta más rápida y nunca castiga una caminata que ninguna alternativa evita (la estación queda a 1,3 km y punto).
+- **Las dos redes de FGC.** Para ir a la línea Llobregat-Anoia (Santa Coloma de Cervelló, Sant Boi, Martorell, Igualada, Manresa) desde el centro, la app busca la estación que de verdad enlaza —Pl. Espanya— aunque las más cercanas sean las del Vallès.
 - **Correspondencias en cada parada.** Al desplegar el recorrido de una línea, cada parada muestra a la derecha con qué otras líneas enlaza ahí (metro, tram, Rodalies, FGC y bus), con sus colores oficiales. Pulsando el "+N" se despliegan las que faltan, y pulsando una línea se abre su recorrido entero.
 - **Cuenta atrás y retrasos.** Cada tramo de la ruta dice cuánto falta para que salga ("sale en 6 min", actualizado solo) y, cuando la parada tiene tiempo real, si va con retraso, en hora o adelantado.
 - **Margen de transbordo.** Cada enlace muestra los minutos que quedan entre bajarte del anterior y salir el siguiente, en ámbar si va justo.
 - **Planificador de trayectos.** Escribe un destino (buscador sobre toda Cataluña vía Photon/OSM) y propone rutas combinando bus, metro, tram, tren, FGC y tramos a pie, ordenadas penalizando las caminatas largas. Cada ruta se dibuja sobre el mapa con el recorrido real, no en línea recta.
-- **Modo navegación.** Sigue el trayecto en vivo con el GPS, avisa del siguiente paso y de la bajada, y permite pedir una **alternativa** o replanificar sin salir de la ruta.
+- **Modo navegación.** Sigue el trayecto en vivo con el GPS, avisa del siguiente paso y de la bajada, y permite replanificar sin salir de la ruta.
+- **Botón rojo "Alternativa".** En pleno viaje busca rutas más rápidas bajándote no solo en la próxima parada sino en los **intercambiadores que quedan por el camino** —en un regional de Altafulla a Pg. de Gràcia, bajarse en Sants y coger el metro—, con la hora exacta de paso por cada parada y el retraso que lleve tu tren. Solo propone lo que ahorra de verdad (2 min o más) y un toque cambia la ruta.
 - **Modo realidad aumentada.** Con la cámara y la brújula del móvil, superpone las paradas cercanas sobre lo que estás viendo, con sus próximas salidas.
 - **Favoritos y recientes**, guardados en el navegador (`localStorage`), sin cuenta ni servidor.
 - **Compartir parada** con enlace directo: `#p=bus:<código>`, `#p=metro:<id>`, `#p=tram:<ida>:<vuelta>`, `#p=train:<código>`, `#p=fgc:<código>`, `#p=hbus:<código>`.
@@ -49,7 +51,8 @@ Es una **app estática de un solo archivo**: todo el HTML, CSS y JavaScript vive
 | `sw.js` | Service worker: cachea la carcasa para que arranque al instante |
 | `manifest.webmanifest` + `icon-*` | Instalación como PWA |
 | `hispano-igualadina.json` | Horarios de Hispano Igualadina precompilados desde el GTFS |
-| `amb-bus/` | Horarios del bus de AMB (metropolitano y NitBus), troceados por zonas |
+| `amb-bus/` | Horarios del bus de AMB (metropolitano y NitBus), troceados por zonas; `routes.json` casa el tiempo real con cada línea |
+| `relay/` | El relé (Cloudflare Worker): tiempo real de AMB con la clave guardada en secreto, y pasarela para TRAM y Renfe. [Cómo desplegarlo](relay/README.md) |
 | `tmb-sched/` | Horarios de metro y bus de TMB, troceados por zonas |
 | `correspondencias.json` | Con qué líneas enlaza cada parada de bus |
 | `andenes-metro.json` | Ejes de los andenes, accesos y escaleras del metro (para el consejo de vagón) |
