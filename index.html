@@ -1264,11 +1264,11 @@
         // corsproxy.io pasó a exigir API key en 2025, por eso va el último.
         // Relé propio (relay/worker.js, un Cloudflare Worker): la vía fiable para
         // todo lo que no tiene CORS, y el único sitio donde vive la clave de la API
-        // de AMB —nunca en esta web pública—. Vacío, la app tira de horarios y de
-        // los proxies públicos. localStorage 'busbcn_relay' lo sobrescribe (pruebas).
+        // de AMB —nunca en esta web pública—. Si se cae, la app tira de horarios y
+        // de los proxies públicos. localStorage 'busbcn_relay' lo sobrescribe (pruebas).
         const RELAY = (() => {
             try { const x = localStorage.getItem('busbcn_relay'); if (x) return x.replace(/\/+$/, ''); } catch {}
-            return '';
+            return 'https://transport-bcn-relay.mr-d0nut.workers.dev';
         })();
         const PROXIES = [
             ...(RELAY ? [{ post: true, relay: true, wrap: u => RELAY + '/?url=' + encodeURIComponent(u) }] : []),
