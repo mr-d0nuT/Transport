@@ -20,8 +20,8 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
 - **Llegadas en tiempo real**, refrescadas cada 20 segundos:
   - 🚌 **Bus TMB** (iBus)
   - 🚇 **Metro TMB** (iMetro)
-  - 🚊 **TRAM** (T1–T6)
-  - 🚆 **Rodalies Renfe**
+  - 🚊 **TRAM** (T1–T6), y cuando el directo no llega, su horario oficial del día —compilado cada madrugada desde la API de AMB, que sabe de obras y servicios especiales—; si una parada está cortada, lo dice
+  - 🚆 **Rodalies y Media Distancia de Renfe**, con el horario oficial de Renfe de toda Catalunya: el directo de Renfe no lo puede leer ninguna web (no manda CORS y su CDN bloquea los servidores en la nube), así que la estación nunca se queda en blanco
   - 🚞 **FGC**
   - 🚏 **Bus metropolitano de AMB** (B, L, M, SB, EP… 138 líneas que TMB no conoce) y 🌙 **NitBus** (N0-N28), **en tiempo real** con la API oficial de AMB a través del [relé](relay/README.md) —el mismo dato que su app, con destino y minutos—, más las alteraciones del servicio (desvíos, obras) en cada línea. Sin relé, tira del GTFS-RT público y, si tampoco llega, del horario oficial compilado
   - 🚍 **Hispano Igualadina** (horarios GTFS precompilados)
@@ -61,6 +61,7 @@ Es una **app estática de un solo archivo**: todo el HTML, CSS y JavaScript vive
 | `scripts/gtfs_shards.py` | Compila un GTFS grande a horarios por parada, troceados |
 | `scripts/build_ambbus.py` | Horarios del bus de AMB desde su GTFS |
 | `scripts/build_tmb.py` | Horarios de metro y bus desde el GTFS oficial de TMB |
+| `tram-sched.json` + `scripts/build_tram.py` | Horario del TRAM de hoy (API de AMB, cada madrugada; necesita el secreto `AMB_API_KEY`) |
 | `scripts/build_corresp.py` | Correspondencias entre líneas desde la API de TMB |
 | `scripts/build_andenes.py` | Andenes del metro desde OpenStreetMap (Overpass) |
 | `.github/workflows/` | Los regeneran solos: Hispano los lunes, AMB los martes, correspondencias los miércoles, TMB los jueves, andenes cada mes |

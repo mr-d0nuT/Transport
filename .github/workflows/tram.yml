@@ -1,0 +1,31 @@
+name: Actualiza el horario del TRAM
+
+# Cada madrugada: la API de AMB solo dice qué servicio del TRAM aplica HOY
+# (hay servicios especiales por fiestas y obras que no salen del día de la semana)
+on:
+  schedule:
+    - cron: '15 1 * * *'   # 01:15 UTC = 03:15 en Barcelona (horario de verano)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regenerar tram-sched.json desde la API de AMB
+        env:
+          AMB_API_KEY: ${{ secrets.AMB_API_KEY }}
+        run: python3 scripts/build_tram.py
+      - name: Commit si hay cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tram-sched.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horario del TRAM de hoy (API de AMB)"
+          git push
