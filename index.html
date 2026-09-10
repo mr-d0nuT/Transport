@@ -1275,6 +1275,12 @@
 
         // Estaciones de FGC (Vallès + Llobregat-Anoia + Lleida) del open data oficial
         // de FGC (dadesobertes.fgc.cat, con CORS abierto): [código, nombre, lat, lon]
+        // Qué líneas para en cada estación de FGC (del open data oficial). Las dos
+        // redes —Vallès y Llobregat-Anoia— no se tocan: sin esto, para ir del centro
+        // a Santa Coloma de Cervelló se miraba Pl. Catalunya (S1/S2) y nunca salía
+        // Pl. Espanya (R6/S4/S8), que es la que enlaza de verdad.
+        const FGC_LINES_BY_ST = {"AB":["R5","R50","R53","S4"],"AE":["R5","R53"],"AL":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"AR":["RL2"],"AT":["RL1","RL2"],"BE":["R6","R63"],"BG":["RL1","RL2"],"BN":["L6","S1","S2"],"BO":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"BT":["S2"],"CA":["R6","R60","R63"],"CB":["R5","R53"],"CF":["S2"],"CG":["R53","R63","S3","S4","S8","S9"],"CL":["R53","R6","R60","R63","S3","S4","S8","S9"],"CO":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"CP":["R6","R63"],"CR":["R5","R53","R6","R63","S3","S4","S8","S9"],"CT":["S2"],"EN":["S1"],"EP":["L7"],"EU":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"FN":["S1"],"GB":["RL2"],"GO":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"GR":["L6","L7","S1","S2"],"GT":["RL2"],"HG":["S1"],"IC":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"IG":["R6","R60","R63"],"LE":["RL1","RL2"],"LF":["S1","S2"],"LH":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"LL":["RL2"],"LP":["S1","S2"],"LS":["RL2"],"MA":["R5","R50","R53"],"MB":["R5","R50","R53"],"MC":["R5","R50","R53","R6","R60","R63","S4","S8"],"ME":["R5","R53","R6","R63","S4","S8"],"MG":["L8","R5","R53","R6","R63","S3","S4","S8","S9"],"ML":["L8","R5","R53","R6","R63","S3","S4","S8","S9"],"MM":["MM"],"MN":["L6","S1","S2"],"MO":["MM","R5","R50","R53"],"MP":["MM"],"MQ":["R6","R60","R63"],"MS":["S1"],"MV":["R53","R63","S4","S8"],"NO":["S2"],"OL":["R5","R50","R53","S4"],"PA":["R5","R50","R53","R6","R63","S4","S8"],"PC":["L6","L7","S1","S2"],"PD":["L7"],"PE":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"PF":["S1","S2"],"PG":["RL1","RL2"],"PI":["R6","R60","R63"],"PJ":["S2"],"PL":["R5","R53","R6","R63","S4","S8"],"PM":["L7"],"PN":["S2"],"PO":["R6","R60","R63"],"PR":["L6","L7","S1","S2"],"PS":["RL2"],"PT":["RL2"],"QC":["R5","R53","R6","R63","S4","S8","S9"],"RB":["S1"],"RE":["L12"],"RM":["RL1","RL2"],"SA":["R5","R50","R53","R6","R60","R63","S4","S8"],"SC":["S1","S2"],"SD":["RL2"],"SE":["R6","R60","R63"],"SG":["L6","S1","S2"],"SJ":["S2"],"SM":["RL2"],"SN":["RL2"],"SP":["L8","R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"SQ":["S2"],"SR":["L12","L6","S1","S2"],"SV":["R5","R50","R53"],"TB":["L7"],"TP":["RL2"],"TR":["S1"],"TT":["L6","S1","S2"],"UN":["S2"],"VA":["R6","R60","R63"],"VB":["RL1","RL2"],"VD":["S1","S2"],"VF":["RL1","RL2"],"VH":["R5","R50","R53","R6","R60","R63","S3","S4","S8","S9"],"VI":["R5","R50","R53"],"VL":["S1","S2"],"VN":["R6","R60","R63"],"VO":["S2"],"VP":["S1"],"VR":["FV"],"VS":["FV"]};
+
         const FGC_STATIONS = [["AB","Abrera",41.52256,1.90681],["AT","Alcoletge",41.65474,0.68646],["AL","Almeda",41.35307,2.08525],["TB","Av. Tibidabo",41.40965,2.13716],["VL","Baixador de Vallvidrera",41.42009,2.09694],["BG","Balaguer",41.78922,0.81476],["PC","Barcelona - Plaça Catalunya",41.38563,2.16872],["PE","Barcelona - Plaça Espanya",41.37472,2.14846],["BT","Bellaterra",41.50086,2.09056],["CF","Can Feu - Gràcia",41.54252,2.10046],["CP","Can Parellada",41.50222,1.83081],["CR","Can Ros",41.39882,2.00535],["CA","Capellades",41.52154,1.69513],["CB","Castellbell i El Vilar",41.64052,1.85479],["LL","Cellers-Llimiana",42.05863,0.88271],["CG","Colònia Güell",41.36386,2.03186],["CO","Cornellà Riera",41.35148,2.07126],["PL","El Palau",41.45588,1.96229],["EP","El Putxet",41.40583,2.13915],["EU","Europa | Fira",41.35656,2.1242],["GB","Gerb",41.8233,0.81208],["GO","Gornal",41.35489,2.11743],["GR","Gràcia",41.3991,2.15266],["GT","Guardia de Tremp",42.1014,0.88809],["HG","Hospital General",41.47621,2.04651],["IG","Igualada",41.57803,1.62995],["IC","Ildefons Cerdà",41.36091,2.13002],["LH","L'Hospitalet Av. Carrilet",41.35793,2.10271],["BE","La Beguda",41.50176,1.83879],["BN","La Bonanova",41.39782,2.13643],["CT","La Creu Alta",41.55495,2.10038],["LF","La Floresta",41.44487,2.07317],["PO","La Pobla de Claramunt",41.55461,1.67791],["PS","La Pobla de Segur",42.23988,0.96592],["FN","Les Fonts",41.52847,2.03358],["LP","Les Planes",41.4274,2.09162],["TT","Les Tres Torres",41.3978,2.13081],["LE","Lleida",41.6201,0.63367],["MG","Magòria La Campana",41.36749,2.13888],["VI","Manresa Viladordis",41.72437,1.83399],["MA","Manresa-Alta",41.73224,1.83299],["MB","Manresa-Baixador",41.73146,1.8279],["MC","Martorell Central",41.47928,1.92529],["ME","Martorell Enllaç",41.48397,1.91868],["MV","Martorell Vila",41.47587,1.93896],["MQ","Masquefa",41.50288,1.81263],["MS","Mira-Sol",41.46937,2.06138],["ML","Molí Nou - Ciutat Cooperativa",41.35751,2.03528],["MO","Monistrol de Montserrat",41.61036,1.84919],["MP","Monistrol-Vila",41.61563,1.84372],["MM","Montserrat",41.59225,1.8365],["AE","Montserrat-Aeri",41.5912,1.85336],["MN","Muntaner",41.39853,2.14235],["OL","Olesa de Montserrat",41.54106,1.88862],["PT","Palau de Noguera",42.147,0.89244],["PA","Pallejà",41.42079,1.99568],["PF","Peu del Funicular",41.40922,2.11118],["PI","Piera",41.52591,1.7545],["PM","Pl. Molina",41.40169,2.14675],["PG","Polígon industrial del Segre",41.62281,0.65281],["PR","Provença",41.39281,2.15803],["PD","Pàdua",41.40351,2.14276],["QC","Quatre Camins",41.40629,2.00172],["RE","Reina Elisenda",41.39875,2.11893],["RB","Rubí Centre",41.48629,2.03136],["NO","Sabadell Nord",41.56123,2.09666],["PN","Sabadell Parc del Nord",41.57129,2.0895],["PJ","Sabadell Plaça Major",41.54742,2.10888],["SD","Salàs de Pallars",42.20683,0.94046],["SA","Sant Andreu de la Barca",41.44648,1.97367],["BO","Sant Boi",41.34856,2.04286],["SC","Sant Cugat Centre",41.46791,2.0782],["SE","Sant Esteve Sesrovires",41.49768,1.87244],["SG","Sant Gervasi",41.40107,2.14713],["SJ","Sant Joan",41.49015,2.0765],["SP","Sant Josep",41.3607,2.10992],["SQ","Sant Quirze",41.52999,2.08872],["VH","Sant Vicenç dels Horts",41.38811,2.0124],["SV","Sant Vicenç-Castellgalí",41.66791,1.85961],["CL","Santa Coloma de Cervelló",41.37065,2.02352],["SN","Santa Linya",41.93156,0.85231],["SR","Sarrià",41.3985,2.12557],["SM","St. Llorenç de Montgai",41.86638,0.83257],["EN","Terrassa  Estació del nord",41.57017,2.01549],["TR","Terrassa - Rambla",41.55975,2.00753],["TP","Tremp",42.16735,0.89106],["RM","Térmens",41.71764,0.7649],["UN","Universitat Autònoma",41.50285,2.10251],["VA","Vallbona d'Anoia",41.52026,1.70901],["VD","Valldoreix",41.45784,2.06831],["VF","Vallfogona de Balaguer",41.75509,0.80525],["VP","Vallparadís Universitat",41.56331,2.01905],["VR","Vallvidrera Inferior",41.40933,2.11126],["VS","Vallvidrera Superior",41.41411,2.10582],["VB","Vilanova de la Barca",41.68735,0.7279],["LS","Vilanova de la Sal",41.91207,0.8304],["VN","Vilanova del Camí",41.57331,1.64201],["VO","Volpelleres",41.48125,2.07293],["AR","Àger",42.00674,0.8516]];
 
         let map, markersLayer, userMarkerLayer, routeLayer, tileLayer;
@@ -1893,7 +1899,8 @@
                                 <div class="bus-dest-label">${t('hacia')}</div>
                                 <div class="bus-dest">${esc(d.dest)}</div>
                                 ${d.next ? `<div class="bus-next">${esc(d.next)}</div>` : ''}
-                                ${d.occ ? `<div class="occ-badge ${d.occ.high ? 'occ-high' : ''}">👥 ${esc(d.occ.label)}</div>` : ''}
+                                ${d.occ ? `<div class="occ-badge ${d.occ.high ? 'occ-high' : ''}">${d.occ.icon || '👥'} ${esc(d.occ.label)}</div>` : ''}
+                                ${d.alert ? `<div class="occ-badge occ-high" title="${esc(d.alert)}">⚠️ ${esc(d.alert.length > 64 ? d.alert.slice(0, 63) + '…' : d.alert)}</div>` : ''}
                             </div>
                             <div class="bus-eta">${etaHTML(d.arriveAt, d.sched)}${tight ? '<span class="catch-warn" title="Justo de tiempo llegando andando">🏃</span>' : ''}</div>
                             ${d.itin ? '<div class="bus-chevron">▼</div>' : ''}
@@ -2114,14 +2121,190 @@
             }, 2500);
         }
 
+        // --- AMB EN TIEMPO REAL (GTFS-RT) ---------------------------------------
+        // AMB publica los tiempos de paso reales en protobuf (GTFS-RT). Son dos
+        // ficheros públicos, sin clave; la clave de su API REST solo da metadatos
+        // (líneas y paradas) y limita a las pocas peticiones, así que esa se usa
+        // al compilar, no desde el móvil.
+        const AMB_RT = {
+            trips: 'https://www.ambmobilitat.cat/transit/trips-updates/trips.bin',
+            alerts: 'https://www.ambmobilitat.cat/transit/alerts/alerts.bin'
+        };
+
+        // Lector de protobuf al mínimo: solo lo que necesita GTFS-RT. Traer una
+        // librería del CDN por esto son 200 KB y una dependencia que se puede caer.
+        function pbRead(buf) {
+            const out = [];
+            let i = 0;
+            const varint = () => {
+                let r = 0, s = 0, b;
+                do { b = buf[i++]; r += (b & 0x7f) * Math.pow(2, s); s += 7; } while (b & 0x80 && i < buf.length);
+                return r;
+            };
+            while (i < buf.length) {
+                const key = varint(), f = key >>> 3, w = key & 7;
+                if (w === 0) out.push([f, varint()]);
+                else if (w === 2) { const n = varint(); out.push([f, buf.subarray(i, i + n)]); i += n; }
+                else if (w === 5) { out.push([f, null]); i += 4; }
+                else if (w === 1) { out.push([f, null]); i += 8; }
+                else break;
+            }
+            return out;
+        }
+        const pbTxt = v => new TextDecoder().decode(v);
+        const pbOne = (fields, num) => { const x = fields.find(([f]) => f === num); return x && x[1]; };
+
+        // Los .bin tampoco llevan CORS: mismo desfile de proxies que TRAM y Renfe,
+        // pero pidiendo bytes en vez de texto.
+        async function fetchBinProxied(url) {
+            const intentos = [u => u, ...PROXIES.map(p => p.wrap)];
+            for (const wrap of intentos) {
+                try {
+                    const ctrl = new AbortController();
+                    const timer = setTimeout(() => ctrl.abort(), 9000);
+                    const res = await fetch(wrap(url), { signal: ctrl.signal });
+                    clearTimeout(timer);
+                    if (!res.ok) continue;
+                    const buf = new Uint8Array(await res.arrayBuffer());
+                    // un proxy caído devuelve "error code: 522" con un 200 encima
+                    if (buf.length > 512) return buf;
+                } catch { /* siguiente proxy */ }
+            }
+            return null;
+        }
+
+        let ambRoutesReq = null;
+        function ensureAmbRoutes() {
+            ambRoutesReq = ambRoutesReq || fetch('./amb-bus/routes.json')
+                .then(r => r.ok ? r.json() : null).then(d => (d && d.r) || {}).catch(() => ({}));
+            return ambRoutesReq;
+        }
+
+        let ambRtCache = null;   // { t, idx: Map(codiParada -> [{line, at}]) }
+        let ambRtInflight = null;
+        async function ambRt() {
+            if (ambRtCache && Date.now() - ambRtCache.t < 30000) return ambRtCache.idx;
+            if (ambRtInflight) return ambRtInflight;
+            ambRtInflight = (async () => {
+                const [buf, rutas] = await Promise.all([fetchBinProxied(AMB_RT.trips), ensureAmbRoutes()]);
+                const idx = new Map();
+                if (buf) {
+                    for (const [f, v] of pbRead(buf)) {
+                        if (f !== 2) continue;                       // FeedEntity
+                        const tu = pbOne(pbRead(v), 3);              // TripUpdate
+                        if (!tu) continue;
+                        const campos = pbRead(tu);
+                        let ruta = null;
+                        const td = pbOne(campos, 1);                 // TripDescriptor
+                        if (td) {
+                            const t2 = pbRead(td);
+                            const rid = pbOne(t2, 5), tid = pbOne(t2, 1);
+                            // el trip_id empieza por el route_id ("142.20.1.3.39")
+                            ruta = rid ? pbTxt(rid) : (tid ? pbTxt(tid).split('.')[0] : null);
+                        }
+                        const linea = ruta ? (rutas[ruta] || null) : null;
+                        if (!linea) continue;
+                        for (const [cf, cv] of campos) {
+                            if (cf !== 2) continue;                  // StopTimeUpdate
+                            const stu = pbRead(cv);
+                            const sid = pbOne(stu, 4);
+                            const ev = pbOne(stu, 2) || pbOne(stu, 3); // arrival | departure
+                            if (!sid || !ev) continue;
+                            const secs = pbOne(pbRead(ev), 2);
+                            if (!secs) continue;
+                            const codi = pbTxt(sid);
+                            (idx.get(codi) || idx.set(codi, []).get(codi)).push({ line: linea, at: secs * 1000 });
+                        }
+                    }
+                }
+                ambRtCache = { t: Date.now(), idx };
+                ambRtInflight = null;
+                return idx;
+            })();
+            return ambRtInflight;
+        }
+
+        // Alteraciones del servicio (obras, desvíos, líneas cortadas)
+        let ambAlertsCache = null;
+        async function ambAlerts() {
+            if (ambAlertsCache && Date.now() - ambAlertsCache.t < 300000) return ambAlertsCache.idx;
+            const [buf, rutas] = await Promise.all([fetchBinProxied(AMB_RT.alerts), ensureAmbRoutes()]);
+            const idx = new Map();   // línea -> texto
+            const ahora = Date.now() / 1000;
+            const traduce = v => {
+                if (!v) return '';
+                const trs = pbRead(v).filter(([f]) => f === 1).map(([, tv]) => pbRead(tv));
+                const pick = trs.find(tr => { const l = pbOne(tr, 2); return l && pbTxt(l).slice(0, 2) === lang; }) || trs[0];
+                const txt = pick && pbOne(pick, 1);
+                return txt ? pbTxt(txt) : '';
+            };
+            if (buf) {
+                for (const [f, v] of pbRead(buf)) {
+                    if (f !== 2) continue;
+                    const al = pbOne(pbRead(v), 5);                  // Alert
+                    if (!al) continue;
+                    const campos = pbRead(al);
+                    // fuera las que aún no han empezado o ya han pasado
+                    const periodos = campos.filter(([cf]) => cf === 1).map(([, pv]) => pbRead(pv));
+                    if (periodos.length && !periodos.some(p => {
+                        const ini = pbOne(p, 1), fin = pbOne(p, 2);
+                        return (!ini || ini <= ahora) && (!fin || fin >= ahora);
+                    })) continue;
+                    const texto = traduce(pbOne(campos, 10)) || traduce(pbOne(campos, 11));
+                    if (!texto) continue;
+                    campos.filter(([cf]) => cf === 5).forEach(([, sv]) => {      // EntitySelector
+                        const rid = pbOne(pbRead(sv), 2);
+                        const linea = rid && rutas[pbTxt(rid)];
+                        if (linea && !idx.has(linea)) idx.set(linea, texto);
+                    });
+                }
+            }
+            ambAlertsCache = { t: Date.now(), idx };
+            return idx;
+        }
+
         async function ambArrivals(stop, horizon = 120) {
             const st = await ambStopFor(stop);
             if (!st) return [];
             const data = await ambShard(st[4]);
             const groups = data && data.stops && data.stops[st[0]];
             if (!groups) return [];
-            return shardDepartures(data, groups, horizon, 'amb')
+            const deps = shardDepartures(data, groups, horizon, 'amb')
                 .map(d => ({ ...d, itin: { ...d.itin, code: st[0] } }));
+
+            // Cruce con el tiempo real: el GTFS-RT da hora prevista por parada y
+            // expedición, pero no el destino, así que se casa con el horario por
+            // línea y cercanía (la salida programada más próxima a la real).
+            const [rt, alertas] = await Promise.all([
+                ambRt().catch(() => null), ambAlerts().catch(() => null)
+            ]);
+            const enParada = rt && rt.get(st[0]);
+            if (enParada && enParada.length) {
+                const usados = new Set();
+                deps.forEach(d => {
+                    let mejor = null, mejorDif = Infinity;
+                    enParada.forEach((x, i) => {
+                        if (usados.has(i) || x.line !== d.line) return;
+                        const dif = Math.abs(x.at - d.arriveAt);
+                        if (dif < mejorDif) { mejor = i; mejorDif = dif; }
+                    });
+                    if (mejor === null || mejorDif > 25 * 60000) return;
+                    usados.add(mejor);
+                    const real = enParada[mejor].at;
+                    const retraso = Math.round((real - d.arriveAt) / 60000);
+                    d.arriveAt = real;
+                    d.mins = Math.max(0, Math.round((real - Date.now()) / 60000));
+                    d.sched = false;                                  // ya no es "horario"
+                    d.occ = retraso >= 2 ? { icon: '⏱', label: t('+{m} min tarde', { m: retraso }), high: true }
+                          : retraso <= -2 ? { icon: '⏱', label: t('{m} min antes', { m: -retraso }), high: false }
+                          : { icon: '⏱', label: t('En hora ✓'), high: false };
+                });
+                deps.sort((a, b) => a.arriveAt - b.arriveAt);
+            }
+            if (alertas && alertas.size) {
+                deps.forEach(d => { const a = alertas.get(d.line); if (a) d.alert = a; });
+            }
+            return deps;
         }
 
         // En una parada pueden convivir las dos redes: tiempo real de TMB para
@@ -3960,7 +4143,8 @@
                 if (its.length === 0) throw new Error(t('No se ha encontrado ninguna ruta en transporte público hasta ahí.'));
                 its.sort((a, b) => journeyScore(a) - journeyScore(b)); // la mejor primera: llegar antes, sin palizas a pie
                 setLoading(null);
-                const aPie = its.filter(it => longestWalkMin(it) <= walkCapFor(it));
+                const capCtx = walkCapCtx(its);
+                const aPie = its.filter(it => longestWalkMin(it) <= walkCapFor(it, capCtx));
                 if (aPie.length) {
                     pendingWalkItins = [];
                     journeyItins = aPie.slice(0, 6);
@@ -3994,9 +4178,22 @@
         // siempre significa que hay un bus mejor. En un viaje de dos horas y
         // media (Altafulla → Esparreguera) cambiar de estación en Martorell son
         // veinte minutos a pie y no hay otra: el listón sube con el viaje.
-        function walkCapFor(it) {
-            const total = (it.duration || (it.endTime - it.startTime) / 1000) / 60;
-            return Math.max(MAX_WALK_MIN, Math.min(25, Math.round(total * 0.15)));
+        // Medido sobre la ruta *más rápida* del grupo, no sobre cada una: si el listón
+        // sale de la duración propia, la ruta buena recibe el tope más estricto y cae,
+        // mientras las lentas se salvan con la misma caminata (a Santa Coloma de
+        // Cervelló la de 51 min en FGC se descartaba por 17' a pie y quedaban las de
+        // 114 min en bus, con los mismos 17'). Y una caminata que ninguna alternativa
+        // evita —la estación está a 1,3 km y punto— no puede descartar rutas.
+        function walkCapCtx(its) {
+            const mins = its.map(it => (it.duration || (it.endTime - it.startTime) / 1000) / 60);
+            const escala = mins.length ? Math.min(...mins) : 0;
+            const inevitable = its.length ? Math.min(...its.map(longestWalkMin)) : 0;
+            return { escala, inevitable };
+        }
+        function walkCapFor(it, ctx) {
+            const propia = (it.duration || (it.endTime - it.startTime) / 1000) / 60;
+            const escala = Math.max(propia, (ctx && ctx.escala) || 0);
+            return Math.max(MAX_WALK_MIN, (ctx && ctx.inevitable) || 0, Math.min(25, Math.round(escala * 0.15)));
         }
 
         // Peso de un itinerario para ordenar: llegar antes manda, pero cada metro
@@ -5166,9 +5363,22 @@
         }
 
         async function fgcJourneys(origin, dest, whenMs) {
-            const oSts = nearestFgc(origin, 3, 4500);
             const dSts = nearestFgc(dest, 2, 3000);
-            if (!oSts.length || !dSts.length) return [];
+            if (!dSts.length) return [];
+            // Las estaciones más cercanas al origen pueden ser todas de la otra red
+            // (desde el centro salen las del Vallès y el destino estar en la de
+            // Llobregat-Anoia): añade siempre la más cercana que comparta línea con
+            // el destino, aunque quede lejos — el acceso hasta ella lo pone el planner.
+            const dLines = new Set(dSts.flatMap(s => FGC_LINES_BY_ST[s.code] || []));
+            const oSts = nearestFgc(origin, 3, 4500);
+            const enlaza = s => (FGC_LINES_BY_ST[s.code] || []).some(l => dLines.has(l));
+            if (dLines.size && !oSts.some(enlaza)) {
+                const vistas = new Set(oSts.map(s => s.code));
+                nearestFgc(origin, 60, 12000).forEach(s => {
+                    if (oSts.length < 5 && !vistas.has(s.code) && enlaza(s)) { oSts.push(s); vistas.add(s.code); }
+                });
+            }
+            if (!oSts.length) return [];
             const after = whenMs || Date.now();
 
             const its = [], seen = new Set();
@@ -6130,10 +6340,11 @@
                 const lineSig = it => it.legs.filter(l => l.transitLeg).map(l => l.routeShortName || l.mode).join('>');
                 const curSig = lineSig({ legs: activeTrip.it.legs.slice(from.legIdx) });
                 let alts = await gatherJourneys({ lat: from.lat, lon: from.lon }, journeyDest, from.when);
+                const altCtx = walkCapCtx(alts);
                 alts = alts
                     .filter(it => it.endTime <= curEta - 120000) // solo si ahorra ≥ 2 min
                     .filter(it => lineSig(it) !== curSig)
-                    .filter(it => longestWalkMin(it) <= walkCapFor(it)) // ni aquí se cuelan las caminatas largas
+                    .filter(it => longestWalkMin(it) <= walkCapFor(it, altCtx)) // ni aquí se cuelan las caminatas largas
                     .sort((a, b) => journeyScore(a) - journeyScore(b))
                     .slice(0, 3);
                 if (!activeTrip) return; // el usuario finalizó mientras buscábamos

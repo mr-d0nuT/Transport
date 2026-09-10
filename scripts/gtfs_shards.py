@@ -19,10 +19,30 @@ saber cómo se ha troceado, mira la parada y pide su fichero.
 Los minutos van desde medianoche del día de servicio y pueden pasar de 1440
 (la madrugada se escribe como horas 24-31 del día anterior).
 """
-import collections, csv, io, json, os, shutil, sys
+import collections, csv, hashlib, io, json, os, shutil, sys, urllib.request, zipfile
 from datetime import date, timedelta
 
-import gtfs_compact
+
+def fetch_gtfs(url):
+    """Descarga un GTFS y lo abre como zip. Con GTFS_CACHE apuntando a un
+    directorio lo reutiliza entre ejecuciones (cómodo en local, irrelevante en CI).
+
+    Vivía en gtfs_compact.py, que se borró al pasar la Hispano a build_catbus.py
+    sin caer en que este módulo también lo usaba: desde entonces los builds de
+    AMB y TMB reventaban al arrancar y sus horarios se quedaron congelados."""
+    cache_dir = os.environ.get("GTFS_CACHE")
+    cache = None
+    if cache_dir:
+        os.makedirs(cache_dir, exist_ok=True)
+        cache = os.path.join(cache_dir, hashlib.sha1(url.encode()).hexdigest() + ".zip")
+        if os.path.exists(cache):
+            return zipfile.ZipFile(cache)
+    req = urllib.request.Request(url, headers={"User-Agent": "transport-bcn-build/1.0"})
+    raw = urllib.request.urlopen(req, timeout=600).read()
+    if cache:
+        with open(cache, "wb") as f:
+            f.write(raw)
+    return zipfile.ZipFile(io.BytesIO(raw))
 
 DAYS_AHEAD = 10          # se regenera cada semana; con 10 días sobra margen
 CELL = 20                # 1/0,05° : celdas de ~5 km
@@ -46,7 +66,7 @@ def build(gtfs_url, out_dir, color_default=("FFAA00", "343434"), keep_route=None
     parada. Por defecto el stop_id; TMB necesita el stop_code, que es el número
     que usan su API y la app ("523" y no "1.523")."""
     stop_key_fn = stop_key_fn or (lambda s: s["stop_id"])
-    zf = gtfs_compact.fetch_gtfs(gtfs_url)
+    zf = fetch_gtfs(gtfs_url)
     nombres = set(zf.namelist())
 
     def rows(name):
@@ -262,6 +282,12 @@ def build(gtfs_url, out_dir, color_default=("FFAA00", "343434"), keep_route=None
                    "r": [[lines[li][0], heads[hi], pat, pattern_times[(li, hi)]]
                          for (li, hi), pat in sorted(patterns.items())],
                    "c": {l[0]: [l[2], l[3]] for l in lines}},
+                  f, ensure_ascii=False, separators=(",", ":"))
+    # El GTFS-RT identifica cada expedición por route_id ("142"), no por el
+    # nombre de la línea ("B24"): sin esta tabla no se puede casar el tiempo
+    # real con el horario. Va aparte porque la app solo la baja si hay RT.
+    with open(os.path.join(out_dir, "routes.json"), "w", encoding="utf-8") as f:
+        json.dump({"v": version, "r": {rid: info[0] for rid, info in sorted(routes.items())}},
                   f, ensure_ascii=False, separators=(",", ":"))
 
     total = 0
