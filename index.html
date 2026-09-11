@@ -73,7 +73,7 @@
 
         * { box-sizing: border-box; }
         /* nada de rebotes raros al tocar, y scroll con inercia en iOS */
-        .bus-card-content, .jcard-main, .chip, .seg-btn, .home-btn, .btn, .tl-dep, .corresp-badge {
+        .bus-card-content, .jcard-main, .chip, .home-btn, .btn, .tl-dep, .corresp-badge {
             -webkit-touch-callout: none;
         }
         .bus-itinerary, .sheet-body, #tripAltPanel { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
@@ -166,12 +166,16 @@
         main { padding: 12px 14px 50px; max-width: 660px; margin: 0 auto; }
 
         /* ---------- MAPA ---------- */
-        .map-wrap { position: relative; margin-bottom: 8px; }
+        /* el mapa, enmarcado con los colores de las líneas de metro (L1 a L5) */
+        .map-wrap {
+            position: relative; margin-bottom: 8px; padding: 3px;
+            border-radius: calc(var(--radius-lg) + 3px); box-shadow: var(--shadow);
+            background: linear-gradient(120deg, #E3312C, #9A3B95, #26A640, #F7A30E, #0078BF);
+        }
         /* las paradas de alrededor, justo debajo del mapa */
-        #nearbySection { margin-bottom: 4px; }
         #map {
-            height: 300px; border-radius: var(--radius-lg); box-shadow: var(--shadow);
-            z-index: 1; border: 1px solid var(--border); background: var(--bg-deep);
+            height: 300px; border-radius: var(--radius-lg);
+            z-index: 1; background: var(--bg-deep);
         }
         @media (min-width: 700px) { #map { height: 360px; } }
         .map-fab {
@@ -210,30 +214,38 @@
 
         .stop-pin svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); transition: transform .15s; transform-origin: bottom center; }
         .stop-pin.selected svg { transform: scale(1.25); }
-        .user-dot-wrap { position: relative; }
+        /* Tú, en el mapa: una persona dentro del círculo azul (el punto solo se
+           confundía con las paradas y los trenes) */
+        .user-dot-wrap { position: relative; width: 32px; height: 32px; }
         .user-dot-core {
-            width: 16px; height: 16px; border-radius: 50%; background: var(--blue);
-            border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); position: relative; z-index: 2;
+            width: 32px; height: 32px; border-radius: 50%; background: var(--blue);
+            border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); position: relative; z-index: 2;
+            display: flex; align-items: center; justify-content: center; box-sizing: border-box;
         }
+        .user-dot-core svg { display: block; }
         .user-dot-halo {
-            position: absolute; top: 50%; left: 50%; width: 16px; height: 16px;
+            position: absolute; top: 50%; left: 50%; width: 32px; height: 32px;
             border-radius: 50%; background: var(--blue); opacity: .35;
             transform: translate(-50%,-50%); animation: halo 2s ease-out infinite; z-index: 1;
         }
-        @keyframes halo { 0% { transform: translate(-50%,-50%) scale(1); opacity: .4; } 100% { transform: translate(-50%,-50%) scale(3.2); opacity: 0; } }
+        @keyframes halo { 0% { transform: translate(-50%,-50%) scale(1); opacity: .4; } 100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; } }
 
         /* ---------- BUSCADOR ---------- */
-        .search-card {
-            background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
-            box-shadow: var(--shadow); padding: 10px; margin-bottom: 14px;
+        /* Una sola fila: el buscador (número = parada, texto = destino) y casa.
+           Las pestañas, el botón "Buscar" y la tarjeta que los envolvía
+           ocupaban tres veces más */
+        .search-bar { display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px; }
+        .search-bar .dest-wrap { flex: 1; min-width: 0; margin-bottom: 0; }
+        .search-bar .dest-wrap::before {
+            content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            font-size: .85rem; opacity: .6; pointer-events: none;
         }
-        .seg-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px; }
-        .segmented { flex: 1; min-width: 0; display: flex; gap: 3px; background: var(--bg-deep); border-radius: 12px; padding: 3px; }
+        .search-bar .dest-input { padding: 11px 38px 11px 36px; box-shadow: var(--shadow-sm); }
         /* Casa, en un botón: una vez definida no merece una fila entera.
            Toque = ruta a casa; mantener pulsado = cambiarla */
         .home-btn {
             position: relative; flex: 0 0 auto; width: 46px; border-radius: 12px; cursor: pointer;
-            background: var(--bg-deep); border: 1px solid var(--border); font-size: 1.15rem;
+            background: var(--card); border: 1px solid var(--border); font-size: 1.15rem; box-shadow: var(--shadow-sm);
             display: flex; align-items: center; justify-content: center;
             transition: transform .12s; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
         }
@@ -241,22 +253,6 @@
         .home-btn.sin-casa::after {
             content: '+'; position: absolute; right: 4px; top: 2px; font-size: .72rem; font-weight: 900; color: var(--primary);
         }
-        .seg-btn {
-            flex: 1; border: none; background: none; border-radius: 9px; padding: 9px 8px;
-            font-size: .86rem; font-weight: 700; color: var(--text-soft); cursor: pointer;
-            transition: background .18s, color .18s, box-shadow .18s; -webkit-tap-highlight-color: transparent;
-        }
-        .seg-btn.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-sm); }
-        .controls { display: flex; gap: 8px; }
-        input[type=number] {
-            flex: 1; min-width: 0; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px;
-            font-size: 1rem; font-weight: 700; background: var(--bg-deep); color: var(--text);
-            -moz-appearance: textfield; appearance: textfield; outline: none;
-            transition: border-color .15s, box-shadow .15s, background .15s;
-        }
-        input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-        input[type=number]:focus { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); background: var(--card); box-shadow: var(--ring); }
-        input::placeholder { color: var(--text-faint); font-weight: 500; }
         button { font-family: inherit; }
         .btn {
             border: none; border-radius: 12px; padding: 13px 18px; font-size: .95rem; font-weight: 700;
@@ -269,16 +265,15 @@
             box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--primary) 90%, transparent);
         }
         .btn-gps { background: var(--card); color: var(--text); border: 1px solid var(--border-strong); }
-        .btn-wide { display: block; width: 100%; margin-top: 8px; }
 
         /* ---------- CHIPS DE PARADAS ---------- */
         .chips-label { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .9px; color: var(--text-faint); margin: 2px 4px 8px; }
-        .chips-row { display: flex; gap: 7px; overflow-x: auto; padding: 2px 2px 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .chips-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .chips-row::-webkit-scrollbar { display: none; }
         .chip {
-            flex-shrink: 0; display: flex; align-items: center; gap: 7px;
+            flex-shrink: 0; display: flex; align-items: center; gap: 6px;
             background: var(--chip-bg); border: 1px solid var(--border); border-radius: 999px;
-            padding: 8px 14px; font-size: .84rem; font-weight: 600; color: var(--text);
+            padding: 6px 11px; font-size: .8rem; font-weight: 600; color: var(--text);
             cursor: pointer; box-shadow: var(--shadow-sm); transition: transform .12s, border-color .15s;
             max-width: 260px; -webkit-tap-highlight-color: transparent;
         }
@@ -323,6 +318,8 @@
         .home-deadline.urge { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
         .home-deadline.ok .leg-eta, .home-deadline.pronto .leg-eta, .home-deadline.urge .leg-eta { color: inherit; }
         .home-go { width: 100%; margin-top: 8px; }
+        .jmas { text-align: center; font-size: .8rem; font-weight: 700; color: var(--text-faint); padding: 4px 0 2px; animation: jmasPulse 1.4s ease-in-out infinite; }
+        @keyframes jmasPulse { 50% { opacity: .45; } }
         .link-btn { background: none; border: none; padding: 0; font: inherit; font-weight: 800; color: var(--primary); cursor: pointer; }
         /* fila para definir la casa: solo mientras la estás buscando */
         .home-row-set {
@@ -337,17 +334,35 @@
         /* ---------- PARADA ACTUAL ---------- */
         /* Todo lo de la parada (ficha, línea de tiempo y llegadas) va dentro de un
            marco con su título: sin él, parecían tarjetas sueltas de la pantalla */
-        .stop-section.on {
-            background: color-mix(in srgb, var(--primary) 5%, var(--bg-deep));
-            border: 1.5px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+        /* El marco y el fondo recorren el arcoíris y laten, para que se vea de un
+           vistazo qué es lo de la parada. --arco se registra para que el color se
+           pueda animar (sin @property se queda fijo en rojo, que también vale) */
+        @property --arco { syntax: '<color>'; inherits: true; initial-value: #ff3b30; }
+        .stop-section.on, #journeySection {
+            --arco: #ff3b30;
+            background: color-mix(in srgb, var(--arco) 11%, var(--bg-deep));
+            border: 2px solid var(--arco);
             border-radius: calc(var(--radius-lg) + 6px);
             padding: 9px 8px 8px; margin-bottom: 14px;
+            animation: arcoiris 10s linear infinite, latido 1.3s ease-in-out infinite;
+        }
+        @keyframes arcoiris {
+            0%, 100% { --arco: #ff3b30; }
+            16% { --arco: #ff9500; }
+            33% { --arco: #ffcc00; }
+            50% { --arco: #34c759; }
+            66% { --arco: #0a84ff; }
+            83% { --arco: #af52de; }
+        }
+        @keyframes latido {
+            0%, 60%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--arco) 45%, transparent); }
+            25% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--arco) 22%, transparent), 0 0 18px 1px color-mix(in srgb, var(--arco) 40%, transparent); }
         }
         .stop-section-title { display: none; }
-        .stop-section.on .stop-section-title {
+        .stop-section.on .stop-section-title, #journeySection .stop-section-title {
             display: flex; align-items: center; gap: 6px; margin: 1px 6px 8px;
             font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .9px;
-            color: var(--primary);
+            color: color-mix(in srgb, var(--arco) 70%, var(--text));
         }
         .stop-section.on .stop-card { margin-bottom: 10px; }
         .stop-card {
@@ -629,7 +644,7 @@
         .toast.show { transform: translateX(-50%) translateY(0); }
 
         /* ---------- PLANIFICADOR ---------- */
-        .dest-wrap { position: relative; margin-bottom: 14px; }
+        .dest-wrap { position: relative; }
         .dest-input {
             width: 100%; padding: 13px 42px 13px 14px; border: 1px solid var(--border); border-radius: 12px;
             font-size: 1rem; font-weight: 600; background: var(--card); color: var(--text);
@@ -694,7 +709,9 @@
             animation: slideUp .32s cubic-bezier(.2,.7,.3,1) both;
             animation-delay: calc(var(--i, 0) * 45ms);
         }
-        .jcard.best { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent); }
+        /* el borde resaltado es el de la tarjeta abierta (antes lo llevaba siempre
+           la primera, y al abrir otra parecía que se quedaban dos desplegadas) */
+        .jcard.abierta { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent); }
         .jcard-main { padding: 13px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .jcard-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; row-gap: 3px; }
         .jcard-mins { font-size: 1.45rem; font-weight: 900; font-variant-numeric: tabular-nums; }
@@ -1026,38 +1043,21 @@
             <div class="map-hint-pill"><span data-i18n="Mantén pulsado el mapa para explorar">Mantén pulsado el mapa para explorar</span></div>
         </div>
 
-        <div id="nearbySection" style="display:none">
-            <div id="nearbyChips" class="chips-row" role="list" data-i18n-label="Paradas cercanas"></div>
+
+        <!-- Un solo buscador: un número es una parada (el del poste); lo demás, un destino -->
+        <div class="search-bar">
+            <div class="dest-wrap">
+                <input type="text" id="destInput" class="dest-input" placeholder="Parada o destino…" data-i18n-ph="Parada o destino…"
+                       autocomplete="off" enterkeyhint="search" oninput="onDestInput()" onkeydown="onBuscaTecla(event)">
+                <button class="dest-clear" id="destClear" onclick="clearDest()" data-i18n-label="Borrar destino">✕</button>
+                <div class="dest-suggestions" id="destSuggestions"></div>
+            </div>
+            <button class="home-btn" id="homeBtn" type="button">🏠</button>
         </div>
-
-        <div class="search-card">
-            <div class="seg-row">
-                <div class="segmented" role="tablist" data-i18n-label="Qué quieres buscar">
-                    <button class="seg-btn active" id="segStop" role="tab" aria-selected="true" onclick="setSearchMode('stop')">🚏 <span data-i18n="Llegadas">Llegadas</span></button>
-                    <button class="seg-btn" id="segDest" role="tab" aria-selected="false" onclick="setSearchMode('dest')">🧭 <span data-i18n="Ir a…">Ir a…</span></button>
-                </div>
-                <button class="home-btn" id="homeBtn" type="button">🏠</button>
-            </div>
-
-            <div class="search-pane" id="paneStop">
-                <div class="controls">
-                    <input type="number" id="stopCode" placeholder="Nº de parada" data-i18n-ph="Nº de parada" inputmode="numeric" onkeydown="if(event.key==='Enter')searchManual()">
-                    <button class="btn btn-search" onclick="searchManual()" data-i18n="Buscar">Buscar</button>
-                </div>
-            </div>
-
-            <div class="search-pane" id="paneDest" hidden>
-                <div class="dest-wrap">
-                    <input type="text" id="destInput" class="dest-input" placeholder="Busca una dirección o lugar…" data-i18n-ph="Busca una dirección o lugar…"
-                           autocomplete="off" oninput="onDestInput()" onkeydown="if(event.key==='Escape')clearDest()">
-                    <button class="dest-clear" id="destClear" onclick="clearDest()" data-i18n-label="Borrar destino">✕</button>
-                    <div class="dest-suggestions" id="destSuggestions"></div>
-                </div>
-                <div class="home-row-set" id="homeRow" style="display:none"></div>
-            </div>
-        </div>
+        <div class="home-row-set" id="homeRow" style="display:none"></div>
 
         <div id="journeySection" style="display:none">
+            <div class="stop-section-title">🧭 <span data-i18n="Destino seleccionado">Destino seleccionado</span></div>
             <div class="journey-head">
                 <div style="flex:1; min-width:0">
                     <div class="journey-head-title" id="journeyTitle"></div>
@@ -1104,7 +1104,7 @@
         <div id="results" class="bus-list"></div>
         </section>
 
-        <footer data-i18n="Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap">Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap</footer>
+        <footer data-i18n="Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)">Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)</footer>
     </main>
 
     <!-- Recorrido completo de una línea (se abre desde las correspondencias) -->
@@ -1173,8 +1173,8 @@
         };
 
         const I18N = {
-            ca: {"Parada seleccionada":"Parada seleccionada","🚶 Menos a pie":"🚶 Menys a peu","Ruta a casa (mantén pulsado para cambiarla)":"Ruta a casa (mantén premut per canviar-la)","Definir casa":"Defineix casa","En directo":"En directe","Llegadas":"Arribades","Ir a…":"Anar a…","Buscar":"Cerca","Nº de parada":"Núm. de parada","Ver qué pasa cerca de mí":"Mira què passa a prop meu","Busca una dirección o lugar…":"Cerca una adreça o un lloc…","Mantén pulsado el mapa para explorar":"Mantén premut el mapa per explorar","Qué quieres buscar":"Què vols cercar","Buscar transporte cerca de mí":"Cerca transport a prop meu","Ver en realidad aumentada":"Mostra en realitat augmentada","Centrar en mi posición":"Centra en la meva posició","Borrar destino":"Esborra el destí","Recalcular rutas":"Recalcula les rutes","Cerrar rutas":"Tanca les rutes","Favoritas":"Preferides","Recientes":"Recents","Paradas cercanas":"Parades a prop","Compartir parada":"Comparteix la parada","Guardar en favoritas":"Desa a preferides","Actualizar ahora":"Actualitza ara","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap","completado":"completat","restante":"restant","Te has desviado de la ruta.":"T'has desviat de la ruta.","Recalcular":"Recalcula","Finalizar":"Finalitza","Paradas alrededor":"Parades al voltant","Cerrar realidad aumentada":"Tanca la realitat augmentada","Mueve el móvil para calibrar la brújula 🔄":"Mou el mòbil per calibrar la brúixola 🔄","Error al cargar el mapa. Intenta refrescar la página.":"Error en carregar el mapa. Prova de refrescar la pàgina.","Reintentar":"Torna-ho a provar","No se han podido obtener los tiempos: ":"No s'han pogut obtenir els temps: ","Parada de bus no encontrada en TMB.":"Parada d'autobús no trobada a TMB.","Estación de metro no disponible.":"Estació de metro no disponible.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"Aquesta estació no ofereix temps en temps real (línies automàtiques L9/L10).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"El servei del TRAM no respon ara mateix. Torna-ho a provar.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"Avui no passa el TRAM per aquesta parada (obres o servei especial).","No hay datos de líneas para esta estación.":"No hi ha dades de línies per a aquesta estació.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"El servei de Renfe no respon ara mateix. Torna-ho a provar.","El open data de FGC no responde ahora mismo.":"L'open data d'FGC no respon ara mateix.","Sin salidas previstas en las próximas 2 horas.":"Sense sortides previstes en les pròximes 2 hores.","Horarios del bus interurbano no disponibles.":"Horaris del bus interurbà no disponibles.","Horarios de Renfe no disponibles.":"Horaris de Renfe no disponibles.","Ya estás ahí: {d}.":"Ja hi ets: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Avui ja no queda servei: busco el de demà…","Hoy ya no hay servicio · esto es lo primero de mañana":"Avui ja no hi ha servei · això és el primer de demà","Parada de bus":"Parada de bus","Bus · según horario oficial":"Bus · segons horari oficial","Parada no encontrada en los horarios.":"Parada no trobada als horaris.","Sin salidas previstas en las próximas 8 horas en esta parada.":"Sense sortides previstes en les pròximes 8 hores en aquesta parada.","Sin llegadas previstas ahora mismo en esta parada.":"Sense arribades previstes ara mateix en aquesta parada.","No tengo el trazado de esta línea.":"No tinc el traçat d'aquesta línia.","No tengo el recorrido de este tren ahora mismo.":"No tinc el recorregut d'aquest tren ara mateix.","No encuentro el recorrido de esta línea.":"No trobo el recorregut d'aquesta línia.","No encuentro el recorrido de este bus.":"No trobo el recorregut d'aquest autobús.","No se ha podido localizar el recorrido":"No s'ha pogut localitzar el recorregut","Línea no disponible":"Línia no disponible","Línea de metro no disponible.":"Línia de metro no disponible.","Este dispositivo no tiene GPS.":"Aquest dispositiu no té GPS.","Este dispositivo no soporta GPS.":"Aquest dispositiu no admet GPS.","Este dispositivo no tiene GPS para navegar.":"Aquest dispositiu no té GPS per navegar.","Esta ruta no tiene trazado para navegar.":"Aquesta ruta no té traçat per navegar.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"Necessito la teva ubicació per calcular la ruta. Activa el GPS i torna-ho a provar.","Necesito tu ubicación para situar las paradas.":"Necessito la teva ubicació per situar les parades.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No s'ha trobat cap ruta en transport públic fins allà.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No hi ha parades d'autobús, metro ni tram a menys de 900 m d'aquest punt.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"No has donat permís d'ubicació o el GPS està desactivat. També pots cercar pel número de parada o mantenir premut el mapa per explorar una zona.","📍 Buscando señal GPS...":"📍 Cercant senyal GPS...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Cercant bus, metro i tram a la zona...","🧭 Calculando las mejores rutas…":"🧭 Calculant les millors rutes…","🔗 Buscando enlaces entre redes…":"🔗 Cercant enllaços entre xarxes…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connectant en temps real...","🔗 Enlace copiado":"🔗 Enllaç copiat","Trazando ruta...":"Traçant la ruta...","Buscando paradas cercanas…":"Cercant parades a prop…","Sin salidas previstas ahora mismo aquí.":"Sense sortides previstes ara mateix aquí.","Sin próximos pasos ahora":"Sense pròxims passos ara","hacia":"cap a","Llegando":"Arribant","horario":"horari","Siguiente: {t}":"Següent: {t}","Llegada a destino: {t}":"Arribada a destí: {t}","Siguiente: {m} min":"Següent: {m} min","Andén al {p}%":"Andana al {p}%","Vacío":"Buit","Asientos libres":"Seients lliures","Pocos asientos":"Pocs seients","Solo de pie":"Només dret","Muy lleno":"Molt ple","En hora ✓":"Puntual ✓","Retrasos en la línea":"Retards a la línia","Ocupación ~{p}%":"Ocupació ~{p}%","🚶 a {d} · unos {m} min andando":"🚶 a {d} · uns {m} min a peu","Tiempos en directo de {x}":"Temps en directe de {x}","Estás aquí":"Ets aquí","Estación":"Estació","Sin nombre":"Sense nom","Camina {d} hasta {x}":"Camina {d} fins a {x}","dirección {x}":"direcció {x}","{n} paradas":"{n} parades","llegada ≈{t}":"arribada ≈{t}","Ver las {n} paradas":"Mostra les {n} parades","▶ Iniciar trayecto":"▶ Inicia el trajecte","Iniciar trayecto":"Inicia el trajecte","Desde tu ubicación · {t}":"Des de la teva ubicació · {t}","⚡ Llega antes":"⚡ Arriba abans","{m} min de margen":"{m} min de marge","enlace justo":"enllaç just","⏱ sale en {m} min":"⏱ surt en {m} min","⏱ sale en {h} h {m} min":"⏱ surt en {h} h {m} min","⏱ ¡sale ya!":"⏱ surt ara!","⏱ salió hace {m} min":"⏱ va sortir fa {m} min","+{m} min tarde":"+{m} min tard","{m} min antes":"{m} min abans","en hora":"puntual","retrasos en la línea":"retards a la línia","este punto del mapa":"aquest punt del mapa","en los primeros vagones":"als primers vagons","por el centro del tren":"pel centre del tren","en los últimos vagones":"als últims vagons","cabeza":"capçalera","centro":"centre","cola":"cua","Ve {z}":"Vés {z}","al bajar en {e}, {p}":"en baixar a {e}, {p}","el paso al {l} queda por ahí":"el pas cap a {l} queda per allà","la salida {s} queda por ahí":"la sortida {s} queda per allà","la salida queda por ahí":"la sortida queda per allà","⚠️ Señal GPS débil":"⚠️ Senyal GPS feble","Te has desviado ~{m} m de la ruta.":"T'has desviat ~{m} m de la ruta.","🚶 Camina hasta {x} y sube al":"🚶 Camina fins a {x} i puja al","🚶 Sigue caminando hasta {x}":"🚶 Continua caminant fins a {x}","Baja en":"Baixa a","🎉 ¡Has llegado a {x}!":"🎉 Has arribat a {x}!","🎉 ¡Has llegado!":"🎉 Has arribat!","tu posición":"la teva posició","Tu posición":"La teva posició","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ Ja vas per la ruta més ràpida fins a {x}.","Desde donde estás":"Des d'on ets","Bájate en {x}":"Baixa a {x}","Cambiar a esta ruta":"Canvia a aquesta ruta","🔀 Ruta cambiada":"🔀 Ruta canviada","🔀 Nueva ruta: bájate en ":"🔀 Nova ruta: baixa a ","Buscando salidas…":"Cercant sortides…","Preparando cámara…":"Preparant la càmera…","Cámara":"Càmera","Apunta el móvil a tu alrededor 📡":"Apunta el mòbil al teu voltant 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"Sense brúixola en aquest equip: et mostro les parades a prop en llista.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"Sense accés a la càmera: et mostro les parades a prop en llista.","Toca para ver próximos transportes":"Toca per veure els pròxims transports","Toca para ver llegadas":"Toca per veure les arribades","Apunta a una parada para ver sus llegadas 🎯":"Apunta a una parada per veure'n les arribades 🎯","ahora":"ara","Siempre la mejor experiencia disponible":"Sempre la millor experiència disponible","Todas las rutas obligan a caminar mucho":"Totes les rutes obliguen a caminar molt","La que menos, {m} min a pie de una tirada.":"La que menys, {m} min a peu d'una tirada.","Verlas igualmente":"Mostra-les igualment","Buscando rutas más rápidas desde la próxima parada…":"Cercant rutes més ràpides des de la pròxima parada…","Buscando rutas más rápidas en las próximas paradas…":"Cercant rutes més ràpides a les pròximes parades…","No se han podido calcular alternativas ahora mismo.":"No s'han pogut calcular alternatives ara mateix.","Llegas a las {t}":"Arribes a les {t}","Ver el recorrido de la línea {l}":"Mostra el recorregut de la línia {l}","Recorrido de la línea":"Recorregut de la línia","Cerrar":"Tanca","según los trenes de hoy":"segons els trens d'avui","Ahora mismo":"Ara mateix","Favorita":"Preferida","La de siempre a esta hora":"La de sempre a aquesta hora","Último servicio a las {t}":"Últim servei a les {t}","Próximos {n} minutos":"Pròxims {n} minuts","La zona rayada es lo que tardas en llegar a la parada":"La zona ratllada és el que trigues a arribar a la parada","no te da tiempo a pie":"no hi arribes a peu","ya":"ja","{m} min esperando":"{m} min esperant","{m} min a pie":"{m} min a peu","Bienvenido a Transport BCN":"Benvingut a Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies i FGC. Barcelona en temps real i tota Catalunya amb horaris.","Usar mi ubicación":"Fes servir la meva ubicació","Buscar por número de parada":"Cerca pel número de parada","También puedes mantener pulsado el mapa para explorar una zona":"També pots mantenir premut el mapa per explorar una zona","Vuelta a casa":"Tornada a casa","Ahora":"Ara","Llegada":"Arribada","sin combinación ahora mismo":"sense combinació ara mateix","Último sin NitBus":"Últim sense NitBus","Última de la noche":"Última de la nit","si lo pierdes, toca NitBus":"si el perds, toca NitBus","después, NitBus":"després, NitBus","El metro y el bus de día ya han cerrado":"El metro i el bus de dia ja han tancat","vuelves en NitBus":"tornes en NitBus","Ver la ruta a casa":"Mostra la ruta a casa","Calculando…":"Calculant…","Cambiar casa":"Canvia la casa","Escribe la dirección de tu casa…":"Escriu l'adreça de casa teva…","Mi casa":"Casa meva","Busca tu casa arriba":"Cerca casa teva a dalt","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Marca on vius i et diré fins quan pots quedar-te","Definir":"Defineix","Cambiar":"Canvia","🏠 Casa guardada":"🏠 Casa desada","En vivo":"En directe","Localizando trenes…":"Localitzant trens…","{n} trenes en circulación · {t}":"{n} trens en circulació · {t}","hacia {x} · {m} min":"cap a {x} · {m} min","{l} en vivo":"{l} en directe"},
-            en: {"Parada seleccionada":"Selected stop","🚶 Menos a pie":"🚶 Less walking","Ruta a casa (mantén pulsado para cambiarla)":"Route home (press and hold to change it)","Definir casa":"Set home","En directo":"Live","Llegadas":"Arrivals","Ir a…":"Go to…","Buscar":"Search","Nº de parada":"Stop number","Ver qué pasa cerca de mí":"See what's near me","Busca una dirección o lugar…":"Search for an address or place…","Mantén pulsado el mapa para explorar":"Press and hold the map to explore","Qué quieres buscar":"What do you want to search","Buscar transporte cerca de mí":"Find transport near me","Ver en realidad aumentada":"View in augmented reality","Centrar en mi posición":"Centre on my position","Borrar destino":"Clear destination","Recalcular rutas":"Recalculate routes","Cerrar rutas":"Close routes","Favoritas":"Favourites","Recientes":"Recent","Paradas cercanas":"Nearby stops","Compartir parada":"Share stop","Guardar en favoritas":"Save to favourites","Actualizar ahora":"Refresh now","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap","completado":"done","restante":"left","aprox.":"approx.","Te has desviado de la ruta.":"You've gone off route.","Recalcular":"Recalculate","Alternativa":"Alternative","Finalizar":"End","Paradas alrededor":"Stops around you","Cerrar realidad aumentada":"Close augmented reality","Mueve el móvil para calibrar la brújula 🔄":"Move your phone to calibrate the compass 🔄","Error al cargar el mapa. Intenta refrescar la página.":"The map failed to load. Try refreshing the page.","Reintentar":"Try again","No se han podido obtener los tiempos: ":"Couldn't get the times: ","Parada de bus no encontrada en TMB.":"Bus stop not found at TMB.","Estación de metro no disponible.":"Metro station unavailable.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"This station has no live times (automated L9/L10 lines).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"The TRAM service isn't responding right now. Try again.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"No TRAM at this stop today (works or special service).","No hay datos de líneas para esta estación.":"No line data for this station.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"The Renfe service isn't responding right now. Try again.","El open data de FGC no responde ahora mismo.":"The FGC open data isn't responding right now.","Sin salidas previstas en las próximas 2 horas.":"No departures in the next 2 hours.","Horarios del bus interurbano no disponibles.":"Intercity bus timetables unavailable.","Horarios de Renfe no disponibles.":"Renfe timetables unavailable.","Ya estás ahí: {d}.":"You are already there: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Nothing left today: looking for tomorrow…","Hoy ya no hay servicio · esto es lo primero de mañana":"No service left today · this is the first tomorrow","Parada de bus":"Bus stop","Bus · según horario oficial":"Bus · scheduled times","Parada no encontrada en los horarios.":"Stop not found in the timetables.","Sin salidas previstas en las próximas 8 horas en esta parada.":"No departures in the next 8 hours at this stop.","Sin llegadas previstas ahora mismo en esta parada.":"No arrivals expected at this stop right now.","No tengo el trazado de esta línea.":"I don't have this line's route.","No tengo el recorrido de este tren ahora mismo.":"I don't have this train's route right now.","No encuentro el recorrido de esta línea.":"I can't find this line's route.","No encuentro el recorrido de este bus.":"I can't find this bus's route.","Ruta no disponible":"Route unavailable","No se ha podido localizar el recorrido":"Couldn't locate the route","Línea no disponible":"Line unavailable","Línea de metro no disponible.":"Metro line unavailable.","Este dispositivo no tiene GPS.":"This device has no GPS.","Este dispositivo no soporta GPS.":"This device doesn't support GPS.","Este dispositivo no tiene GPS para navegar.":"This device has no GPS for navigation.","Esta ruta no tiene trazado para navegar.":"This route has no path to navigate.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"I need your location to work out the route. Turn on GPS and try again.","Necesito tu ubicación para situar las paradas.":"I need your location to place the stops.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No public transport route found to there.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No bus, metro or tram stops within 900 m of this point.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"You haven't granted location permission or GPS is off. You can also search by stop number, or press and hold the map to explore an area.","📍 Buscando señal GPS...":"📍 Looking for a GPS signal...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Looking for bus, metro and tram nearby...","🧭 Calculando las mejores rutas…":"🧭 Working out the best routes…","🔗 Buscando enlaces entre redes…":"🔗 Looking for links between networks…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connecting to live data...","🔗 Enlace copiado":"🔗 Link copied","Trazando ruta...":"Drawing the route...","Buscando paradas cercanas…":"Looking for nearby stops…","Sin salidas previstas ahora mismo aquí.":"No departures expected here right now.","Sin próximos pasos ahora":"No upcoming steps right now","hacia":"to","Llegando":"Arriving","min":"min","horario":"scheduled","Siguiente: {t}":"Next: {t}","Llegada a destino: {t}":"Arrives at: {t}","Siguiente: {m} min":"Next: {m} min","Andén al {p}%":"Platform {p}% full","Vacío":"Empty","Asientos libres":"Seats available","Pocos asientos":"Few seats","Solo de pie":"Standing only","Muy lleno":"Very full","En hora ✓":"On time ✓","Retrasos en la línea":"Delays on the line","Ocupación ~{p}%":"About {p}% full","🚶 a {d} · unos {m} min andando":"🚶 {d} away · about {m} min on foot","Tiempos en directo de {x}":"Live times for {x}","Estás aquí":"You are here","Parada":"Stop","Estación":"Station","Sin nombre":"Unnamed","Camina {d} hasta {x}":"Walk {d} to {x}","dirección {x}":"towards {x}","{n} paradas":"{n} stops","llegada ≈{t}":"arrives ≈{t}","Ver las {n} paradas":"Show the {n} stops","▶ Iniciar trayecto":"▶ Start trip","Iniciar trayecto":"Start trip","A {x}":"To {x}","Desde tu ubicación · {t}":"From your location · {t}","⚡ Llega antes":"⚡ Arrives first","{m} min de margen":"{m} min buffer","enlace justo":"tight connection","⏱ sale en {m} min":"⏱ leaves in {m} min","⏱ sale en {h} h {m} min":"⏱ leaves in {h} h {m} min","⏱ ¡sale ya!":"⏱ leaving now!","⏱ salió hace {m} min":"⏱ left {m} min ago","+{m} min tarde":"+{m} min late","{m} min antes":"{m} min early","en hora":"on time","retrasos en la línea":"delays on the line","este punto del mapa":"this point on the map","en los primeros vagones":"in the front carriages","por el centro del tren":"in the middle of the train","en los últimos vagones":"in the rear carriages","cabeza":"front","centro":"middle","cola":"rear","Ve {z}":"Ride {z}","al bajar en {e}, {p}":"when you get off at {e}, {p}","el paso al {l} queda por ahí":"the transfer to {l} is at that end","la salida {s} queda por ahí":"exit {s} is at that end","la salida queda por ahí":"the exit is at that end","⚠️ Señal GPS débil":"⚠️ Weak GPS signal","Te has desviado ~{m} m de la ruta.":"You're ~{m} m off the route.","🚶 Camina hasta {x} y sube al":"🚶 Walk to {x} and take the","🚶 Sigue caminando hasta {x}":"🚶 Keep walking to {x}","Baja en":"Get off at","🎉 ¡Has llegado a {x}!":"🎉 You've arrived at {x}!","🎉 ¡Has llegado!":"🎉 You've arrived!","tu posición":"your position","Tu posición":"Your position","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ You're already on the fastest route to {x}.","Desde donde estás":"From where you are","Bájate en {x}":"Get off at {x}","Cambiar a esta ruta":"Switch to this route","🔀 Ruta cambiada":"🔀 Route changed","🔀 Nueva ruta: bájate en ":"🔀 New route: get off at ","Buscando salidas…":"Looking for departures…","Preparando cámara…":"Getting the camera ready…","Cámara":"Camera","Apunta el móvil a tu alrededor 📡":"Point your phone around you 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"No compass on this device: showing nearby stops as a list.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"No camera access: showing nearby stops as a list.","Toca para ver próximos transportes":"Tap to see upcoming departures","Toca para ver llegadas":"Tap to see arrivals","Apunta a una parada para ver sus llegadas 🎯":"Point at a stop to see its arrivals 🎯","ahora":"now","Siempre la mejor experiencia disponible":"Always the best experience available","Todas las rutas obligan a caminar mucho":"Every route means a long walk","La que menos, {m} min a pie de una tirada.":"The shortest has a {m} min walk in one go.","Verlas igualmente":"Show them anyway","Buscando rutas más rápidas desde la próxima parada…":"Looking for faster routes from the next stop…","Buscando rutas más rápidas en las próximas paradas…":"Looking for faster routes at the next stops…","No se han podido calcular alternativas ahora mismo.":"Couldn't work out alternatives right now.","Llegas a las {t}":"You arrive at {t}","Ver el recorrido de la línea {l}":"Show the {l} line route","Recorrido de la línea":"Line route","Cerrar":"Close","según los trenes de hoy":"from today's trains","Ahora mismo":"Right now","Favorita":"Favourite","La de siempre a esta hora":"Your usual at this time","Último servicio a las {t}":"Last service at {t}","Próximos {n} minutos":"Next {n} minutes","La zona rayada es lo que tardas en llegar a la parada":"The hatched zone is how long it takes you to reach the stop","no te da tiempo a pie":"you can't make it on foot","ya":"now","{m} min esperando":"{m} min waiting","{m} min a pie":"{m} min walking","Bienvenido a Transport BCN":"Welcome to Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies and FGC. Live in Barcelona, timetables across Catalonia.","Usar mi ubicación":"Use my location","Buscar por número de parada":"Search by stop number","También puedes mantener pulsado el mapa para explorar una zona":"You can also press and hold the map to explore an area","Vuelta a casa":"Getting home","Ahora":"Now","Llegada":"Arrival","sin combinación ahora mismo":"no connection right now","Último sin NitBus":"Last without NitBus","Última de la noche":"Last of the night","si lo pierdes, toca NitBus":"miss it and it's the NitBus","después, NitBus":"after that, NitBus","El metro y el bus de día ya han cerrado":"The metro and daytime buses have closed","vuelves en NitBus":"you go home by NitBus","Ver la ruta a casa":"Show the route home","Calculando…":"Working it out…","Cambiar casa":"Change home","Escribe la dirección de tu casa…":"Type your home address…","Mi casa":"My home","Busca tu casa arriba":"Search for your home above","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Set where you live and I'll tell you how late you can stay out","Definir":"Set","Cambiar":"Change","🏠 Casa guardada":"🏠 Home saved","Primer metro":"First metro","En vivo":"Live","Localizando trenes…":"Locating trains…","{n} trenes en circulación · {t}":"{n} trains running · {t}","hacia {x} · {m} min":"to {x} · {m} min","{l} en vivo":"{l} live"}
+            ca: {"Destino seleccionado":"Destinació seleccionada","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutes a peu Valhalla (FOSSGIS)","Parada o destino…":"Parada o destinació…","Parada {n}":"Parada {n}","Ver sus llegadas":"Mostra'n les arribades","Buscando más opciones…":"Cercant més opcions…","Parada seleccionada":"Parada seleccionada","🚶 Menos a pie":"🚶 Menys a peu","Ruta a casa (mantén pulsado para cambiarla)":"Ruta a casa (mantén premut per canviar-la)","Definir casa":"Defineix casa","En directo":"En directe","Llegadas":"Arribades","Ir a…":"Anar a…","Buscar":"Cerca","Nº de parada":"Núm. de parada","Ver qué pasa cerca de mí":"Mira què passa a prop meu","Busca una dirección o lugar…":"Cerca una adreça o un lloc…","Mantén pulsado el mapa para explorar":"Mantén premut el mapa per explorar","Qué quieres buscar":"Què vols cercar","Buscar transporte cerca de mí":"Cerca transport a prop meu","Ver en realidad aumentada":"Mostra en realitat augmentada","Centrar en mi posición":"Centra en la meva posició","Borrar destino":"Esborra el destí","Recalcular rutas":"Recalcula les rutes","Cerrar rutas":"Tanca les rutes","Favoritas":"Preferides","Recientes":"Recents","Paradas cercanas":"Parades a prop","Compartir parada":"Comparteix la parada","Guardar en favoritas":"Desa a preferides","Actualizar ahora":"Actualitza ara","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap","completado":"completat","restante":"restant","Te has desviado de la ruta.":"T'has desviat de la ruta.","Recalcular":"Recalcula","Finalizar":"Finalitza","Paradas alrededor":"Parades al voltant","Cerrar realidad aumentada":"Tanca la realitat augmentada","Mueve el móvil para calibrar la brújula 🔄":"Mou el mòbil per calibrar la brúixola 🔄","Error al cargar el mapa. Intenta refrescar la página.":"Error en carregar el mapa. Prova de refrescar la pàgina.","Reintentar":"Torna-ho a provar","No se han podido obtener los tiempos: ":"No s'han pogut obtenir els temps: ","Parada de bus no encontrada en TMB.":"Parada d'autobús no trobada a TMB.","Estación de metro no disponible.":"Estació de metro no disponible.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"Aquesta estació no ofereix temps en temps real (línies automàtiques L9/L10).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"El servei del TRAM no respon ara mateix. Torna-ho a provar.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"Avui no passa el TRAM per aquesta parada (obres o servei especial).","No hay datos de líneas para esta estación.":"No hi ha dades de línies per a aquesta estació.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"El servei de Renfe no respon ara mateix. Torna-ho a provar.","El open data de FGC no responde ahora mismo.":"L'open data d'FGC no respon ara mateix.","Sin salidas previstas en las próximas 2 horas.":"Sense sortides previstes en les pròximes 2 hores.","Horarios del bus interurbano no disponibles.":"Horaris del bus interurbà no disponibles.","Horarios de Renfe no disponibles.":"Horaris de Renfe no disponibles.","Ya estás ahí: {d}.":"Ja hi ets: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Avui ja no queda servei: busco el de demà…","Hoy ya no hay servicio · esto es lo primero de mañana":"Avui ja no hi ha servei · això és el primer de demà","Parada de bus":"Parada de bus","Bus · según horario oficial":"Bus · segons horari oficial","Parada no encontrada en los horarios.":"Parada no trobada als horaris.","Sin salidas previstas en las próximas 8 horas en esta parada.":"Sense sortides previstes en les pròximes 8 hores en aquesta parada.","Sin llegadas previstas ahora mismo en esta parada.":"Sense arribades previstes ara mateix en aquesta parada.","No tengo el trazado de esta línea.":"No tinc el traçat d'aquesta línia.","No tengo el recorrido de este tren ahora mismo.":"No tinc el recorregut d'aquest tren ara mateix.","No encuentro el recorrido de esta línea.":"No trobo el recorregut d'aquesta línia.","No encuentro el recorrido de este bus.":"No trobo el recorregut d'aquest autobús.","No se ha podido localizar el recorrido":"No s'ha pogut localitzar el recorregut","Línea no disponible":"Línia no disponible","Línea de metro no disponible.":"Línia de metro no disponible.","Este dispositivo no tiene GPS.":"Aquest dispositiu no té GPS.","Este dispositivo no soporta GPS.":"Aquest dispositiu no admet GPS.","Este dispositivo no tiene GPS para navegar.":"Aquest dispositiu no té GPS per navegar.","Esta ruta no tiene trazado para navegar.":"Aquesta ruta no té traçat per navegar.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"Necessito la teva ubicació per calcular la ruta. Activa el GPS i torna-ho a provar.","Necesito tu ubicación para situar las paradas.":"Necessito la teva ubicació per situar les parades.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No s'ha trobat cap ruta en transport públic fins allà.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No hi ha parades d'autobús, metro ni tram a menys de 900 m d'aquest punt.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"No has donat permís d'ubicació o el GPS està desactivat. També pots cercar pel número de parada o mantenir premut el mapa per explorar una zona.","📍 Buscando señal GPS...":"📍 Cercant senyal GPS...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Cercant bus, metro i tram a la zona...","🧭 Calculando las mejores rutas…":"🧭 Calculant les millors rutes…","🔗 Buscando enlaces entre redes…":"🔗 Cercant enllaços entre xarxes…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connectant en temps real...","🔗 Enlace copiado":"🔗 Enllaç copiat","Trazando ruta...":"Traçant la ruta...","Buscando paradas cercanas…":"Cercant parades a prop…","Sin salidas previstas ahora mismo aquí.":"Sense sortides previstes ara mateix aquí.","Sin próximos pasos ahora":"Sense pròxims passos ara","hacia":"cap a","Llegando":"Arribant","horario":"horari","Siguiente: {t}":"Següent: {t}","Llegada a destino: {t}":"Arribada a destí: {t}","Siguiente: {m} min":"Següent: {m} min","Andén al {p}%":"Andana al {p}%","Vacío":"Buit","Asientos libres":"Seients lliures","Pocos asientos":"Pocs seients","Solo de pie":"Només dret","Muy lleno":"Molt ple","En hora ✓":"Puntual ✓","Retrasos en la línea":"Retards a la línia","Ocupación ~{p}%":"Ocupació ~{p}%","🚶 a {d} · unos {m} min andando":"🚶 a {d} · uns {m} min a peu","Tiempos en directo de {x}":"Temps en directe de {x}","Estás aquí":"Ets aquí","Estación":"Estació","Sin nombre":"Sense nom","Camina {d} hasta {x}":"Camina {d} fins a {x}","dirección {x}":"direcció {x}","{n} paradas":"{n} parades","llegada ≈{t}":"arribada ≈{t}","Ver las {n} paradas":"Mostra les {n} parades","▶ Iniciar trayecto":"▶ Inicia el trajecte","Iniciar trayecto":"Inicia el trajecte","Desde tu ubicación · {t}":"Des de la teva ubicació · {t}","⚡ Llega antes":"⚡ Arriba abans","{m} min de margen":"{m} min de marge","enlace justo":"enllaç just","⏱ sale en {m} min":"⏱ surt en {m} min","⏱ sale en {h} h {m} min":"⏱ surt en {h} h {m} min","⏱ ¡sale ya!":"⏱ surt ara!","⏱ salió hace {m} min":"⏱ va sortir fa {m} min","+{m} min tarde":"+{m} min tard","{m} min antes":"{m} min abans","en hora":"puntual","retrasos en la línea":"retards a la línia","este punto del mapa":"aquest punt del mapa","en los primeros vagones":"als primers vagons","por el centro del tren":"pel centre del tren","en los últimos vagones":"als últims vagons","cabeza":"capçalera","centro":"centre","cola":"cua","Ve {z}":"Vés {z}","al bajar en {e}, {p}":"en baixar a {e}, {p}","el paso al {l} queda por ahí":"el pas cap a {l} queda per allà","la salida {s} queda por ahí":"la sortida {s} queda per allà","la salida queda por ahí":"la sortida queda per allà","⚠️ Señal GPS débil":"⚠️ Senyal GPS feble","Te has desviado ~{m} m de la ruta.":"T'has desviat ~{m} m de la ruta.","🚶 Camina hasta {x} y sube al":"🚶 Camina fins a {x} i puja al","🚶 Sigue caminando hasta {x}":"🚶 Continua caminant fins a {x}","Baja en":"Baixa a","🎉 ¡Has llegado a {x}!":"🎉 Has arribat a {x}!","🎉 ¡Has llegado!":"🎉 Has arribat!","tu posición":"la teva posició","Tu posición":"La teva posició","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ Ja vas per la ruta més ràpida fins a {x}.","Desde donde estás":"Des d'on ets","Bájate en {x}":"Baixa a {x}","Cambiar a esta ruta":"Canvia a aquesta ruta","🔀 Ruta cambiada":"🔀 Ruta canviada","🔀 Nueva ruta: bájate en ":"🔀 Nova ruta: baixa a ","Buscando salidas…":"Cercant sortides…","Preparando cámara…":"Preparant la càmera…","Cámara":"Càmera","Apunta el móvil a tu alrededor 📡":"Apunta el mòbil al teu voltant 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"Sense brúixola en aquest equip: et mostro les parades a prop en llista.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"Sense accés a la càmera: et mostro les parades a prop en llista.","Toca para ver próximos transportes":"Toca per veure els pròxims transports","Toca para ver llegadas":"Toca per veure les arribades","Apunta a una parada para ver sus llegadas 🎯":"Apunta a una parada per veure'n les arribades 🎯","ahora":"ara","Siempre la mejor experiencia disponible":"Sempre la millor experiència disponible","Todas las rutas obligan a caminar mucho":"Totes les rutes obliguen a caminar molt","La que menos, {m} min a pie de una tirada.":"La que menys, {m} min a peu d'una tirada.","Verlas igualmente":"Mostra-les igualment","Buscando rutas más rápidas desde la próxima parada…":"Cercant rutes més ràpides des de la pròxima parada…","Buscando rutas más rápidas en las próximas paradas…":"Cercant rutes més ràpides a les pròximes parades…","No se han podido calcular alternativas ahora mismo.":"No s'han pogut calcular alternatives ara mateix.","Llegas a las {t}":"Arribes a les {t}","Ver el recorrido de la línea {l}":"Mostra el recorregut de la línia {l}","Recorrido de la línea":"Recorregut de la línia","Cerrar":"Tanca","según los trenes de hoy":"segons els trens d'avui","Ahora mismo":"Ara mateix","Favorita":"Preferida","La de siempre a esta hora":"La de sempre a aquesta hora","Último servicio a las {t}":"Últim servei a les {t}","Próximos {n} minutos":"Pròxims {n} minuts","La zona rayada es lo que tardas en llegar a la parada":"La zona ratllada és el que trigues a arribar a la parada","no te da tiempo a pie":"no hi arribes a peu","ya":"ja","{m} min esperando":"{m} min esperant","{m} min a pie":"{m} min a peu","Bienvenido a Transport BCN":"Benvingut a Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies i FGC. Barcelona en temps real i tota Catalunya amb horaris.","Usar mi ubicación":"Fes servir la meva ubicació","Buscar por número de parada":"Cerca pel número de parada","También puedes mantener pulsado el mapa para explorar una zona":"També pots mantenir premut el mapa per explorar una zona","Vuelta a casa":"Tornada a casa","Ahora":"Ara","Llegada":"Arribada","sin combinación ahora mismo":"sense combinació ara mateix","Último sin NitBus":"Últim sense NitBus","Última de la noche":"Última de la nit","si lo pierdes, toca NitBus":"si el perds, toca NitBus","después, NitBus":"després, NitBus","El metro y el bus de día ya han cerrado":"El metro i el bus de dia ja han tancat","vuelves en NitBus":"tornes en NitBus","Ver la ruta a casa":"Mostra la ruta a casa","Calculando…":"Calculant…","Cambiar casa":"Canvia la casa","Escribe la dirección de tu casa…":"Escriu l'adreça de casa teva…","Mi casa":"Casa meva","Busca tu casa arriba":"Cerca casa teva a dalt","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Marca on vius i et diré fins quan pots quedar-te","Definir":"Defineix","Cambiar":"Canvia","🏠 Casa guardada":"🏠 Casa desada","En vivo":"En directe","Localizando trenes…":"Localitzant trens…","{n} trenes en circulación · {t}":"{n} trens en circulació · {t}","hacia {x} · {m} min":"cap a {x} · {m} min","{l} en vivo":"{l} en directe"},
+            en: {"Destino seleccionado":"Selected destination","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap · Walking routes Valhalla (FOSSGIS)","Parada o destino…":"Stop or destination…","Parada {n}":"Stop {n}","Ver sus llegadas":"See its arrivals","Buscando más opciones…":"Looking for more options…","Parada seleccionada":"Selected stop","🚶 Menos a pie":"🚶 Less walking","Ruta a casa (mantén pulsado para cambiarla)":"Route home (press and hold to change it)","Definir casa":"Set home","En directo":"Live","Llegadas":"Arrivals","Ir a…":"Go to…","Buscar":"Search","Nº de parada":"Stop number","Ver qué pasa cerca de mí":"See what's near me","Busca una dirección o lugar…":"Search for an address or place…","Mantén pulsado el mapa para explorar":"Press and hold the map to explore","Qué quieres buscar":"What do you want to search","Buscar transporte cerca de mí":"Find transport near me","Ver en realidad aumentada":"View in augmented reality","Centrar en mi posición":"Centre on my position","Borrar destino":"Clear destination","Recalcular rutas":"Recalculate routes","Cerrar rutas":"Close routes","Favoritas":"Favourites","Recientes":"Recent","Paradas cercanas":"Nearby stops","Compartir parada":"Share stop","Guardar en favoritas":"Save to favourites","Actualizar ahora":"Refresh now","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap","completado":"done","restante":"left","aprox.":"approx.","Te has desviado de la ruta.":"You've gone off route.","Recalcular":"Recalculate","Alternativa":"Alternative","Finalizar":"End","Paradas alrededor":"Stops around you","Cerrar realidad aumentada":"Close augmented reality","Mueve el móvil para calibrar la brújula 🔄":"Move your phone to calibrate the compass 🔄","Error al cargar el mapa. Intenta refrescar la página.":"The map failed to load. Try refreshing the page.","Reintentar":"Try again","No se han podido obtener los tiempos: ":"Couldn't get the times: ","Parada de bus no encontrada en TMB.":"Bus stop not found at TMB.","Estación de metro no disponible.":"Metro station unavailable.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"This station has no live times (automated L9/L10 lines).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"The TRAM service isn't responding right now. Try again.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"No TRAM at this stop today (works or special service).","No hay datos de líneas para esta estación.":"No line data for this station.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"The Renfe service isn't responding right now. Try again.","El open data de FGC no responde ahora mismo.":"The FGC open data isn't responding right now.","Sin salidas previstas en las próximas 2 horas.":"No departures in the next 2 hours.","Horarios del bus interurbano no disponibles.":"Intercity bus timetables unavailable.","Horarios de Renfe no disponibles.":"Renfe timetables unavailable.","Ya estás ahí: {d}.":"You are already there: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Nothing left today: looking for tomorrow…","Hoy ya no hay servicio · esto es lo primero de mañana":"No service left today · this is the first tomorrow","Parada de bus":"Bus stop","Bus · según horario oficial":"Bus · scheduled times","Parada no encontrada en los horarios.":"Stop not found in the timetables.","Sin salidas previstas en las próximas 8 horas en esta parada.":"No departures in the next 8 hours at this stop.","Sin llegadas previstas ahora mismo en esta parada.":"No arrivals expected at this stop right now.","No tengo el trazado de esta línea.":"I don't have this line's route.","No tengo el recorrido de este tren ahora mismo.":"I don't have this train's route right now.","No encuentro el recorrido de esta línea.":"I can't find this line's route.","No encuentro el recorrido de este bus.":"I can't find this bus's route.","Ruta no disponible":"Route unavailable","No se ha podido localizar el recorrido":"Couldn't locate the route","Línea no disponible":"Line unavailable","Línea de metro no disponible.":"Metro line unavailable.","Este dispositivo no tiene GPS.":"This device has no GPS.","Este dispositivo no soporta GPS.":"This device doesn't support GPS.","Este dispositivo no tiene GPS para navegar.":"This device has no GPS for navigation.","Esta ruta no tiene trazado para navegar.":"This route has no path to navigate.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"I need your location to work out the route. Turn on GPS and try again.","Necesito tu ubicación para situar las paradas.":"I need your location to place the stops.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No public transport route found to there.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No bus, metro or tram stops within 900 m of this point.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"You haven't granted location permission or GPS is off. You can also search by stop number, or press and hold the map to explore an area.","📍 Buscando señal GPS...":"📍 Looking for a GPS signal...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Looking for bus, metro and tram nearby...","🧭 Calculando las mejores rutas…":"🧭 Working out the best routes…","🔗 Buscando enlaces entre redes…":"🔗 Looking for links between networks…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connecting to live data...","🔗 Enlace copiado":"🔗 Link copied","Trazando ruta...":"Drawing the route...","Buscando paradas cercanas…":"Looking for nearby stops…","Sin salidas previstas ahora mismo aquí.":"No departures expected here right now.","Sin próximos pasos ahora":"No upcoming steps right now","hacia":"to","Llegando":"Arriving","min":"min","horario":"scheduled","Siguiente: {t}":"Next: {t}","Llegada a destino: {t}":"Arrives at: {t}","Siguiente: {m} min":"Next: {m} min","Andén al {p}%":"Platform {p}% full","Vacío":"Empty","Asientos libres":"Seats available","Pocos asientos":"Few seats","Solo de pie":"Standing only","Muy lleno":"Very full","En hora ✓":"On time ✓","Retrasos en la línea":"Delays on the line","Ocupación ~{p}%":"About {p}% full","🚶 a {d} · unos {m} min andando":"🚶 {d} away · about {m} min on foot","Tiempos en directo de {x}":"Live times for {x}","Estás aquí":"You are here","Parada":"Stop","Estación":"Station","Sin nombre":"Unnamed","Camina {d} hasta {x}":"Walk {d} to {x}","dirección {x}":"towards {x}","{n} paradas":"{n} stops","llegada ≈{t}":"arrives ≈{t}","Ver las {n} paradas":"Show the {n} stops","▶ Iniciar trayecto":"▶ Start trip","Iniciar trayecto":"Start trip","A {x}":"To {x}","Desde tu ubicación · {t}":"From your location · {t}","⚡ Llega antes":"⚡ Arrives first","{m} min de margen":"{m} min buffer","enlace justo":"tight connection","⏱ sale en {m} min":"⏱ leaves in {m} min","⏱ sale en {h} h {m} min":"⏱ leaves in {h} h {m} min","⏱ ¡sale ya!":"⏱ leaving now!","⏱ salió hace {m} min":"⏱ left {m} min ago","+{m} min tarde":"+{m} min late","{m} min antes":"{m} min early","en hora":"on time","retrasos en la línea":"delays on the line","este punto del mapa":"this point on the map","en los primeros vagones":"in the front carriages","por el centro del tren":"in the middle of the train","en los últimos vagones":"in the rear carriages","cabeza":"front","centro":"middle","cola":"rear","Ve {z}":"Ride {z}","al bajar en {e}, {p}":"when you get off at {e}, {p}","el paso al {l} queda por ahí":"the transfer to {l} is at that end","la salida {s} queda por ahí":"exit {s} is at that end","la salida queda por ahí":"the exit is at that end","⚠️ Señal GPS débil":"⚠️ Weak GPS signal","Te has desviado ~{m} m de la ruta.":"You're ~{m} m off the route.","🚶 Camina hasta {x} y sube al":"🚶 Walk to {x} and take the","🚶 Sigue caminando hasta {x}":"🚶 Keep walking to {x}","Baja en":"Get off at","🎉 ¡Has llegado a {x}!":"🎉 You've arrived at {x}!","🎉 ¡Has llegado!":"🎉 You've arrived!","tu posición":"your position","Tu posición":"Your position","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ You're already on the fastest route to {x}.","Desde donde estás":"From where you are","Bájate en {x}":"Get off at {x}","Cambiar a esta ruta":"Switch to this route","🔀 Ruta cambiada":"🔀 Route changed","🔀 Nueva ruta: bájate en ":"🔀 New route: get off at ","Buscando salidas…":"Looking for departures…","Preparando cámara…":"Getting the camera ready…","Cámara":"Camera","Apunta el móvil a tu alrededor 📡":"Point your phone around you 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"No compass on this device: showing nearby stops as a list.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"No camera access: showing nearby stops as a list.","Toca para ver próximos transportes":"Tap to see upcoming departures","Toca para ver llegadas":"Tap to see arrivals","Apunta a una parada para ver sus llegadas 🎯":"Point at a stop to see its arrivals 🎯","ahora":"now","Siempre la mejor experiencia disponible":"Always the best experience available","Todas las rutas obligan a caminar mucho":"Every route means a long walk","La que menos, {m} min a pie de una tirada.":"The shortest has a {m} min walk in one go.","Verlas igualmente":"Show them anyway","Buscando rutas más rápidas desde la próxima parada…":"Looking for faster routes from the next stop…","Buscando rutas más rápidas en las próximas paradas…":"Looking for faster routes at the next stops…","No se han podido calcular alternativas ahora mismo.":"Couldn't work out alternatives right now.","Llegas a las {t}":"You arrive at {t}","Ver el recorrido de la línea {l}":"Show the {l} line route","Recorrido de la línea":"Line route","Cerrar":"Close","según los trenes de hoy":"from today's trains","Ahora mismo":"Right now","Favorita":"Favourite","La de siempre a esta hora":"Your usual at this time","Último servicio a las {t}":"Last service at {t}","Próximos {n} minutos":"Next {n} minutes","La zona rayada es lo que tardas en llegar a la parada":"The hatched zone is how long it takes you to reach the stop","no te da tiempo a pie":"you can't make it on foot","ya":"now","{m} min esperando":"{m} min waiting","{m} min a pie":"{m} min walking","Bienvenido a Transport BCN":"Welcome to Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies and FGC. Live in Barcelona, timetables across Catalonia.","Usar mi ubicación":"Use my location","Buscar por número de parada":"Search by stop number","También puedes mantener pulsado el mapa para explorar una zona":"You can also press and hold the map to explore an area","Vuelta a casa":"Getting home","Ahora":"Now","Llegada":"Arrival","sin combinación ahora mismo":"no connection right now","Último sin NitBus":"Last without NitBus","Última de la noche":"Last of the night","si lo pierdes, toca NitBus":"miss it and it's the NitBus","después, NitBus":"after that, NitBus","El metro y el bus de día ya han cerrado":"The metro and daytime buses have closed","vuelves en NitBus":"you go home by NitBus","Ver la ruta a casa":"Show the route home","Calculando…":"Working it out…","Cambiar casa":"Change home","Escribe la dirección de tu casa…":"Type your home address…","Mi casa":"My home","Busca tu casa arriba":"Search for your home above","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Set where you live and I'll tell you how late you can stay out","Definir":"Set","Cambiar":"Change","🏠 Casa guardada":"🏠 Home saved","Primer metro":"First metro","En vivo":"Live","Localizando trenes…":"Locating trains…","{n} trenes en circulación · {t}":"{n} trains running · {t}","hacia {x} · {m} min":"to {x} · {m} min","{l} en vivo":"{l} live"}
         };
 
         let lang = 'es';
@@ -1233,7 +1233,7 @@
         // Lo que está pintado a partir de datos (llegadas, rutas, chips) se repinta
         function redrawForLang() {
             try {
-                renderFavs(); renderNearbyChips();
+                renderFavs();
                 renderHomeRow(); if (homeCardDatos) pintarHomeCard();
                 if (journeyItins.length && journeyDest) renderJourneys();
                 if (currentStop) fetchArrivals(currentStop, true);
@@ -1442,8 +1442,10 @@
         }
         const userIcon = L.divIcon({
             className: '',
-            html: '<div class="user-dot-wrap"><div class="user-dot-halo"></div><div class="user-dot-core"></div></div>',
-            iconSize: [16, 16], iconAnchor: [8, 8]
+            html: '<div class="user-dot-wrap"><div class="user-dot-halo"></div><div class="user-dot-core">' +
+                  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="4.6" r="2.9" fill="#fff"/>' +
+                  '<path d="M8.6 9.2c0-1 .8-1.7 1.8-1.7h3.2c1 0 1.8.8 1.8 1.7v5.4h-1.8V22h-3.2v-7.4H8.6z" fill="#fff"/></svg></div></div>',
+            iconSize: [32, 32], iconAnchor: [16, 16]
         });
 
         // --- 4. INICIO ---
@@ -1527,6 +1529,26 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
         const fmtDist = m => m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`;
+
+        // Andando no se va en línea recta. En el Eixample las calles son una
+        // cuadrícula girada 45°: lo que se anda es la distancia "de taxi" en los
+        // ejes de las calles (de Passeig de Gràcia a Diagonal 335: 749 m en recta,
+        // 1.004 m así; el planner de TMB, que va por la calle, dice 997). Fuera de
+        // la cuadrícula, un 30 % más que la recta, que es lo que se desvían de
+        // media las calles. Con la recta, la app decía 10 min donde eran 14.
+        const EIXAMPLE = { s: 41.374, n: 41.405, o: 2.138, e: 2.192 };
+        function metrosAPie(lat1, lon1, lat2, lon2) {
+            const recta = getDistance(lat1, lon1, lat2, lon2);
+            if (recta < 60) return recta;                  // la parada de enfrente
+            const enCuadricula = (la, lo) => la > EIXAMPLE.s && la < EIXAMPLE.n && lo > EIXAMPLE.o && lo < EIXAMPLE.e;
+            if (enCuadricula(lat1, lon1) && enCuadricula(lat2, lon2)) {
+                const dy = (lat2 - lat1) * 111320;
+                const dx = (lon2 - lon1) * 111320 * Math.cos(lat1 * Math.PI / 180);
+                const u = (dx + dy) * Math.SQRT1_2, v = (dx - dy) * Math.SQRT1_2;   // ejes de las calles
+                return Math.max(recta, Math.abs(u) + Math.abs(v));
+            }
+            return recta * 1.3;
+        }
         const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
         // Identificador único de una parada (para chips, marcadores y favoritos)
@@ -1634,23 +1656,9 @@
             logUso(stop);
         }
 
-        // --- 8. PARADAS CERCANAS (chips + marcadores) ---
-        function renderNearbyChips() {
-            const section = document.getElementById('nearbySection');
-            section.style.display = nearbyStops.length ? 'block' : 'none';
-            document.getElementById('nearbyChips').innerHTML = nearbyStops.slice(0, 15).map((s, i) => `
-                <div class="chip ${currentStop && stopKey(currentStop) === stopKey(s) ? 'active' : ''}" onclick="selectNearbyStop(${i})">
-                    <span class="chip-mode">${MODE_ICON[s.type]}</span>
-                    <span class="chip-name">${esc(s.name)}</span>
-                    <span class="chip-dist">${fmtDist(s.dist)}</span>
-                </div>`).join('');
-        }
-        function selectNearbyStop(i) {
-            const stop = nearbyStops[i];
-            if (!stop) return;
-            map.setView([stop.lat, stop.lon], 17);
-            fetchArrivals(stop);
-        }
+        // --- 8. PARADAS CERCANAS (marcadores) ---
+        // La fila de botones con las cercanas se quitó: el mapa ya las marca todas
+        // y la más cercana con servicio se abre sola.
         function highlightMarkers() {
             Object.entries(stopMarkers).forEach(([key, marker]) => {
                 marker.setIcon(stopPinIcon(key.split(':')[0], currentStop && stopKey(currentStop) === key));
@@ -1667,7 +1675,6 @@
                 setLoading(null);
                 renderStopCard(stop);   // el nombre de la nueva ya, mientras cargan sus llegadas
                 showSkeleton();
-                if (stop.type === 'bus') document.getElementById('stopCode').value = stop.code;
                 routeLayer.clearLayers();
                 activeRoute = null;
                 activeRouteHTML = "";
@@ -1688,7 +1695,6 @@
                 renderDepartures(departures, isSilent);
                 if (!isSilent) pushRecent(stop);
                 renderFavs();
-                renderNearbyChips();
                 highlightMarkers();
                 startCountdown();
             } catch (err) {
@@ -1723,7 +1729,13 @@
             const walkEl = document.getElementById('walkHint');
             if (stop.dist && stop.walkable) {
                 walkEl.style.display = 'block';
-                walkEl.innerText = t('🚶 a {d} · unos {m} min andando', { d: fmtDist(stop.dist), m: Math.max(1, Math.ceil(stop.dist / 75)) });
+                walkEl.innerText = t('🚶 a {d} · unos {m} min andando', { d: fmtDist(stop.dist), m: Math.max(1, Math.ceil((stop.pie || stop.dist) / 75)) });
+                // y en cuanto contesta el servidor de rutas a pie, lo de verdad
+                if (userPos && stop.lat != null && !stop._pieReal) midePies([[[userPos.lat, userPos.lon], [stop.lat, stop.lon]]]).then(([m]) => {
+                    if (!m || currentStop !== stop) return;
+                    stop._pieReal = true; stop.pie = m.d;
+                    walkEl.innerText = t('🚶 a {d} · unos {m} min andando', { d: fmtDist(m.d), m: Math.max(1, Math.round(m.s / 60)) });
+                }).catch(() => {});
             } else {
                 walkEl.style.display = 'none';
             }
@@ -1821,7 +1833,7 @@
 
         // ¿Da tiempo a llegar andando? (≈1,25 m/s) — solo si la distancia es desde tu posición real
         function walkSeconds() {
-            return (currentStop && currentStop.walkable && currentStop.dist) ? currentStop.dist / 1.25 : null;
+            return (currentStop && currentStop.walkable && currentStop.dist) ? (currentStop.pie || currentStop.dist) / 1.25 : null;
         }
 
         // Los próximos minutos de un vistazo: cada salida en su sitio sobre una
@@ -3130,15 +3142,28 @@
 
         const esNocturna = it => it.legs.some(l => l.transitLeg && /^N\d/i.test(l.routeShortName || ''));
 
+        // El planner de TMB tarda de 3 a 5 s por pregunta. La misma pregunta en el
+        // mismo minuto (recalcular, la Alternativa, los relevos) no se repite.
+        const planMemo = new Map();   // url → { t, p }
+        function planPedido(url) {
+            const ahora = Date.now();
+            const hit = planMemo.get(url);
+            if (hit && ahora - hit.t < 60000) return hit.p.then(l => l.map(it => ({ ...it })));
+            if (planMemo.size > 80) for (const [k, v] of planMemo) if (ahora - v.t > 60000) planMemo.delete(k);
+            const p = fetch(url).then(r => r.ok ? r.json() : null)
+                .then(d => (d && d.plan && d.plan.itineraries) || [])
+                .catch(() => { planMemo.delete(url); return []; });
+            planMemo.set(url, { t: ahora, p });
+            return p.then(l => l.map(it => ({ ...it })));
+        }
+
         async function planAt(origin, dest, whenMs) {
             const d = new Date(whenMs), p2 = n => String(n).padStart(2, '0');
             const url = `https://api.tmb.cat/v1/planner/plan?${TMB_AUTH}` +
                 `&fromPlace=${origin.lat},${origin.lon}&toPlace=${dest.lat},${dest.lon}` +
                 `&mode=TRANSIT,WALK&numItineraries=3&locale=es&showIntermediateStops=true` +
                 `&date=${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${d.getFullYear()}&time=${p2(d.getHours())}:${p2(d.getMinutes())}`;
-            const res = await fetch(url);
-            const data = res.ok ? await res.json() : null;
-            return (((data || {}).plan || {}).itineraries || []).filter(x => x.legs.some(l => l.transitLeg));
+            return (await planPedido(url)).filter(x => x.legs.some(l => l.transitLeg));
         }
 
         // Bisección: la última salida, dentro de `horas`, que cumple el filtro
@@ -3668,6 +3693,11 @@
             activeRoute = { key: d.itinKey };
             cardElement.classList.add('open');
             itineraryDiv.style.display = 'block';
+            requestAnimationFrame(() => {
+                const cab = (document.querySelector('.topbar') || {}).offsetHeight || 0;
+                const y = cardElement.getBoundingClientRect().top + window.scrollY - cab - 10;
+                if (Math.abs(y - window.scrollY) > 40) window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+            });
             itineraryDiv.innerHTML = `<div style="text-align:center; color:var(--text-soft); padding:10px;"><div class="loader-small"></div> ${t('Trazando ruta...')}</div>`;
 
             try {
@@ -4122,11 +4152,14 @@
             return pts;
         }
 
-        // Autocompletado de destino (Photon/Komoot: gratis, sin key)
+        // Un solo buscador: un número es una parada (el que pone en el poste) y
+        // lo demás, un destino (Photon/Komoot: gratis, sin key)
+        const esNumParada = q => /^\d{1,6}$/.test(q);
         function onDestInput() {
             const q = document.getElementById('destInput').value.trim();
             document.getElementById('destClear').style.display = q ? 'block' : 'none';
             clearTimeout(destDebounce);
+            if (esNumParada(q) && !homePickMode) { sugerenciaParada(q); return; }
             if (q.length < 3) { document.getElementById('destSuggestions').style.display = 'none'; return; }
             destDebounce = setTimeout(async () => {
                 try {
@@ -4149,13 +4182,35 @@
                 } catch (e) { /* geocoder caído: silencio */ }
             }, 350);
         }
+        // Con un número, la sugerencia es esa parada, con su nombre si la conocemos
+        async function sugerenciaParada(code) {
+            let nombre = '';
+            try {
+                const hit = (await getTmbBusStops()).find(([c]) => String(c) === code);
+                if (hit) nombre = hit[1];
+                else {
+                    const a = (await ensureAmbStops()).find(x => parseInt(x[0], 10) === parseInt(code, 10));
+                    if (a) nombre = a[1];
+                }
+            } catch { /* sin listado: la sugerencia va sin nombre */ }
+            if (document.getElementById('destInput').value.trim() !== code) return;   // ya escribes otra cosa
+            window._destSugs = [{ parada: code, name: t('Parada {n}', { n: code }), detail: nombre || t('Ver sus llegadas') }];
+            renderSuggestions();
+        }
+        function onBuscaTecla(e) {
+            if (e.key === 'Escape') { clearDest(); return; }
+            if (e.key !== 'Enter') return;
+            const q = e.target.value.trim();
+            if (esNumParada(q) && !homePickMode) { e.preventDefault(); searchManual(q); return; }
+            if ((window._destSugs || []).length) { e.preventDefault(); pickSuggestion(0); }
+        }
         function renderSuggestions() {
             const box = document.getElementById('destSuggestions');
             const sugs = window._destSugs || [];
             box.style.display = sugs.length ? 'block' : 'none';
             box.innerHTML = sugs.map((s, i) => `
                 <div class="dest-suggestion" onclick="pickSuggestion(${i})">
-                    <div class="dest-sug-name">📍 ${esc(s.name)}</div>
+                    <div class="dest-sug-name">${s.parada ? '🚏' : '📍'} ${esc(s.name)}</div>
                     ${s.detail ? `<div class="dest-sug-detail">${esc(s.detail)}</div>` : ''}
                 </div>`).join('');
         }
@@ -4163,6 +4218,7 @@
             const s = (window._destSugs || [])[i];
             if (!s) return;
             document.getElementById('destSuggestions').style.display = 'none';
+            if (s.parada) { searchManual(s.parada); return; }
             document.getElementById('destInput').value = s.name;
             if (homePickMode) {                    // estábamos definiendo dónde vives
                 homePickMode = false;
@@ -4176,7 +4232,6 @@
         // Definir la casa: buscando una dirección o con la ubicación de ahora
         function pedirCasa() {
             homePickMode = true;
-            setSearchMode('dest');
             renderHomeRow();
             const inp = document.getElementById('destInput');
             inp.value = '';
@@ -4219,7 +4274,6 @@
         function irACasa() {
             const home = getHome();
             if (!home) { pedirCasa(); return; }
-            setSearchMode('dest');
             planTo(home.lat, home.lon, home.name || t('Mi casa'));
         }
         function prepararBotonCasa() {
@@ -4238,7 +4292,7 @@
         function clearDest() {
             const inp = document.getElementById('destInput');
             inp.value = '';
-            inp.placeholder = t('Busca una dirección o lugar…');
+            inp.placeholder = t('Parada o destino…');
             document.getElementById('destClear').style.display = 'none';
             document.getElementById('destSuggestions').style.display = 'none';
             if (homePickMode) { homePickMode = false; renderHomeRow(); }
@@ -4252,7 +4306,7 @@
                 navigator.geolocation.getCurrentPosition(pos => {
                     userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                     userMarkerLayer.clearLayers();
-                    L.marker([userPos.lat, userPos.lon], { icon: userIcon, zIndexOffset: 500 }).addTo(userMarkerLayer).bindPopup(`<b>${t('Estás aquí')}</b>`);
+                    L.marker([userPos.lat, userPos.lon], { icon: userIcon, zIndexOffset: 3000 }).addTo(userMarkerLayer).bindPopup(`<b>${t('Estás aquí')}</b>`);
                     resolve(userPos);
                 }, () => reject(new Error(t('Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.'))),
                 { timeout: 10000, maximumAge: 60000 });
@@ -4288,7 +4342,32 @@
                       .sort((a, b) => a.startTime - b.startTime).slice(0, 4);
         }
 
+        // Pinta la lista de rutas. La primera vez abre la mejor; cuando llega la
+        // definitiva, deja abierta la que tuvieras abierta si sigue en la lista.
+        const firmaRuta = it => it.legs.filter(l => l.transitLeg).map(l => (l.routeShortName || l.mode) + '@' + Math.round(l.startTime / 60000)).join('>');
+        function pintaRutas(its, parcial, primera) {
+            its.sort((a, b) => journeyScore(a) - journeyScore(b)); // la mejor primera: llegar antes, sin palizas a pie
+            const aPie = descartaCaminatasEvitables(its);
+            const iAbierta = [...document.querySelectorAll('#journeyResults .jcard-detail')].findIndex(el => el.style.display === 'block');
+            const firmaAbierta = !primera && iAbierta >= 0 && journeyItins[iAbierta] ? firmaRuta(journeyItins[iAbierta]) : null;
+            if (aPie.length) {
+                pendingWalkItins = [];
+                journeyItins = aPie.slice(0, 6);
+                renderJourneys(parcial);
+                let k = firmaAbierta ? journeyItins.findIndex(x => firmaRuta(x) === firmaAbierta) : -1;
+                if (k < 0 && (primera || firmaAbierta)) k = 0;
+                if (k >= 0) toggleJourneyDetail(k, document.querySelectorAll('#journeyResults .jcard')[k], true);
+            } else if (!parcial) {
+                // no hay ninguna sin caminata larga: preguntamos antes de enseñarlas
+                pendingWalkItins = its.slice(0, 6);
+                journeyItins = [];
+                renderWalkWarning();
+            }
+        }
+
+        let planSeq = 0;
         async function planTo(lat, lon, name) {
+            const miPlan = ++planSeq;
             hideError();
             stopCountdown();
             muestraParada(false);
@@ -4301,7 +4380,16 @@
                 // dar la vuelta a la manzana
                 const cerca = getDistance(origin.lat, origin.lon, lat, lon);
                 if (cerca < 150) throw new Error(t('Ya estás ahí: {d}.', { d: fmtDist(cerca) }));
-                let its = await gatherJourneys(origin, { lat, lon });
+                // en cuanto hay algo, se enseña; la lista se completa sola después
+                let primera = true;
+                let its = await gatherJourneys(origin, { lat, lon }, undefined, lista => {
+                    if (miPlan !== planSeq || activeTrip) return;
+                    setLoading(null);
+                    journeyManana = false;
+                    pintaRutas(lista, true, primera);
+                    primera = false;
+                });
+                if (miPlan !== planSeq || activeTrip) return;   // otra ruta pedida, o ya en marcha
                 journeyManana = false;
                 if (its.length === 0) {
                     setLoading(t('🌙 Hoy ya no queda servicio: busco el de mañana…'));
@@ -4309,21 +4397,10 @@
                     journeyManana = its.length > 0;
                 }
                 if (its.length === 0) throw new Error(t('No se ha encontrado ninguna ruta en transporte público hasta ahí.'));
-                its.sort((a, b) => journeyScore(a) - journeyScore(b)); // la mejor primera: llegar antes, sin palizas a pie
                 setLoading(null);
-                const aPie = descartaCaminatasEvitables(its);
-                if (aPie.length) {
-                    pendingWalkItins = [];
-                    journeyItins = aPie.slice(0, 6);
-                    renderJourneys();
-                    toggleJourneyDetail(0, document.querySelector('#journeyResults .jcard'), true);
-                } else {
-                    // no hay ninguna sin caminata larga: preguntamos antes de enseñarlas
-                    pendingWalkItins = its.slice(0, 6);
-                    journeyItins = [];
-                    renderWalkWarning();
-                }
+                pintaRutas(its, false, primera);
             } catch (err) {
+                if (miPlan !== planSeq) return;
                 setLoading(null);
                 document.getElementById('journeySection').style.display = 'none';
                 showError(esc(err.message));
@@ -4450,7 +4527,7 @@
         // trenes de FGC compuestos por nosotros y, si no sale nada con transporte,
         // Renfe media distancia + Hispano Igualadina. Con whenMs pide rutas que
         // salgan a partir de esa hora (para las alternativas en pleno trayecto).
-        async function gatherJourneys(origin, dest, whenMs) {
+        async function gatherJourneys(origin, dest, whenMs, alAvanzar) {
             const planReq = async (mode) => {
                 let url = `https://api.tmb.cat/v1/planner/plan?${TMB_AUTH}` +
                     `&fromPlace=${origin.lat},${origin.lon}&toPlace=${dest.lat},${dest.lon}` +
@@ -4459,10 +4536,7 @@
                     const d = new Date(whenMs), p2 = n => String(n).padStart(2, '0');
                     url += `&date=${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${d.getFullYear()}&time=${p2(d.getHours())}:${p2(d.getMinutes())}`;
                 }
-                const res = await fetch(url);
-                if (!res.ok) return [];
-                const data = await res.json();
-                return (data.plan && data.plan.itineraries) || [];
+                return planPedido(url);
             };
             // El planificador prima el metro al optimizar la llegada y descarta los
             // buses: pedimos también rutas solo-bus. Y el FGC directo casi nunca lo
@@ -4475,11 +4549,8 @@
             const corto = getDistance(origin.lat, origin.lon, dest.lat, dest.lon) <= 3500;
             const saltos = async () => {
                 const desde = whenMs || Date.now();
-                const [b, m] = await Promise.all([
-                    busHopTopology(origin, dest, desde).catch(() => []),
-                    metroHopSched(origin, dest, desde).catch(() => [])
-                ]);
-                return [...b, ...m].map(x => {
+                const directos = await saltosTmb(origin, dest, desde).catch(() => []);
+                return directos.map(x => {
                     // desde donde estás se sale justo a tiempo, como en las rutas
                     // del planner (si no, la tarjeta sumaba la espera en la parada)
                     const l0 = x.legs[0], t1 = x.legs.find(l => l.transitLeg);
@@ -4491,28 +4562,73 @@
                     return { ...x, _salto: true, _egreso: true };
                 });
             };
-            const [rAll, rBus, rFgc, rSalto] = await Promise.allSettled([
+            const fuentes = [
                 planReq('TRANSIT,WALK'), planReq('BUS,WALK'), fgcJourneys(origin, dest, whenMs),
                 corto ? saltos() : Promise.resolve([])
-            ]);
-            let its = [
-                ...(rAll.status === 'fulfilled' ? rAll.value : []),
-                ...(rBus.status === 'fulfilled' ? rBus.value : []),
-                ...(rFgc.status === 'fulfilled' ? rFgc.value : []),
-                ...(rSalto.status === 'fulfilled' ? rSalto.value : [])
-            ];
-            // un salto propio sobra si el planner ya sube a esa línea en esa parada
-            // (el suyo trae el tiempo real)
+            ].map(p => Promise.resolve(p).catch(() => []));
+            // un salto propio sobra si el planner ya propone ese mismo viaje directo
+            // (misma línea desde la misma parada, sin más transbordos: el suyo trae
+            // el tiempo real). Si el suyo sigue con otro bus, el directo se queda:
+            // a Park Güell, el 24 solo llegaba antes que el 24 + V19 del planner.
             const primerTramo = it => it.legs.find(l => l.transitLeg);
-            its = its.filter(it => {
+            const tramos = it => it.legs.filter(l => l.transitLeg).length;
+            const sinSaltosRepetidos = lista => lista.filter(it => {
                 if (!it._salto) return true;
                 const l = primerTramo(it), p = l && puntoSubida(l);
-                return !its.some(o => {
-                    if (o._salto) return false;
+                return !lista.some(o => {
+                    if (o._salto || tramos(o) !== 1) return false;
                     const m = primerTramo(o), q = m && puntoSubida(m);
                     return m && m.routeShortName === l.routeShortName && p && q && getDistance(p[0], p[1], q[0], q[1]) < 150;
                 });
             });
+            // sin duplicados (misma secuencia de líneas y paradas de subida)
+            const sinDuplicados = lista => {
+                const seen = new Set();
+                return lista.filter(it => {
+                    const sig = it.legs.filter(l => l.transitLeg).map(l => (l.routeShortName || '') + '@' + (l.from.stopId || '')).join('>');
+                    if (seen.has(sig)) return false;
+                    seen.add(sig);
+                    return true;
+                });
+            };
+            const remata = async lista => {
+                // pidiendo una salida futura, fuera lo que salga antes de esa hora
+                // (las fuentes propias distintas de FGC solo saben planificar "ahora")
+                if (whenMs) lista = lista.filter(it => {
+                    const t = it.legs.find(l => l.transitLeg);
+                    return !t || t.startTime >= whenMs;
+                });
+                lista = lista.filter(it => itinCoherente(it, whenMs || Date.now()));
+                // las rutas del planner también acaban a veces con 750 m a pie
+                lista = await acercaFinales(dest, lista);
+                // lo que se anda, medido por la calle; con las horas rehechas, lo
+                // que ya no da tiempo cae
+                lista = (await caminatasReales(lista)).filter(it => itinCoherente(it, whenMs || Date.now()));
+                return unaPorVehiculo(lista);
+            };
+
+            // El planner de TMB tarda de 3 a 5 s y lo demás va antes. Quien pida
+            // avances (planTo) recibe una primera lista en cuanto hay algo con
+            // transporte —al contestar el planner, o al segundo y medio con lo que
+            // ya haya— y la definitiva cuando ha contestado todo.
+            let terminado = false;
+            if (alAvanzar) {
+                const hechos = [];
+                let dado = false;
+                const avanza = async () => {
+                    if (dado || terminado) return;
+                    const ya = hechos.flat().filter(it => it && it.legs && it.legs.some(l => l.transitLeg));
+                    if (!ya.length) return;
+                    dado = true;
+                    const lista = await remata(sinDuplicados(sinSaltosRepetidos(ya))).catch(() => []);
+                    if (!terminado && lista.length) alAvanzar(lista);
+                };
+                fuentes.forEach((p, i) => p.then(v => { hechos[i] = v || []; if (i === 0) avanza(); }));
+                setTimeout(avanza, 1500);
+            }
+            try {
+            const [vAll, vBus, vFgc, vSalto] = await Promise.all(fuentes);
+            let its = sinSaltosRepetidos([...vAll, ...vBus, ...vFgc, ...vSalto]);
             // fuera caminatas puras si hay alternativas con transporte
             const withTransit = its.filter(it => it.legs.some(l => l.transitLeg));
             if (withTransit.length) its = withTransit;
@@ -4522,14 +4638,7 @@
                 const direct = await shortHopBusJourneys(origin, dest);
                 its = [...its.slice(0, 1), ...direct];
             }
-            // sin duplicados (misma secuencia de líneas y paradas de subida)
-            const seen = new Set();
-            its = its.filter(it => {
-                const sig = it.legs.filter(l => l.transitLeg).map(l => (l.routeShortName || '') + '@' + (l.from.stopId || '')).join('>');
-                if (seen.has(sig)) return false;
-                seen.add(sig);
-                return true;
-            });
+            its = sinDuplicados(its);
             // El planner de TMB solo cubre el área metropolitana: fuera de ella
             // montamos rutas con los horarios de Renfe (media distancia) y de la
             // Hispano Igualadina (bus interurbano), y fusionamos lo que salga
@@ -4556,16 +4665,90 @@
                 const relevos = await relayJourneys(origin, dest).catch(() => []);
                 its = [...its, ...relevos];
             }
-            // pidiendo una salida futura, fuera lo que salga antes de esa hora
-            // (las fuentes propias distintas de FGC solo saben planificar "ahora")
-            if (whenMs) its = its.filter(it => {
-                const t = it.legs.find(l => l.transitLeg);
-                return !t || t.startTime >= whenMs;
+            return await remata(its);
+            } finally { terminado = true; }
+        }
+
+        // Lo que se anda, por la calle de verdad: el servidor de rutas a pie de
+        // OpenStreetMap (Valhalla de FOSSGIS, con CORS) mide todas las caminatas
+        // de las rutas compuestas en una sola petición (matriz de orígenes y
+        // destinos). El OSRM de FOSSGIS se descartó: a la segunda petición
+        // seguida hace esperar diez segundos. El modelo de cuadrícula (metrosAPie)
+        // solo sirve para elegir candidatas, y de reserva si no contesta: entonces
+        // la caminata sale marcada como aproximada (≈).
+        const VALHALLA = 'https://valhalla1.openstreetmap.de/sources_to_targets?json=';
+        const pieMemo = new Map();   // "lat,lon|lat,lon" → { d: metros, s: segundos }
+        const clavePunto = q => q[0].toFixed(5) + ',' + q[1].toFixed(5);
+        // Una matriz de Valhalla para unas cuantas parejas cercanas entre sí
+        async function pideMatriz(faltan, clave) {
+            const unicos = lista => [...new Map(lista.map(q => [clavePunto(q), q])).values()];
+            const fuentes = unicos(faltan.map(([a]) => a)), destinos = unicos(faltan.map(([, b]) => b));
+            if (fuentes.length > 50 || destinos.length > 50) return;
+            const q = { costing: 'pedestrian',
+                        sources: fuentes.map(x => ({ lat: +x[0].toFixed(6), lon: +x[1].toFixed(6) })),
+                        targets: destinos.map(x => ({ lat: +x[0].toFixed(6), lon: +x[1].toFixed(6) })) };
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 2500);
+            try {
+                const r = await fetch(VALHALLA + encodeURIComponent(JSON.stringify(q)), { signal: ctrl.signal });
+                const d = r.ok ? await r.json() : null;
+                const matriz = d && d.sources_to_targets;
+                if (!matriz) return;
+                const iF = new Map(fuentes.map((x, i) => [clavePunto(x), i]));
+                const iD = new Map(destinos.map((x, j) => [clavePunto(x), j]));
+                faltan.forEach(par => {
+                    const c = (matriz[iF.get(clavePunto(par[0]))] || [])[iD.get(clavePunto(par[1]))];
+                    if (c && c.distance != null && c.time != null) pieMemo.set(clave(par), { d: c.distance * 1000, s: c.time });
+                });
+            } catch { /* sin servidor: se queda la estimación */ } finally { clearTimeout(timer); }
+        }
+
+        async function midePies(pares) {
+            const clave = ([a, b]) => clavePunto(a) + '|' + clavePunto(b);
+            const faltan = pares.filter(par => !pieMemo.has(clave(par)));
+            // Valhalla no hace matrices a pie entre puntos muy lejanos (una ruta
+            // de Altafulla a Barcelona mezclaba los dos sitios y devolvía 400):
+            // una petición por zona, todas a la vez
+            const zonas = [];
+            faltan.forEach(par => {
+                const z = zonas.find(z => getDistance(z.ref[0], z.ref[1], par[0][0], par[0][1]) < 15000);
+                if (z) z.pares.push(par); else zonas.push({ ref: par[0], pares: [par] });
             });
-            its = its.filter(it => itinCoherente(it, whenMs || Date.now()));
-            // las rutas del planner también acaban a veces con 750 m a pie
-            its = await acercaFinales(dest, its);
-            return unaPorVehiculo(its);
+            await Promise.all(zonas.map(z => pideMatriz(z.pares, clave)));
+            return pares.map(par => pieMemo.get(clave(par)) || null);
+        }
+
+        async function caminatasReales(its) {
+            const aMedir = [];
+            its.forEach(it => it.legs.forEach(l => {
+                if (!l.transitLeg && !l._real && !l.legGeometry && l._pts && l._pts.length >= 2 && !aMedir.includes(l)) aMedir.push(l);
+            }));
+            if (!aMedir.length) return its;
+            const medidas = await midePies(aMedir.map(l => [l._pts[0], l._pts[l._pts.length - 1]]));
+            const nuevas = new Map();
+            aMedir.forEach((l, k) => nuevas.set(l, medidas[k]
+                ? { ...l, distance: medidas[k].d, duration: medidas[k].s, _real: true }
+                : { ...l, _aprox: true }));
+            return its.map(it => {
+                if (!it.legs.some(l => nuevas.has(l))) return it;
+                const legs = it.legs.map(l => nuevas.get(l) || l);
+                const t1 = legs.findIndex(l => l.transitLeg);
+                if (t1 < 0) return { ...it, legs };
+                // la caminata del principio acaba cuando sale el primer vehículo;
+                // las de después empiezan cuando llegas (si ya no da tiempo al
+                // siguiente, la ruta cae luego por incoherente)
+                for (let i = t1 - 1; i >= 0; i--) {
+                    const fin = legs[i + 1].startTime;
+                    legs[i] = { ...legs[i], endTime: fin, startTime: fin - (legs[i].duration || 0) * 1000 };
+                }
+                for (let i = t1 + 1; i < legs.length; i++) {
+                    if (legs[i].transitLeg) continue;
+                    const ini = legs[i - 1].endTime;
+                    legs[i] = { ...legs[i], startTime: ini, endTime: ini + (legs[i].duration || 0) * 1000 };
+                }
+                const a = legs[0].startTime, b = legs[legs.length - 1].endTime;
+                return { ...it, legs, startTime: a, endTime: b, duration: (b - a) / 1000 };
+            });
         }
 
         // El planner de TMB acaba rutas con 750 m a pie habiendo un bus que te
@@ -4601,7 +4784,8 @@
                 .map(([code, sname, slat, slon]) => ({ code, name: sname, lat: slat, lon: slon, dist: getDistance(point.lat, point.lon, slat, slon) }))
                 .filter(s => s.dist <= maxDist)
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, n);
+                .slice(0, n)
+                .map(s => ({ ...s, pie: metrosAPie(point.lat, point.lon, s.lat, s.lon) }));
         }
 
         function renfeRailLeg(line, fromSt, toSt, dep, arr) {
@@ -4634,8 +4818,8 @@
                     if (oSt.code === dSt.code) continue;
                     let data;
                     try { data = await fetchRenfeOD(oSt.code, dSt.code, whenMs); } catch { continue; }
-                    const walkO = { dist: oSt.dist, secs: oSt.dist / 1.25 };
-                    const walkD = { dist: dSt.dist, secs: dSt.dist / 1.25 };
+                    const walkO = { dist: oSt.pie, secs: oSt.pie / 1.25 };
+                    const walkD = { dist: dSt.pie, secs: dSt.pie / 1.25 };
 
                     (((data && data.horario) || []).slice(0, 5)).forEach(t => {
                         const dep = renfeTimeToEpoch(t.horaSalidaReal || t.horaSalida);
@@ -4713,7 +4897,7 @@
                         const lineCode = b.itin && b.itin.routeId != null
                             ? Math.floor(parseInt(b.itin.routeId, 10) / 10) : await getBusLineCode(b.line);
                         if (!lineCode || Number.isNaN(lineCode)) continue;
-                        const oWalkMs = (o.dist / 1.25) * 1000;
+                        const oWalkMs = (o.pie / 1.25) * 1000;
                         if (b.arriveAt - Date.now() < oWalkMs - 60000) continue; // no llegas a este: prueba el siguiente pase
                         let data;
                         try { data = await busLineStops(lineCode); } catch { continue; }
@@ -4745,7 +4929,7 @@
                         const dep = b.arriveAt, arr2 = dep + rideMs;
                         const legs = [];
                         if (o.dist > 80) legs.push({
-                            transitLeg: false, mode: 'WALK', duration: o.dist / 1.25, distance: o.dist,
+                            transitLeg: false, mode: 'WALK', duration: o.pie / 1.25, distance: o.pie,
                             from: { name: 'Origen' }, to: { name: o.name },
                             startTime: dep - oWalkMs, endTime: dep,
                             _pts: [[origin.lat, origin.lon], [o.lat, o.lon]]
@@ -4760,9 +4944,9 @@
                             _pts: seq
                         });
                         if (dStop.dist > 80) legs.push({
-                            transitLeg: false, mode: 'WALK', duration: dStop.dist / 1.25, distance: dStop.dist,
+                            transitLeg: false, mode: 'WALK', duration: dStop.pie / 1.25, distance: dStop.pie,
                             from: { name: dStop.name }, to: { name: 'Destination' },
-                            startTime: arr2, endTime: arr2 + (dStop.dist / 1.25) * 1000,
+                            startTime: arr2, endTime: arr2 + (dStop.pie / 1.25) * 1000,
                             _pts: [[dStop.lat, dStop.lon], [dest.lat, dest.lon]]
                         });
                         its.push({
@@ -4817,7 +5001,7 @@
             let stations;
             try { stations = await getMetroStations(); } catch { return null; }
             const near = pt => stations
-                .map(s => ({ ...s, dist: getDistance(pt.lat, pt.lon, s.lat, s.lon) }))
+                .map(s => ({ ...s, dist: getDistance(pt.lat, pt.lon, s.lat, s.lon), pie: metrosAPie(pt.lat, pt.lon, s.lat, s.lon) }))
                 .filter(s => s.dist <= 700)
                 .sort((a, b) => a.dist - b.dist).slice(0, 3);
             const lineNames = s => String(s.lines || '').split(' · ').filter(x => /^L\d+$/.test(x));
@@ -4834,7 +5018,7 @@
                             const iD = topo.findIndex(s => s.id == dSt.id || s.name === dSt.name);
                             if (iO < 0 || iD < 0 || iO === iD) continue;
                             const term = topo[iD > iO ? topo.length - 1 : 0].name;
-                            const walkO = oSt.dist / 1.25, walkD = dSt.dist / 1.25;
+                            const walkO = oSt.pie / 1.25, walkD = dSt.pie / 1.25;
                             const atPlatform = Date.now() + walkO * 1000;
                             // próximo tren hacia ese lado; si no hay tiempo real, espera media
                             let dep = null, est = true;
@@ -4853,7 +5037,7 @@
                             const arr = dep + (Math.abs(iD - iO) * 90 + 45) * 1000;
                             const legs = [];
                             if (oSt.dist > 80) legs.push({
-                                transitLeg: false, mode: 'WALK', duration: walkO, distance: oSt.dist,
+                                transitLeg: false, mode: 'WALK', duration: walkO, distance: oSt.pie,
                                 from: { name: 'Origen' }, to: { name: oSt.name },
                                 startTime: dep - walkO * 1000, endTime: dep,
                                 _pts: [[origin.lat, origin.lon], [oSt.lat, oSt.lon]]
@@ -4870,7 +5054,7 @@
                                 _pts: span.map(s => [s.lat, s.lon])
                             });
                             if (dSt.dist > 80) legs.push({
-                                transitLeg: false, mode: 'WALK', duration: walkD, distance: dSt.dist,
+                                transitLeg: false, mode: 'WALK', duration: walkD, distance: dSt.pie,
                                 from: { name: dSt.name }, to: { name: 'Destination' },
                                 startTime: arr, endTime: arr + walkD * 1000,
                                 _pts: [[dSt.lat, dSt.lon], [dest.lat, dest.lon]]
@@ -4895,14 +5079,13 @@
             if (!accessMemo.has(k)) {
                 accessMemo.set(k, (async () => {
                     const jobs = await Promise.allSettled([
-                        (async () => {
+                        // el planner, con tope: si tarda, bastan el bus y el metro directos
+                        Promise.race([(async () => {
                             const url = `https://api.tmb.cat/v1/planner/plan?${TMB_AUTH}` +
                                 `&fromPlace=${origin.lat},${origin.lon}&toPlace=${st.lat},${st.lon}` +
                                 `&mode=TRANSIT,WALK&numItineraries=2&locale=es&showIntermediateStops=true`;
-                            const res = await fetch(url);
-                            const data = res.ok ? await res.json() : null;
-                            return (((data || {}).plan || {}).itineraries || []).filter(x => x.legs.some(l => l.transitLeg));
-                        })(),
+                            return (await planPedido(url)).filter(x => x.legs.some(l => l.transitLeg));
+                        })(), new Promise(r => setTimeout(() => r([]), 2500))]),
                         shortHopBusJourneys(origin, { lat: st.lat, lon: st.lon }),
                         metroShortHop(origin, { lat: st.lat, lon: st.lon })
                     ]);
@@ -4980,16 +5163,38 @@
         }
 
         // El planner es flojo en trayectos cortos: de Passeig de Gràcia a Diagonal
-        // 335 propone 750 m a pie e ignora los buses. Aquí se componen esos
-        // saltos: qué línea pasa por una parada cerca de la estación y después por
-        // otra cerca del destino (el horario oficial de TMB dice qué líneas paran
-        // en cada parada), en qué sentido (la topología de la línea) y a qué hora
-        // pasa de verdad (ese mismo horario, a la hora a la que llegas a la
-        // parada). La parada buena no siempre es la de la puerta: al salir de
-        // Passeig de Gràcia, el 47 y el 39 paran en Roger de Llúria, a 300 m, y
-        // el H10 en València; mirando solo las seis más cercanas no salía ninguno.
-        const ESPERA_BUS_MIN = 7;      // sin horario: media espera de una línea urbana
-        const MIN_POR_PARADA = 1.5;    // y ritmo de bus en ciudad, parada a parada
+        // 335 propone 750 m a pie e ignora los buses y el metro. Aquí se componen
+        // esos saltos de una sola línea de TMB, sin preguntar a nadie: los
+        // recorridos de cada línea y sentido, con los minutos entre paradas, salen
+        // del GTFS de TMB (tmb-sched/lines.json), y la hora de paso, del horario de
+        // cada parada. La parada buena no siempre es la de la puerta: al salir de
+        // Passeig de Gràcia, el 47 y el 39 paran en Roger de Llúria, a 300 m.
+        // Antes el tiempo de viaje se sacaba emparejando salidas y llegadas, y en
+        // viajes largos casaba con el bus anterior: el 24 a Park Güell "tardaba"
+        // 19 min cuando son 40.
+        // Si el paso es inminente manda el tiempo real (iBus / iMetro): el horario
+        // dice cuándo debería pasar; ellos, cuándo pasa. Solo ven la próxima media
+        // hora, así que para más adelante queda el horario oficial.
+        async function pasoEnVivo(parada, linea, head, desdeMs) {
+            if (desdeMs - Date.now() > 25 * 60000) return null;
+            const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
+            const ahora = Date.now();
+            let pasos = [];
+            if (parada.code.startsWith('m')) {
+                const r = await fetch(`https://api.tmb.cat/v1/imetro/estacions/${parada.code.slice(1)}?${TMB_AUTH}`);
+                const vias = r.ok ? await r.json() : [];
+                // en el metro los dos sentidos comparten estación: se elige por destino
+                (Array.isArray(vias) ? vias : []).forEach(v => (v.propers_trens || []).forEach(tr => {
+                    if (tr.nom_linia === linea && (!head || norm(tr.desti_trajecte) === norm(head)))
+                        pasos.push(ahora + tr.temps_restant * 1000);
+                }));
+            } else {
+                pasos = (await liveBusArrivals({ code: parada.code }))
+                    .filter(b => String(b.line) === linea).map(b => b.arriveAt);
+            }
+            const validos = pasos.filter(x => x >= desdeMs - 30000);
+            return validos.length ? Math.min(...validos) : null;
+        }
 
         // El primer paso de una línea por una parada desde una hora, según el
         // horario de TMB. Distingue "no tengo su horario" de "ya no pasa".
@@ -5022,181 +5227,87 @@
             return mejor || { t: null };
         }
 
-        async function busHopTopology(from, to, whenMs) {
+        async function saltosTmb(from, to, whenMs) {
             const recta = getDistance(from.lat, from.lon, to.lat, to.lon);
             if (recta > 3500 || recta < 350) return [];
             try {
-                const todas = await ensureTmbStops();
+                const [todas, lineas] = await Promise.all([ensureTmbStops(), ensureTmbLines()]);
+                if (!lineas || !lineas.r) return [];
                 const cerca = (pt, max) => todas
-                    .filter(x => !String(x[0]).startsWith('m') && Math.abs(x[2] - pt.lat) < .006 && Math.abs(x[3] - pt.lon) < .008)
-                    .map(x => ({ code: String(x[0]), name: x[1], lat: x[2], lon: x[3], shard: x[4], lineas: x[5] || [],
-                                 dist: getDistance(pt.lat, pt.lon, x[2], x[3]) }))
-                    .filter(s => s.dist <= max)
-                    .sort((a, b) => a.dist - b.dist);
-                const salidas = cerca(from, 450), llegadas = cerca(to, 400);
-                if (!salidas.length || !llegadas.length) return [];
-                const dCodes = new Map(llegadas.map(s => [s.code, s]));
-                // solo las líneas que paran cerca de los dos puntos
-                const enDestino = new Set(llegadas.flatMap(s => s.lineas));
-                const lineas = [...new Set(salidas.flatMap(s => s.lineas))].filter(l => enDestino.has(l)).slice(0, 14);
-
-                const opciones = await Promise.all(lineas.map(async linea => {
-                    let data;
-                    try { data = await busLineStops(await getBusLineCode(linea)); } catch { return null; }
-                    // de las parejas subida/bajada en el sentido de la marcha, la
-                    // que menos te hace andar: un minuto a pie pesa como dos en el bus
+                    .filter(x => Math.abs(x[2] - pt.lat) < .006 && Math.abs(x[3] - pt.lon) < .008)
+                    .map(x => ({ code: String(x[0]), name: x[1], lat: x[2], lon: x[3], shard: x[4],
+                                 dist: getDistance(pt.lat, pt.lon, x[2], x[3]), pie: metrosAPie(pt.lat, pt.lon, x[2], x[3]) }))
+                    .filter(s => s.dist <= max);
+                const oMap = new Map(cerca(from, 450).map(s => [s.code, s]));
+                const dMap = new Map(cerca(to, 400).map(s => [s.code, s]));
+                if (!oMap.size || !dMap.size) return [];
+                // de cada línea, la pareja subida → bajada (en el sentido de la
+                // marcha) que menos cuesta: un minuto a pie pesa como dos sentado
+                const porLinea = new Map();
+                for (const [linea, head, pat, tiempos] of lineas.r) {
                     let mejor = null;
-                    for (const o of salidas) {
-                        if (!o.lineas.includes(linea)) continue;
-                        for (const c of data.features) {
-                            if (String(c.properties.CODI_PARADA) !== o.code) continue;
-                            for (const f of data.features) {
-                                if (f.properties.SENTIT !== c.properties.SENTIT || f.properties.ORDRE <= c.properties.ORDRE) continue;
-                                const dS = dCodes.get(String(f.properties.CODI_PARADA));
-                                if (!dS) continue;
-                                const paradas = f.properties.ORDRE - c.properties.ORDRE;
-                                const coste = (o.dist + dS.dist) / 75 * 2 + paradas * MIN_POR_PARADA;
-                                if (!mejor || coste < mejor.coste) mejor = { o, c, f, dS, paradas, coste };
-                            }
+                    for (let i = 0; i < pat.length - 1; i++) {
+                        const o = oMap.get(pat[i]);
+                        if (!o) continue;
+                        let min = 0;
+                        for (let j = i + 1; j < pat.length; j++) {
+                            min += tiempos[j - 1] || 1;
+                            const dS = dMap.get(pat[j]);
+                            if (!dS) continue;
+                            const coste = (o.pie + dS.pie) / 75 * 2 + min;
+                            if (!mejor || coste < mejor.coste) mejor = { o, dS, i, j, min, coste, head, pat };
                         }
                     }
-                    if (!mejor) return null;
-                    const { o, c, f, dS, paradas } = mejor;
-                    const seq = data.features
-                        .filter(x => x.properties.SENTIT === c.properties.SENTIT
-                                  && x.properties.ORDRE >= c.properties.ORDRE && x.properties.ORDRE <= f.properties.ORDRE)
-                        .sort((a, b) => a.properties.ORDRE - b.properties.ORDRE)
-                        .map(x => ({ name: x.properties.NOM_PARADA, lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }));
-                    if (seq.length < 2) return null;
-
-                    const andarO = (o.dist / 1.25) * 1000, andarD = (dS.dist / 1.25) * 1000;
-                    const enParada = whenMs + andarO;
-                    // cuándo pasa y cuándo llega el mismo bus a la otra parada
-                    const paso = await tmbPasoDesde(o, linea, enParada).catch(() => ({ sinHorario: true }));
-                    if (!paso.sinHorario && (paso.t == null || paso.t - enParada > 40 * 60000)) return null;   // no pasa a tiempo
-                    let subir = paso.t, bajar = null;
-                    if (subir != null) {
-                        const llega = await tmbPasoDesde(dS, linea, subir + paradas * 0.8 * 60000).catch(() => ({}));
-                        if (llega.t != null && llega.t - subir <= (paradas * 4 + 5) * 60000) bajar = llega.t;
-                    }
-                    const est = subir == null || bajar == null;
-                    if (subir == null) subir = enParada + ESPERA_BUS_MIN * 60000;
-                    if (bajar == null) bajar = subir + Math.max(2, paradas * MIN_POR_PARADA) * 60000;
-                    const terminal = data.features.filter(x => x.properties.SENTIT === c.properties.SENTIT)
-                        .sort((a, b) => b.properties.ORDRE - a.properties.ORDRE)[0];
-
-                    const legs = [];
-                    if (o.dist > 80) legs.push({
-                        transitLeg: false, mode: 'WALK', duration: andarO / 1000, distance: o.dist,
-                        from: { name: from.name || 'Origen' }, to: { name: o.name },
-                        startTime: whenMs, endTime: enParada,
-                        _pts: [[from.lat, from.lon], [o.lat, o.lon]]
-                    });
-                    legs.push({
-                        transitLeg: true, mode: 'BUS', routeShortName: linea,
-                        routeColor: paso.color || 'DA291C', routeTextColor: paso.texto || 'FFFFFF',
-                        headsign: paso.head || (terminal ? terminal.properties.NOM_PARADA : seq[seq.length - 1].name), agencyName: 'TMB',
-                        from: { name: o.name, lat: o.lat, lon: o.lon, stopCode: o.code },
-                        to: { name: dS.name, lat: dS.lat, lon: dS.lon },
-                        startTime: subir, endTime: bajar, duration: (bajar - subir) / 1000,
-                        intermediateStops: null, _stops: seq, _est: est,
-                        _pts: seq.map(x => [x.lat, x.lon])
-                    });
-                    if (dS.dist > 80) legs.push({
-                        transitLeg: false, mode: 'WALK', duration: andarD / 1000, distance: dS.dist,
-                        from: { name: dS.name }, to: { name: 'Destination' },
-                        startTime: bajar, endTime: bajar + andarD,
-                        _pts: [[dS.lat, dS.lon], [to.lat, to.lon]]
-                    });
-                    return {
-                        startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
-                        duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000, legs, _est: est
-                    };
-                }));
-                return opciones.filter(Boolean).sort((a, b) => a.endTime - b.endTime).slice(0, 3);
-            } catch { return []; }
-        }
-
-        // Lo mismo en metro: una estación a menos de 450 m de donde bajas y otra a
-        // menos de 400 m del destino en la misma línea (de Passeig de Gràcia a
-        // Verdaguer en L4, a 100 m de Diagonal 335), con las horas del horario de
-        // TMB en el sentido que toca. En festivo es lo que salva: el bus pasa
-        // cada veinte minutos y el metro cada cinco.
-        async function metroHopSched(from, to, whenMs) {
-            const recta = getDistance(from.lat, from.lon, to.lat, to.lon);
-            if (recta > 3500 || recta < 350) return [];
-            try {
-                const todas = await ensureTmbStops();
-                const cerca = (pt, max) => todas
-                    .filter(x => String(x[0]).startsWith('m') && Math.abs(x[2] - pt.lat) < .006 && Math.abs(x[3] - pt.lon) < .008)
-                    .map(x => ({ code: String(x[0]), id: String(x[0]).slice(1), name: x[1], lat: x[2], lon: x[3], shard: x[4],
-                                 lineas: x[5] || [], dist: getDistance(pt.lat, pt.lon, x[2], x[3]) }))
-                    .filter(s => s.dist <= max);
-                const oSts = cerca(from, 450), dSts = cerca(to, 400);
-                if (!oSts.length || !dSts.length) return [];
-                const codigos = await getMetroLineCodes();
-                const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
-                const porLinea = new Map();
-                for (const o of oSts) for (const dS of dSts) {
-                    if (o.code === dS.code) continue;
-                    for (const ln of o.lineas.filter(l => dS.lineas.includes(l))) {
-                        const coste = (o.dist + dS.dist) / 75 * 2;
-                        const ya = porLinea.get(ln);
-                        if (!ya || coste < ya.coste) porLinea.set(ln, { o, dS, coste });
-                    }
+                    if (!mejor) continue;
+                    const ya = porLinea.get(linea);
+                    if (!ya || mejor.coste < ya.coste) porLinea.set(linea, mejor);
                 }
-                const opciones = await Promise.all([...porLinea].map(async ([ln, { o, dS }]) => {
-                    const code = codigos[ln];
-                    if (!code) return null;
-                    let topo;
-                    try { topo = await metroLineStations(code); } catch { return null; }
-                    const iO = topo.findIndex(s => String(s.id) === o.id || norm(s.name) === norm(o.name));
-                    const iD = topo.findIndex(s => String(s.id) === dS.id || norm(s.name) === norm(dS.name));
-                    if (iO < 0 || iD < 0 || iO === iD) return null;
-                    const term = topo[iD > iO ? topo.length - 1 : 0].name;
-                    const paradas = Math.abs(iD - iO);
-                    const andarO = (o.dist / 1.25) * 1000, andarD = (dS.dist / 1.25) * 1000;
-                    const enAnden = whenMs + andarO;
-                    const paso = await tmbPasoDesde(o, ln, enAnden, term).catch(() => ({ sinHorario: true }));
-                    if (!paso.sinHorario && (paso.t == null || paso.t - enAnden > 30 * 60000)) return null;
-                    let subir = paso.t, bajar = null;
-                    if (subir != null) {
-                        const llega = await tmbPasoDesde(dS, ln, subir + paradas * 0.9 * 60000, term).catch(() => ({}));
-                        if (llega.t != null && llega.t - subir <= (paradas * 3 + 4) * 60000) bajar = llega.t;
-                    }
-                    const est = subir == null || bajar == null;
-                    if (subir == null) subir = enAnden + 4 * 60000;                  // espera típica del metro
-                    if (bajar == null) bajar = subir + (paradas * 90 + 45) * 1000;   // ~90 s por parada
-                    const span = iD > iO ? topo.slice(iO, iD + 1) : topo.slice(iD, iO + 1).reverse();
+                const porCodigo = new Map(todas.map(x => [String(x[0]), x]));
+                const colores = lineas.c || {};
+                const opciones = await Promise.all([...porLinea].map(async ([linea, m]) => {
+                    const esMetro = m.o.code.startsWith('m');
+                    const andarO = (m.o.pie / 1.25) * 1000, andarD = (m.dS.pie / 1.25) * 1000;
+                    const enParada = whenMs + andarO;
+                    const [paso, vivo] = await Promise.all([
+                        tmbPasoDesde(m.o, linea, enParada, m.head).catch(() => ({ sinHorario: true })),
+                        pasoEnVivo(m.o, linea, m.head, enParada).catch(() => null)
+                    ]);
+                    const tope = (esMetro ? 30 : 40) * 60000;
+                    const subir = vivo != null ? vivo : (paso.t != null && paso.t - enParada <= tope ? paso.t : null);
+                    // ni tiempo real ni horario que diga cuándo pasa: no se inventa una espera
+                    if (subir == null) return null;
+                    const bajar = subir + Math.max(1, m.min) * 60000;   // minutos del recorrido según el GTFS
+                    const paradas = m.pat.slice(m.i, m.j + 1).map(c => porCodigo.get(c)).filter(Boolean)
+                        .map(x => ({ name: x[1], lat: x[2], lon: x[3] }));
+                    const [color, texto] = colores[linea] || [paso.color || (esMetro ? metroColor(linea).replace('#', '') : 'DA291C'), 'FFFFFF'];
                     const legs = [];
-                    if (o.dist > 80) legs.push({
-                        transitLeg: false, mode: 'WALK', duration: andarO / 1000, distance: o.dist,
-                        from: { name: from.name || 'Origen' }, to: { name: o.name },
-                        startTime: whenMs, endTime: enAnden,
-                        _pts: [[from.lat, from.lon], [o.lat, o.lon]]
+                    if (m.o.pie > 80) legs.push({
+                        transitLeg: false, mode: 'WALK', duration: andarO / 1000, distance: m.o.pie,
+                        from: { name: from.name || 'Origen' }, to: { name: m.o.name },
+                        startTime: whenMs, endTime: enParada,
+                        _pts: [[from.lat, from.lon], [m.o.lat, m.o.lon]]
                     });
                     legs.push({
-                        transitLeg: true, mode: 'SUBWAY', routeShortName: ln,
-                        routeColor: (paso.color || metroColor(ln).replace('#', '')), headsign: term, agencyName: 'TMB', _est: est,
-                        from: { name: o.name, lat: o.lat, lon: o.lon, stopId: 'metro:' + o.id },
-                        to: { name: dS.name, lat: dS.lat, lon: dS.lon },
+                        transitLeg: true, mode: esMetro ? 'SUBWAY' : 'BUS', routeShortName: linea,
+                        routeColor: color, routeTextColor: texto, headsign: m.head, agencyName: 'TMB',
+                        from: { name: m.o.name, lat: m.o.lat, lon: m.o.lon, ...(esMetro ? { stopId: 'metro:' + m.o.code.slice(1) } : { stopCode: m.o.code }) },
+                        to: { name: m.dS.name, lat: m.dS.lat, lon: m.dS.lon },
                         startTime: subir, endTime: bajar, duration: (bajar - subir) / 1000,
-                        intermediateStops: null,
-                        _stops: span.map(s => ({ name: s.name, lat: s.lat, lon: s.lon })),
-                        _pts: span.map(s => [s.lat, s.lon])
+                        intermediateStops: null, _stops: paradas, _vivo: vivo != null,
+                        _pts: paradas.map(x => [x.lat, x.lon])
                     });
-                    if (dS.dist > 80) legs.push({
-                        transitLeg: false, mode: 'WALK', duration: andarD / 1000, distance: dS.dist,
-                        from: { name: dS.name }, to: { name: 'Destination' },
+                    if (m.dS.pie > 80) legs.push({
+                        transitLeg: false, mode: 'WALK', duration: andarD / 1000, distance: m.dS.pie,
+                        from: { name: m.dS.name }, to: { name: 'Destination' },
                         startTime: bajar, endTime: bajar + andarD,
-                        _pts: [[dS.lat, dS.lon], [to.lat, to.lon]]
+                        _pts: [[m.dS.lat, m.dS.lon], [to.lat, to.lon]]
                     });
                     return {
                         startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
-                        duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000, legs, _est: est
+                        duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000, legs
                     };
                 }));
-                return opciones.filter(Boolean).sort((a, b) => a.endTime - b.endTime).slice(0, 2);
+                return opciones.filter(Boolean).sort((a, b) => a.endTime - b.endTime).slice(0, 5);
             } catch { return []; }
         }
 
@@ -5233,13 +5344,7 @@
                 // si hay algo que te acerque
                 if (!d || d.dist <= 450 || lastTransit < 0) return [it];
                 const llegada = it.legs[lastTransit].endTime;
-                const [planner, buses, metros] = await Promise.all([
-                    // el planner tarda tres segundos por pregunta: en la pasada
-                    // final basta con los saltos de horario, que son locales
-                    rapido ? [] : bestEgressFrom(d, dest, llegada).catch(() => []),
-                    busHopTopology({ ...d, name: d.name }, dest, llegada).catch(() => []),
-                    metroHopSched({ ...d, name: d.name }, dest, llegada).catch(() => [])
-                ]);
+                const directos = await saltosTmb({ ...d, name: d.name }, dest, llegada).catch(() => []);
                 const aPie = it.endTime;
                 const aPieMetros = it.legs.slice(lastTransit + 1).reduce((m, l) => m + (l.distance || 0), 0);
                 const aPieMin = Math.max(0, (aPie - llegada) / 60000);
@@ -5253,11 +5358,20 @@
                 // entre las que valen, cada metro a pie pesa: gana la de menos pasos
                 // si llega casi a la vez.
                 const pesoPie = x => x.endTime + journeyWalkDist(x) * 1000;
-                const mejores = [...planner, ...buses, ...metros]
-                    .filter(sal => journeyWalkDist(sal) <= aPieMetros - 250 ||
-                        (tiradaMaxMetros(sal) <= aPieMetros * 0.6 && journeyWalkDist(sal) <= aPieMetros * 0.85))
-                    .filter(sal => sal.endTime <= aPie + Math.max(6, aPieMin) * 60000)
-                    .filter(sal => longestWalkMin(sal) <= MAX_WALK_MIN)
+                const vale = sal => (journeyWalkDist(sal) <= aPieMetros - 250 ||
+                        (tiradaMaxMetros(sal) <= aPieMetros * 0.6 && journeyWalkDist(sal) <= aPieMetros * 0.85)) &&
+                    sal.endTime <= aPie + Math.max(6, aPieMin) * 60000 &&
+                    longestWalkMin(sal) <= MAX_WALK_MIN;
+                let candidatos = [...directos];
+                // El planner tarda de 3 a 7 s por pregunta (desde las estaciones de
+                // FGC de Park Güell, siete): solo se le pregunta si los saltos
+                // directos no resuelven una caminata larga, y con tope
+                if (!rapido && d.dist > 1200 && !candidatos.some(vale)) {
+                    const tope = new Promise(r => setTimeout(() => r([]), 2500));
+                    candidatos = [...candidatos, ...await Promise.race([bestEgressFrom(d, dest, llegada).catch(() => []), tope])];
+                }
+                const mejores = candidatos
+                    .filter(vale)
                     .sort((a, b) => pesoPie(a) - pesoPie(b))
                     .slice(0, 2)
                     .map(sal => {
@@ -5356,7 +5470,7 @@
                 const out = [];
                 for (let g = 0; g < red.n; g++) {
                     const dd = getDistance(pt.lat, pt.lon, red.lat[g], red.lon[g]);
-                    if (dd <= max) out.push({ g, dd });
+                    if (dd <= max) out.push({ g, dd: metrosAPie(pt.lat, pt.lon, red.lat[g], red.lon[g]) });
                 }
                 return out.sort((a, b) => a.dd - b.dd).slice(0, 60);
             };
@@ -5380,7 +5494,7 @@
                     const v = red.grid.get((cy + a) + ':' + (cx + b));
                     if (v) for (const h of v) if (h !== g) {
                         const dd = getDistance(red.lat[g], red.lon[g], red.lat[h], red.lon[h]);
-                        if (dd <= 500) out.push({ h, dd });
+                        if (dd <= 500) out.push({ h, dd: metrosAPie(red.lat[g], red.lon[g], red.lat[h], red.lon[h]) });
                     }
                 }
                 return out;
@@ -5675,7 +5789,8 @@
                 .map((s, i) => ({ i, name: s[1], lat: s[2], lon: s[3], dist: getDistance(pt.lat, pt.lon, s[2], s[3]) }))
                 .filter(s => s.dist <= max)
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, n);
+                .slice(0, n)
+                .map(s => ({ ...s, pie: metrosAPie(pt.lat, pt.lon, s.lat, s.lon) }));
             // Origen con radio amplio: los interurbanos salen de pocos puntos (Sants,
             // pl. Espanya, Diagonal…) y el acceso lejano se encadena luego con el
             // planner. Y con la lista, generosa: en el centro de Barcelona hay
@@ -5728,9 +5843,9 @@
                         const arr = dayStart.getTime() + (t0 + cum[k]) * 60000;
                         const legs = [];
                         if (oStop.dist > 80) legs.push({
-                            transitLeg: false, mode: 'WALK', duration: oStop.dist / 1.25, distance: oStop.dist,
+                            transitLeg: false, mode: 'WALK', duration: oStop.pie / 1.25, distance: oStop.pie,
                             from: { name: 'Origen' }, to: { name: oStop.name },
-                            startTime: dep - (oStop.dist / 1.25) * 1000, endTime: dep,
+                            startTime: dep - (oStop.pie / 1.25) * 1000, endTime: dep,
                             _pts: [[origin.lat, origin.lon], [oStop.lat, oStop.lon]]
                         });
                         const linea = d.lines[p[0]], esTren = linea[3] === 'T';
@@ -5747,9 +5862,9 @@
                             _pts: hStops.length > 1 ? hStops.map(x => [x.lat, x.lon]) : [[oStop.lat, oStop.lon], [dStop.lat, dStop.lon]]
                         });
                         if (dStop.dist > 80) legs.push({
-                            transitLeg: false, mode: 'WALK', duration: dStop.dist / 1.25, distance: dStop.dist,
+                            transitLeg: false, mode: 'WALK', duration: dStop.pie / 1.25, distance: dStop.pie,
                             from: { name: dStop.name }, to: { name: 'Destination' },
-                            startTime: arr, endTime: arr + (dStop.dist / 1.25) * 1000,
+                            startTime: arr, endTime: arr + (dStop.pie / 1.25) * 1000,
                             _pts: [[dStop.lat, dStop.lon], [dest.lat, dest.lon]]
                         });
                         its.push({
@@ -5800,7 +5915,8 @@
                 .map(([code, sname, slat, slon]) => ({ code, name: sname, lat: slat, lon: slon, dist: getDistance(point.lat, point.lon, slat, slon) }))
                 .filter(s => s.dist <= maxDist)
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, n);
+                .slice(0, n)
+                .map(s => ({ ...s, pie: metrosAPie(point.lat, point.lon, s.lat, s.lon) }));
         }
 
         // Horas GTFS del día de servicio (la madrugada es 24:xx-27:xx del día anterior)
@@ -5850,6 +5966,8 @@
             }
             if (!oSts.length) return [];
             const after = whenMs || Date.now();
+            // todas a la vez: de una en una eran 1,3 s antes de empezar
+            await Promise.all([...oSts, ...dSts].map(s => fgcStationTimes(s.code).catch(() => [])));
 
             const its = [], seen = new Set();
             for (const oSt of oSts) {
@@ -5866,7 +5984,7 @@
                     dRows.forEach(r => { const k = patKey(r); (dByPat.get(k) || dByPat.set(k, []).get(k)).push(r); });
                     const oByPat = new Map();
                     oRows.forEach(r => { const k = patKey(r); if (dByPat.has(k)) (oByPat.get(k) || oByPat.set(k, []).get(k)).push(r); });
-                    const walkO = oSt.dist / 1.25, walkD = dSt.dist / 1.25;
+                    const walkO = oSt.pie / 1.25, walkD = dSt.pie / 1.25;
                     // andando si la estación está cerca; si no, el acceso lo pone
                     // luego el planner y basta con un margen mínimo razonable
                     const minLead = (oSt.dist <= 1200 ? walkO : 8 * 60) * 1000;
@@ -5889,7 +6007,7 @@
                             seen.add(sig); added++;
                             const legs = [];
                             if (oSt.dist > 80) legs.push({
-                                transitLeg: false, mode: 'WALK', duration: walkO, distance: oSt.dist,
+                                transitLeg: false, mode: 'WALK', duration: walkO, distance: oSt.pie,
                                 from: { name: 'Origen' }, to: { name: oSt.name },
                                 startTime: dep - walkO * 1000, endTime: dep,
                                 _pts: [[origin.lat, origin.lon], [oSt.lat, oSt.lon]]
@@ -5904,7 +6022,7 @@
                                 _pts: [[oSt.lat, oSt.lon], [dSt.lat, dSt.lon]]
                             });
                             if (dSt.dist > 80) legs.push({
-                                transitLeg: false, mode: 'WALK', duration: walkD, distance: dSt.dist,
+                                transitLeg: false, mode: 'WALK', duration: walkD, distance: dSt.pie,
                                 from: { name: dSt.name }, to: { name: 'Destination' },
                                 startTime: arr, endTime: arr + walkD * 1000,
                                 _pts: [[dSt.lat, dSt.lon], [dest.lat, dest.lon]]
@@ -5989,7 +6107,7 @@
                 </div>`;
         }
 
-        function renderJourneys() {
+        function renderJourneys(parcial = false) {
             ensureAndenes();   // lo vamos a necesitar en cuanto se abra un detalle
             document.getElementById('journeySection').style.display = 'block';
             document.getElementById('journeyTitle').innerText = '🧭 ' + t('A {x}', { x: journeyDest.name });
@@ -6018,7 +6136,8 @@
                         ${journeyRibbon(it)}
                     </div>
                     <div class="jcard-detail"></div>
-                </div>`).join('');
+                </div>`).join('') +
+                (parcial ? `<div class="jmas">🔄 ${esc(t('Buscando más opciones…'))}</div>` : '');
         }
 
         // Minutos de colchón al enlazar: lo que sobra entre bajarse del anterior
@@ -6044,7 +6163,7 @@
                             : ((it.legs[i + 1] || {}).from || {}).name || journeyDest.name);
                     return `<div class="jstep">
                         <div class="jstep-icon">🚶</div>
-                        <div class="jstep-body">${t('Camina {d} hasta {x}', { d: `<b>${fmtDist(l.distance)}</b>`, x: `<b>${esc(hasta)}</b>` })}
+                        <div class="jstep-body">${t('Camina {d} hasta {x}', { d: `<b>${l._aprox ? '≈' : ''}${fmtDist(l.distance)}</b>`, x: `<b>${esc(hasta)}</b>` })}
                             <div class="jstep-sub">${Math.max(1, Math.round(l.duration / 60))} min</div></div>
                     </div>`;
                 }
@@ -6093,8 +6212,18 @@
             if (!it || !cardEl) return;
             const detail = cardEl.querySelector('.jcard-detail');
             const isOpen = detail.style.display === 'block';
+            // solo una desplegada: al abrir una se pliegan todas las demás
             document.querySelectorAll('.jcard-detail').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.jcard.abierta').forEach(el => el.classList.remove('abierta'));
             if (isOpen && !forceOpen) { routeLayer.clearLayers(); return; }
+            cardEl.classList.add('abierta');
+            // al plegarse la de arriba la página salta: se lleva la vista a la abierta
+            if (!forceOpen) requestAnimationFrame(() => {
+                const cab = (document.querySelector('.topbar') || {}).offsetHeight || 0;
+                const jh = (document.querySelector('.journey-head') || {}).offsetHeight || 0;
+                const y = cardEl.getBoundingClientRect().top + window.scrollY - cab - jh - 12;
+                if (Math.abs(y - window.scrollY) > 40) window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+            });
             detail.innerHTML = `<button class="trip-start-btn" onclick="event.stopPropagation(); startTrip(${i})">${t('▶ Iniciar trayecto')}</button>` + journeyStepsHTML(it);
             detail.style.display = 'block';
             fillStepStops(it, detail);
@@ -6255,27 +6384,14 @@
             if (journeyDest) planTo(journeyDest.lat, journeyDest.lon, journeyDest.name);
         }
 
-        // --- 12. BÚSQUEDA MANUAL (paradas de bus) ---
-        // Dos tareas distintas en el mismo sitio: mirar una parada o ir a algún
-        // lado. Con pestañas, cada una se queda con la pantalla para ella sola.
-        function setSearchMode(mode) {
-            const stop = mode === 'stop';
-            document.getElementById('paneStop').hidden = !stop;
-            document.getElementById('paneDest').hidden = stop;
-            document.getElementById('segStop').classList.toggle('active', stop);
-            document.getElementById('segDest').classList.toggle('active', !stop);
-            document.getElementById('segStop').setAttribute('aria-selected', String(stop));
-            document.getElementById('segDest').setAttribute('aria-selected', String(!stop));
-            if (!stop) setTimeout(() => document.getElementById('destInput').focus(), 60);
-        }
-
-        async function searchManual() {
-            const code = document.getElementById('stopCode').value.trim();
-            if (!code) {
-                showError("Escribe el código de la parada de bus (está en el poste o marquesina).");
-                return;
-            }
-            document.getElementById('stopCode').blur();
+        // --- 12. BÚSQUEDA MANUAL (paradas de bus por su número) ---
+        // Llega desde el buscador único: un número es el código del poste
+        async function searchManual(code) {
+            code = String(code || '').trim();
+            if (!code) return;
+            const inp = document.getElementById('destInput');
+            inp.blur();
+            clearDest();
             const stop = { type: 'bus', code, name: t('Parada') + ' ' + code };
             // el listado de paradas de TMB (cacheado) da nombre y coordenadas:
             // con ellas sale el nombre real, el mapa centrado y el cruce con el NitBus
@@ -6355,7 +6471,8 @@
                 .map(([code, name, slat, slon]) => ({ code, name, lat: slat, lon: slon, dist: getDistance(lat, lon, slat, slon) }))
                 .filter(s => s.dist <= maxDist)
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, n);
+                .slice(0, n)
+                .map(s => ({ ...s, pie: metrosAPie(lat, lon, s.lat, s.lon) }));
         }
 
         // --- 14. BÚSQUEDA POR GPS ---
@@ -6419,7 +6536,7 @@
                     <div class="welcome-title">${esc(t('Bienvenido a Transport BCN'))}</div>
                     <div class="welcome-sub">${esc(t('Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.'))}</div>
                     <button class="btn btn-search welcome-btn" onclick="searchGPS()">📍 ${esc(t('Usar mi ubicación'))}</button>
-                    <button class="btn btn-gps welcome-btn" onclick="document.getElementById('stopCode').focus()">🔢 ${esc(t('Buscar por número de parada'))}</button>
+                    <button class="btn btn-gps welcome-btn" onclick="document.getElementById('destInput').focus()">🔢 ${esc(t('Buscar por número de parada'))}</button>
                     <div class="welcome-tip">💡 ${esc(t('También puedes mantener pulsado el mapa para explorar una zona'))}</div>
                 </div>`;
         }
@@ -6458,7 +6575,7 @@
                 userPos = { lat, lon };
                 cercaniaEn = { lat, lon, t: Date.now() };
                 userMarkerLayer.clearLayers();
-                L.marker([lat, lon], { icon: userIcon, zIndexOffset: 500 }).addTo(userMarkerLayer).bindPopup(`<b>${t('Estás aquí')}</b>`);
+                L.marker([lat, lon], { icon: userIcon, zIndexOffset: 3000 }).addTo(userMarkerLayer).bindPopup(`<b>${t('Estás aquí')}</b>`);
                 exploreAt(lat, lon, true);
             }, () => {
                 // Sin ubicación no es un error: es el estado normal la primera vez.
@@ -6526,7 +6643,7 @@
             } catch (e) { /* sin listado de AMB seguimos con el resto */ }
 
             nearbyStops = [...busStops, ...ambStops, ...metroStops, ...tramStops, ...trainStops, ...fgcStops, ...hbusStops]
-                .map(s => ({ ...s, walkable }))
+                .map(s => ({ ...s, walkable, pie: metrosAPie(lat, lon, s.lat, s.lon) }))
                 .sort((a, b) => a.dist - b.dist)
                 .slice(0, 40);   // en el mapa, todas las de alrededor; en la fila, las 15 primeras
 
@@ -6548,7 +6665,6 @@
                 });
                 stopMarkers[stopKey(stop)] = marker;
             });
-            renderNearbyChips();
 
             setLoading(t("⏱️ Conectando en tiempo real..."));
 
@@ -6640,7 +6756,7 @@
             routeLayer.clearLayers(); // fuera la vista previa; ahora manda la navegación
             tripRestLayer = L.polyline(rt.pts, { color: '#0a84ff', weight: 6, opacity: .92, lineJoin: 'round', lineCap: 'round' }).addTo(tripLayer);
             tripDoneLayer = L.polyline([], { color: '#7a828c', weight: 6, opacity: .9, lineJoin: 'round', lineCap: 'round' }).addTo(tripLayer);
-            tripMeMarker = L.marker(rt.pts[0], { icon: userIcon, zIndexOffset: 1000 }).addTo(tripLayer);
+            tripMeMarker = L.marker(rt.pts[0], { icon: userIcon, zIndexOffset: 3000 }).addTo(tripLayer);
 
             activeTrip = { it, rt, follow: true, offCount: 0, arrived: false, watchId: null };
             map.on('dragstart', tripOnDrag);
