@@ -3144,13 +3144,16 @@
 
         // El planner de TMB tarda de 3 a 5 s por pregunta. La misma pregunta en el
         // mismo minuto (recalcular, la Alternativa, los relevos) no se repite.
+        // Y nunca de la caché del navegador: TMB lo sirve con max-age=10800, y la
+        // misma URL "para ahora" devolvía el plan de hace tres horas, con todas
+        // las rutas en el pasado (al recalcular, desaparecían).
         const planMemo = new Map();   // url → { t, p }
         function planPedido(url) {
             const ahora = Date.now();
             const hit = planMemo.get(url);
             if (hit && ahora - hit.t < 60000) return hit.p.then(l => l.map(it => ({ ...it })));
             if (planMemo.size > 80) for (const [k, v] of planMemo) if (ahora - v.t > 60000) planMemo.delete(k);
-            const p = fetch(url).then(r => r.ok ? r.json() : null)
+            const p = fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
                 .then(d => (d && d.plan && d.plan.itineraries) || [])
                 .catch(() => { planMemo.delete(url); return []; });
             planMemo.set(url, { t: ahora, p });
@@ -5153,7 +5156,7 @@
                         `&fromPlace=${st.lat},${st.lon}&toPlace=${dest.lat},${dest.lon}` +
                         `&mode=TRANSIT,WALK&numItineraries=3&locale=es&showIntermediateStops=true` +
                         `&date=${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${d.getFullYear()}&time=${p2(d.getHours())}:${p2(d.getMinutes())}`;
-                    const res = await fetch(url);
+                    const res = await fetch(url, { cache: 'no-store' });
                     const data = res.ok ? await res.json() : null;
                     return (((data || {}).plan || {}).itineraries || [])
                         .filter(x => x.legs.some(l => l.transitLeg) && x.startTime >= whenMs - 60000);
