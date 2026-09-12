@@ -1,4 +1,4 @@
-# Relé de Transport BCN
+# Relé de Som-hi!
 
 Un Cloudflare Worker de 150 líneas que hace dos cosas que la app, al ser una web estática, no puede hacer sola:
 

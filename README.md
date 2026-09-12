@@ -1,4 +1,4 @@
-# 🚍 Transport BCN
+# 🚍 Som-hi!
 
 **App web para consultar en tiempo real los próximos buses, metros, trams y trenes de la parada más cercana a tu ubicación en Barcelona y su área.**
 

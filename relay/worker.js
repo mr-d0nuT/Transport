@@ -1,4 +1,4 @@
-// Relé de Transport BCN — Cloudflare Worker (gratis hasta 100.000 peticiones/día)
+// Relé de Som-hi! — Cloudflare Worker (gratis hasta 100.000 peticiones/día)
 //
 // Por qué existe: la app es una web estática y hay fuentes que un navegador no
 // puede leer directamente.
@@ -168,7 +168,7 @@ export default {
                         () => fetch(destino.href, { headers: { 'User-Agent': 'transport-bcn-relay/1.0' } }));
                 }
             } else {
-                return json({ ok: true, servicio: 'Relé de Transport BCN', clave: !!env.AMB_API_KEY }, 200, cors);
+                return json({ ok: true, servicio: 'Relé de Som-hi!', clave: !!env.AMB_API_KEY }, 200, cors);
             }
         } catch (e) {
             return json({ error: 'origen caído: ' + e.message }, 502, cors);
