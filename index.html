@@ -6494,7 +6494,10 @@
             redReq = redReq || (async () => {
                 const ds = [];
                 for (const carga of [ensureCatBus, ensureRenfeMD, ensureFgcSched]) {
-                    const d = await carga().catch(() => null);
+                    // si una red no carga, la búsqueda sigue con las otras, pero que
+                    // se vea: perder el bus interurbano entero sin un solo mensaje
+                    // costó un «tren y 6,5 km a pie» hasta que alguien lo contó
+                    const d = await carga().catch(e => { console.warn('[rutas] sin', carga.name, '→', e && e.message); return null; });
                     if (d) ds.push(d);
                 }
                 if (!ds.length) throw new Error('sin horarios');
