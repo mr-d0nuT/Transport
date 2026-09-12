@@ -12,6 +12,7 @@
 // Rutas:
 //   GET  /amb/stops/{código}/realtimes  → próximos buses de una parada de AMB
 //   GET  /amb/disruptions?lang=es       → título y texto de cada aviso, por id
+//   GET  /amb/stops/{código}            → qué hay en esa parada (marquesina, poste…)
 //   GET  /?url={https://…}              → pasarela GET a un host de la lista
 //   POST /?url={https://…}              → pasarela POST (horarios de Renfe)
 //
@@ -36,7 +37,7 @@ const HOSTS = new Set([
     'gtfsrt.renfe.com'
 ]);
 
-const TTL = { realtimes: 15, paso: 20, avisos: 900 }; // segundos
+const TTL = { realtimes: 15, paso: 20, avisos: 900, parada: 86400 }; // segundos
 
 function cabecerasCors(origen) {
     const ok = origen && ORIGENES.some(r => r.test(origen));
@@ -112,6 +113,21 @@ async function ambDisruptions(idioma, env) {
     });
 }
 
+// Qué hay en la parada: marquesina o poste, la dirección exacta y las líneas.
+// Esperar quince minutos de pie no es lo mismo que sentado, y TMB eso lo publica
+// abierto pero AMB solo con clave.
+async function ambParada(codigo, env) {
+    const r = await fetch(`${AMB_API}/stops/${codigo}`, {
+        headers: { 'x-api-key': env.AMB_API_KEY, 'Accept': 'application/json' }
+    });
+    if (!r.ok) return r;
+    const d = (await r.json()).document || {};
+    return new Response(JSON.stringify({
+        code: d.codAMB || String(codigo), name: d.name || '', furniture: d.furniture || '',
+        address: d.address || '', lines: d.lines || '', status: d.status || ''
+    }), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+}
+
 export default {
     async fetch(request, env, ctx) {
         const cors = cabecerasCors(request.headers.get('Origin') || '');
@@ -126,6 +142,10 @@ export default {
                 if (!env.AMB_API_KEY) return json({ error: 'falta el secreto AMB_API_KEY' }, 500, cors);
                 const codigo = String(parseInt(m[1], 10)); // la API usa el código sin ceros delante
                 res = await cacheado('rt:' + codigo, TTL.realtimes, () => ambRealtimes(codigo, env));
+            } else if (/^\/amb\/stops\/\d{1,7}$/.test(url.pathname)) {
+                if (!env.AMB_API_KEY) return json({ error: 'falta el secreto AMB_API_KEY' }, 500, cors);
+                const codigo = String(parseInt(url.pathname.split('/').pop(), 10));
+                res = await cacheado('parada:' + codigo, TTL.parada, () => ambParada(codigo, env));
             } else if (url.pathname === '/amb/disruptions') {
                 if (!env.AMB_API_KEY) return json({ error: 'falta el secreto AMB_API_KEY' }, 500, cors);
                 // AMB solo publica catalán y castellano; para cualquier otro idioma

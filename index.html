@@ -2242,12 +2242,29 @@
             paradaInfoMemo.set(k, pr);
             return pr;
         }
+        // Lo mismo en la red metropolitana: AMB también lo publica, pero solo con
+        // clave, así que va por el relé (un día de caché: una marquesina no se
+        // quita cada mañana). Sin relé, simplemente no se dice nada.
+        const paradaAmbMemo = new Map();
+        async function infoParadaAmb(code) {
+            if (!RELAY) return null;
+            const k = String(code);
+            if (paradaAmbMemo.has(k)) return paradaAmbMemo.get(k);
+            const pr = fetch(`${RELAY}/amb/stops/${parseInt(k, 10)}`)
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null);
+            paradaAmbMemo.set(k, pr);
+            return pr;
+        }
         async function pintaTipoParada(stop) {
             const el = document.getElementById('stopCodeLabel');
-            if (!el || !stop || stop.type !== 'bus' || String(stop.code || '').length > 4) return;
-            const info = await infoParadaTmb(stop.code);
-            if (!info || currentStop !== stop) return;
-            const tipo = info.NOM_TIPUS_SIMPLE_PARADA;
+            if (!el || !stop || stop.type !== 'bus') return;
+            const code = String(stop.code || '');
+            const base = el.innerText;
+            const info = code.length <= 4 ? await infoParadaTmb(code)
+                : (/^\d{5,6}$/.test(code) ? await infoParadaAmb(code) : null);
+            if (!info || currentStop !== stop || el.innerText !== base) return;
+            const tipo = info.NOM_TIPUS_SIMPLE_PARADA || info.furniture;
             if (tipo) el.innerText += ` · ${tipo}`;
         }
 
