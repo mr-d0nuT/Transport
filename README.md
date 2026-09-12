@@ -22,7 +22,7 @@ Se abre en el navegador, detecta tu posición y muestra al instante qué llega y
   - 🚇 **Metro TMB** (iMetro)
   - 🚊 **TRAM** (T1–T6), y cuando el directo no llega, su horario oficial del día —compilado cada madrugada desde la API de AMB, que sabe de obras y servicios especiales—; si una parada está cortada, lo dice
   - 🚆 **Rodalies y Media Distancia de Renfe**, con el horario oficial de Renfe de toda Catalunya: el directo de Renfe no lo puede leer ninguna web (no manda CORS y su CDN bloquea los servidores en la nube), así que la estación nunca se queda en blanco
-  - 🚞 **FGC**
+  - 🚞 **FGC**, tren a tren: su GTFS-RT dice la hora prevista de cada viaje y su vía, y el posicionamiento, lo lleno que viene cada coche. El horario oficial va compilado (`fgc-sched.json`), así que las rutas usan el viaje entero y no salen trenes fantasma
   - 🚏 **Bus metropolitano de AMB** (B, L, M, SB, EP… 138 líneas que TMB no conoce) y 🌙 **NitBus** (N0-N28), **en tiempo real** con la API oficial de AMB a través del [relé](relay/README.md) —el mismo dato que su app, con destino y minutos—, más las alteraciones del servicio (desvíos, obras) en cada línea. Sin relé, tira del GTFS-RT público y, si tampoco llega, del horario oficial compilado
   - 🚍 **Hispano Igualadina** (horarios GTFS precompilados)
 - **¿Cabeza o cola?** En cada tramo de metro te dice en qué parte del tren colocarte para bajar justo delante del transbordo o de la salida que te toca — y te nombra la salida ("al bajar en Espanya, la salida Exposició / Gran Via queda por ahí"). Sale de la geometría de los andenes, los accesos y las escaleras de OpenStreetMap, cruzada con el sentido de la marcha.
@@ -54,6 +54,7 @@ Es una **app estática de un solo archivo**: todo el HTML, CSS y JavaScript vive
 | `sw.js` | Service worker: cachea la carcasa para que arranque al instante |
 | `manifest.webmanifest` + `icon-*` | Instalación como PWA |
 | `hispano-igualadina.json` | Horarios de Hispano Igualadina precompilados desde el GTFS |
+| `fgc-sched.json` | Horario oficial de FGC compilado del GTFS (`scripts/build_fgc.py`, semanal) |
 | `amb-bus/` | Horarios del bus de AMB (metropolitano y NitBus), troceados por zonas; `routes.json` casa el tiempo real con cada línea |
 | `relay/` | El relé (Cloudflare Worker): tiempo real de AMB con la clave guardada en secreto, y pasarela para TRAM y Renfe. [Cómo desplegarlo](relay/README.md) |
 | `tmb-sched/` | Horarios de metro y bus de TMB, troceados por zonas |

@@ -645,6 +645,8 @@
             border-radius: 6px; padding: 2px 7px; margin-top: 3px;
             background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text-soft);
         }
+        .occ-bars { display: inline-flex; align-items: flex-end; gap: 2px; margin-left: 6px; height: 14px; }
+        .occ-bars i { width: 4px; border-radius: 1px; display: block; }
         .occ-badge.occ-high { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
         .catch-warn { font-size: .95rem; margin-left: 5px; }
         .explore-pop { text-align: center; }
@@ -1189,8 +1191,8 @@
         };
 
         const I18N = {
-            ca: {"parada anulada":"parada anul·lada","hasta las {t}":"fins a les {t}","hasta el {d}":"fins al {d}","Ir a la {n}":"Vés a la {n}","Acceso":"Accés","andén {x}":"andana {x}","hoy hay una parada anulada en esta ruta":"avui hi ha una parada anul·lada en aquesta ruta","Destino seleccionado":"Destinació seleccionada","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutes a peu Valhalla (FOSSGIS)","Parada o destino…":"Parada o destinació…","Parada {n}":"Parada {n}","Ver sus llegadas":"Mostra'n les arribades","Buscando más opciones…":"Cercant més opcions…","Parada seleccionada":"Parada seleccionada","🚶 Menos a pie":"🚶 Menys a peu","Ruta a casa (mantén pulsado para cambiarla)":"Ruta a casa (mantén premut per canviar-la)","Definir casa":"Defineix casa","En directo":"En directe","Llegadas":"Arribades","Ir a…":"Anar a…","Buscar":"Cerca","Nº de parada":"Núm. de parada","Ver qué pasa cerca de mí":"Mira què passa a prop meu","Busca una dirección o lugar…":"Cerca una adreça o un lloc…","Mantén pulsado el mapa para explorar":"Mantén premut el mapa per explorar","Qué quieres buscar":"Què vols cercar","Buscar transporte cerca de mí":"Cerca transport a prop meu","Ver en realidad aumentada":"Mostra en realitat augmentada","Centrar en mi posición":"Centra en la meva posició","Borrar destino":"Esborra el destí","Recalcular rutas":"Recalcula les rutes","Cerrar rutas":"Tanca les rutes","Favoritas":"Preferides","Recientes":"Recents","Paradas cercanas":"Parades a prop","Compartir parada":"Comparteix la parada","Guardar en favoritas":"Desa a preferides","Actualizar ahora":"Actualitza ara","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap","completado":"completat","restante":"restant","Te has desviado de la ruta.":"T'has desviat de la ruta.","Recalcular":"Recalcula","Finalizar":"Finalitza","Paradas alrededor":"Parades al voltant","Cerrar realidad aumentada":"Tanca la realitat augmentada","Mueve el móvil para calibrar la brújula 🔄":"Mou el mòbil per calibrar la brúixola 🔄","Error al cargar el mapa. Intenta refrescar la página.":"Error en carregar el mapa. Prova de refrescar la pàgina.","Reintentar":"Torna-ho a provar","No se han podido obtener los tiempos: ":"No s'han pogut obtenir els temps: ","Parada de bus no encontrada en TMB.":"Parada d'autobús no trobada a TMB.","Estación de metro no disponible.":"Estació de metro no disponible.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"Aquesta estació no ofereix temps en temps real (línies automàtiques L9/L10).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"El servei del TRAM no respon ara mateix. Torna-ho a provar.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"Avui no passa el TRAM per aquesta parada (obres o servei especial).","No hay datos de líneas para esta estación.":"No hi ha dades de línies per a aquesta estació.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"El servei de Renfe no respon ara mateix. Torna-ho a provar.","El open data de FGC no responde ahora mismo.":"L'open data d'FGC no respon ara mateix.","Sin salidas previstas en las próximas 2 horas.":"Sense sortides previstes en les pròximes 2 hores.","Horarios del bus interurbano no disponibles.":"Horaris del bus interurbà no disponibles.","Horarios de Renfe no disponibles.":"Horaris de Renfe no disponibles.","Ya estás ahí: {d}.":"Ja hi ets: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Avui ja no queda servei: busco el de demà…","Hoy ya no hay servicio · esto es lo primero de mañana":"Avui ja no hi ha servei · això és el primer de demà","Parada de bus":"Parada de bus","Bus · según horario oficial":"Bus · segons horari oficial","Parada no encontrada en los horarios.":"Parada no trobada als horaris.","Sin salidas previstas en las próximas 8 horas en esta parada.":"Sense sortides previstes en les pròximes 8 hores en aquesta parada.","Sin llegadas previstas ahora mismo en esta parada.":"Sense arribades previstes ara mateix en aquesta parada.","No tengo el trazado de esta línea.":"No tinc el traçat d'aquesta línia.","No tengo el recorrido de este tren ahora mismo.":"No tinc el recorregut d'aquest tren ara mateix.","No encuentro el recorrido de esta línea.":"No trobo el recorregut d'aquesta línia.","No encuentro el recorrido de este bus.":"No trobo el recorregut d'aquest autobús.","No se ha podido localizar el recorrido":"No s'ha pogut localitzar el recorregut","Línea no disponible":"Línia no disponible","Línea de metro no disponible.":"Línia de metro no disponible.","Este dispositivo no tiene GPS.":"Aquest dispositiu no té GPS.","Este dispositivo no soporta GPS.":"Aquest dispositiu no admet GPS.","Este dispositivo no tiene GPS para navegar.":"Aquest dispositiu no té GPS per navegar.","Esta ruta no tiene trazado para navegar.":"Aquesta ruta no té traçat per navegar.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"Necessito la teva ubicació per calcular la ruta. Activa el GPS i torna-ho a provar.","Necesito tu ubicación para situar las paradas.":"Necessito la teva ubicació per situar les parades.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No s'ha trobat cap ruta en transport públic fins allà.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No hi ha parades d'autobús, metro ni tram a menys de 900 m d'aquest punt.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"No has donat permís d'ubicació o el GPS està desactivat. També pots cercar pel número de parada o mantenir premut el mapa per explorar una zona.","📍 Buscando señal GPS...":"📍 Cercant senyal GPS...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Cercant bus, metro i tram a la zona...","🧭 Calculando las mejores rutas…":"🧭 Calculant les millors rutes…","🔗 Buscando enlaces entre redes…":"🔗 Cercant enllaços entre xarxes…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connectant en temps real...","🔗 Enlace copiado":"🔗 Enllaç copiat","Trazando ruta...":"Traçant la ruta...","Buscando paradas cercanas…":"Cercant parades a prop…","Sin salidas previstas ahora mismo aquí.":"Sense sortides previstes ara mateix aquí.","Sin próximos pasos ahora":"Sense pròxims passos ara","hacia":"cap a","Llegando":"Arribant","horario":"horari","Siguiente: {t}":"Següent: {t}","Llegada a destino: {t}":"Arribada a destí: {t}","Siguiente: {m} min":"Següent: {m} min","Andén al {p}%":"Andana al {p}%","Vacío":"Buit","Asientos libres":"Seients lliures","Pocos asientos":"Pocs seients","Solo de pie":"Només dret","Muy lleno":"Molt ple","En hora ✓":"Puntual ✓","Retrasos en la línea":"Retards a la línia","Ocupación ~{p}%":"Ocupació ~{p}%","🚶 a {d} · unos {m} min andando":"🚶 a {d} · uns {m} min a peu","Tiempos en directo de {x}":"Temps en directe de {x}","Estás aquí":"Ets aquí","Estación":"Estació","Sin nombre":"Sense nom","Camina {d} hasta {x}":"Camina {d} fins a {x}","dirección {x}":"direcció {x}","{n} paradas":"{n} parades","llegada ≈{t}":"arribada ≈{t}","Ver las {n} paradas":"Mostra les {n} parades","▶ Iniciar trayecto":"▶ Inicia el trajecte","Iniciar trayecto":"Inicia el trajecte","Desde tu ubicación · {t}":"Des de la teva ubicació · {t}","⚡ Llega antes":"⚡ Arriba abans","{m} min de margen":"{m} min de marge","enlace justo":"enllaç just","⏱ sale en {m} min":"⏱ surt en {m} min","⏱ sale en {h} h {m} min":"⏱ surt en {h} h {m} min","⏱ ¡sale ya!":"⏱ surt ara!","⏱ salió hace {m} min":"⏱ va sortir fa {m} min","+{m} min tarde":"+{m} min tard","{m} min antes":"{m} min abans","en hora":"puntual","retrasos en la línea":"retards a la línia","este punto del mapa":"aquest punt del mapa","en los primeros vagones":"als primers vagons","por el centro del tren":"pel centre del tren","en los últimos vagones":"als últims vagons","cabeza":"capçalera","centro":"centre","cola":"cua","Ve {z}":"Vés {z}","al bajar en {e}, {p}":"en baixar a {e}, {p}","el paso al {l} queda por ahí":"el pas cap a {l} queda per allà","la salida {s} queda por ahí":"la sortida {s} queda per allà","la salida queda por ahí":"la sortida queda per allà","⚠️ Señal GPS débil":"⚠️ Senyal GPS feble","Te has desviado ~{m} m de la ruta.":"T'has desviat ~{m} m de la ruta.","🚶 Camina hasta {x} y sube al":"🚶 Camina fins a {x} i puja al","🚶 Sigue caminando hasta {x}":"🚶 Continua caminant fins a {x}","Baja en":"Baixa a","🎉 ¡Has llegado a {x}!":"🎉 Has arribat a {x}!","🎉 ¡Has llegado!":"🎉 Has arribat!","tu posición":"la teva posició","Tu posición":"La teva posició","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ Ja vas per la ruta més ràpida fins a {x}.","Desde donde estás":"Des d'on ets","Bájate en {x}":"Baixa a {x}","Cambiar a esta ruta":"Canvia a aquesta ruta","🔀 Ruta cambiada":"🔀 Ruta canviada","🔀 Nueva ruta: bájate en ":"🔀 Nova ruta: baixa a ","Buscando salidas…":"Cercant sortides…","Preparando cámara…":"Preparant la càmera…","Cámara":"Càmera","Apunta el móvil a tu alrededor 📡":"Apunta el mòbil al teu voltant 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"Sense brúixola en aquest equip: et mostro les parades a prop en llista.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"Sense accés a la càmera: et mostro les parades a prop en llista.","Toca para ver próximos transportes":"Toca per veure els pròxims transports","Toca para ver llegadas":"Toca per veure les arribades","Apunta a una parada para ver sus llegadas 🎯":"Apunta a una parada per veure'n les arribades 🎯","ahora":"ara","Siempre la mejor experiencia disponible":"Sempre la millor experiència disponible","Todas las rutas obligan a caminar mucho":"Totes les rutes obliguen a caminar molt","La que menos, {m} min a pie de una tirada.":"La que menys, {m} min a peu d'una tirada.","Verlas igualmente":"Mostra-les igualment","Buscando rutas más rápidas desde la próxima parada…":"Cercant rutes més ràpides des de la pròxima parada…","Buscando rutas más rápidas en las próximas paradas…":"Cercant rutes més ràpides a les pròximes parades…","No se han podido calcular alternativas ahora mismo.":"No s'han pogut calcular alternatives ara mateix.","Llegas a las {t}":"Arribes a les {t}","Ver el recorrido de la línea {l}":"Mostra el recorregut de la línia {l}","Recorrido de la línea":"Recorregut de la línia","Cerrar":"Tanca","según los trenes de hoy":"segons els trens d'avui","Ahora mismo":"Ara mateix","Favorita":"Preferida","La de siempre a esta hora":"La de sempre a aquesta hora","Último servicio a las {t}":"Últim servei a les {t}","Próximos {n} minutos":"Pròxims {n} minuts","La zona rayada es lo que tardas en llegar a la parada":"La zona ratllada és el que trigues a arribar a la parada","no te da tiempo a pie":"no hi arribes a peu","ya":"ja","{m} min esperando":"{m} min esperant","{m} min a pie":"{m} min a peu","Bienvenido a Transport BCN":"Benvingut a Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies i FGC. Barcelona en temps real i tota Catalunya amb horaris.","Usar mi ubicación":"Fes servir la meva ubicació","Buscar por número de parada":"Cerca pel número de parada","También puedes mantener pulsado el mapa para explorar una zona":"També pots mantenir premut el mapa per explorar una zona","Vuelta a casa":"Tornada a casa","Ahora":"Ara","Llegada":"Arribada","sin combinación ahora mismo":"sense combinació ara mateix","Último sin NitBus":"Últim sense NitBus","Última de la noche":"Última de la nit","si lo pierdes, toca NitBus":"si el perds, toca NitBus","después, NitBus":"després, NitBus","El metro y el bus de día ya han cerrado":"El metro i el bus de dia ja han tancat","vuelves en NitBus":"tornes en NitBus","Ver la ruta a casa":"Mostra la ruta a casa","Calculando…":"Calculant…","Cambiar casa":"Canvia la casa","Escribe la dirección de tu casa…":"Escriu l'adreça de casa teva…","Mi casa":"Casa meva","Busca tu casa arriba":"Cerca casa teva a dalt","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Marca on vius i et diré fins quan pots quedar-te","Definir":"Defineix","Cambiar":"Canvia","🏠 Casa guardada":"🏠 Casa desada","En vivo":"En directe","Localizando trenes…":"Localitzant trens…","{n} trenes en circulación · {t}":"{n} trens en circulació · {t}","hacia {x} · {m} min":"cap a {x} · {m} min","{l} en vivo":"{l} en directe"},
-            en: {"parada anulada":"stop cancelled","hasta las {t}":"until {t}","hasta el {d}":"until {d}","Ir a la {n}":"Go to {n}","Acceso":"Entrance","andén {x}":"platform {x}","hoy hay una parada anulada en esta ruta":"a stop on this route is cancelled today","Destino seleccionado":"Selected destination","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap · Walking routes Valhalla (FOSSGIS)","Parada o destino…":"Stop or destination…","Parada {n}":"Stop {n}","Ver sus llegadas":"See its arrivals","Buscando más opciones…":"Looking for more options…","Parada seleccionada":"Selected stop","🚶 Menos a pie":"🚶 Less walking","Ruta a casa (mantén pulsado para cambiarla)":"Route home (press and hold to change it)","Definir casa":"Set home","En directo":"Live","Llegadas":"Arrivals","Ir a…":"Go to…","Buscar":"Search","Nº de parada":"Stop number","Ver qué pasa cerca de mí":"See what's near me","Busca una dirección o lugar…":"Search for an address or place…","Mantén pulsado el mapa para explorar":"Press and hold the map to explore","Qué quieres buscar":"What do you want to search","Buscar transporte cerca de mí":"Find transport near me","Ver en realidad aumentada":"View in augmented reality","Centrar en mi posición":"Centre on my position","Borrar destino":"Clear destination","Recalcular rutas":"Recalculate routes","Cerrar rutas":"Close routes","Favoritas":"Favourites","Recientes":"Recent","Paradas cercanas":"Nearby stops","Compartir parada":"Share stop","Guardar en favoritas":"Save to favourites","Actualizar ahora":"Refresh now","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap","completado":"done","restante":"left","aprox.":"approx.","Te has desviado de la ruta.":"You've gone off route.","Recalcular":"Recalculate","Alternativa":"Alternative","Finalizar":"End","Paradas alrededor":"Stops around you","Cerrar realidad aumentada":"Close augmented reality","Mueve el móvil para calibrar la brújula 🔄":"Move your phone to calibrate the compass 🔄","Error al cargar el mapa. Intenta refrescar la página.":"The map failed to load. Try refreshing the page.","Reintentar":"Try again","No se han podido obtener los tiempos: ":"Couldn't get the times: ","Parada de bus no encontrada en TMB.":"Bus stop not found at TMB.","Estación de metro no disponible.":"Metro station unavailable.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"This station has no live times (automated L9/L10 lines).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"The TRAM service isn't responding right now. Try again.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"No TRAM at this stop today (works or special service).","No hay datos de líneas para esta estación.":"No line data for this station.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"The Renfe service isn't responding right now. Try again.","El open data de FGC no responde ahora mismo.":"The FGC open data isn't responding right now.","Sin salidas previstas en las próximas 2 horas.":"No departures in the next 2 hours.","Horarios del bus interurbano no disponibles.":"Intercity bus timetables unavailable.","Horarios de Renfe no disponibles.":"Renfe timetables unavailable.","Ya estás ahí: {d}.":"You are already there: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Nothing left today: looking for tomorrow…","Hoy ya no hay servicio · esto es lo primero de mañana":"No service left today · this is the first tomorrow","Parada de bus":"Bus stop","Bus · según horario oficial":"Bus · scheduled times","Parada no encontrada en los horarios.":"Stop not found in the timetables.","Sin salidas previstas en las próximas 8 horas en esta parada.":"No departures in the next 8 hours at this stop.","Sin llegadas previstas ahora mismo en esta parada.":"No arrivals expected at this stop right now.","No tengo el trazado de esta línea.":"I don't have this line's route.","No tengo el recorrido de este tren ahora mismo.":"I don't have this train's route right now.","No encuentro el recorrido de esta línea.":"I can't find this line's route.","No encuentro el recorrido de este bus.":"I can't find this bus's route.","Ruta no disponible":"Route unavailable","No se ha podido localizar el recorrido":"Couldn't locate the route","Línea no disponible":"Line unavailable","Línea de metro no disponible.":"Metro line unavailable.","Este dispositivo no tiene GPS.":"This device has no GPS.","Este dispositivo no soporta GPS.":"This device doesn't support GPS.","Este dispositivo no tiene GPS para navegar.":"This device has no GPS for navigation.","Esta ruta no tiene trazado para navegar.":"This route has no path to navigate.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"I need your location to work out the route. Turn on GPS and try again.","Necesito tu ubicación para situar las paradas.":"I need your location to place the stops.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No public transport route found to there.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No bus, metro or tram stops within 900 m of this point.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"You haven't granted location permission or GPS is off. You can also search by stop number, or press and hold the map to explore an area.","📍 Buscando señal GPS...":"📍 Looking for a GPS signal...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Looking for bus, metro and tram nearby...","🧭 Calculando las mejores rutas…":"🧭 Working out the best routes…","🔗 Buscando enlaces entre redes…":"🔗 Looking for links between networks…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connecting to live data...","🔗 Enlace copiado":"🔗 Link copied","Trazando ruta...":"Drawing the route...","Buscando paradas cercanas…":"Looking for nearby stops…","Sin salidas previstas ahora mismo aquí.":"No departures expected here right now.","Sin próximos pasos ahora":"No upcoming steps right now","hacia":"to","Llegando":"Arriving","min":"min","horario":"scheduled","Siguiente: {t}":"Next: {t}","Llegada a destino: {t}":"Arrives at: {t}","Siguiente: {m} min":"Next: {m} min","Andén al {p}%":"Platform {p}% full","Vacío":"Empty","Asientos libres":"Seats available","Pocos asientos":"Few seats","Solo de pie":"Standing only","Muy lleno":"Very full","En hora ✓":"On time ✓","Retrasos en la línea":"Delays on the line","Ocupación ~{p}%":"About {p}% full","🚶 a {d} · unos {m} min andando":"🚶 {d} away · about {m} min on foot","Tiempos en directo de {x}":"Live times for {x}","Estás aquí":"You are here","Parada":"Stop","Estación":"Station","Sin nombre":"Unnamed","Camina {d} hasta {x}":"Walk {d} to {x}","dirección {x}":"towards {x}","{n} paradas":"{n} stops","llegada ≈{t}":"arrives ≈{t}","Ver las {n} paradas":"Show the {n} stops","▶ Iniciar trayecto":"▶ Start trip","Iniciar trayecto":"Start trip","A {x}":"To {x}","Desde tu ubicación · {t}":"From your location · {t}","⚡ Llega antes":"⚡ Arrives first","{m} min de margen":"{m} min buffer","enlace justo":"tight connection","⏱ sale en {m} min":"⏱ leaves in {m} min","⏱ sale en {h} h {m} min":"⏱ leaves in {h} h {m} min","⏱ ¡sale ya!":"⏱ leaving now!","⏱ salió hace {m} min":"⏱ left {m} min ago","+{m} min tarde":"+{m} min late","{m} min antes":"{m} min early","en hora":"on time","retrasos en la línea":"delays on the line","este punto del mapa":"this point on the map","en los primeros vagones":"in the front carriages","por el centro del tren":"in the middle of the train","en los últimos vagones":"in the rear carriages","cabeza":"front","centro":"middle","cola":"rear","Ve {z}":"Ride {z}","al bajar en {e}, {p}":"when you get off at {e}, {p}","el paso al {l} queda por ahí":"the transfer to {l} is at that end","la salida {s} queda por ahí":"exit {s} is at that end","la salida queda por ahí":"the exit is at that end","⚠️ Señal GPS débil":"⚠️ Weak GPS signal","Te has desviado ~{m} m de la ruta.":"You're ~{m} m off the route.","🚶 Camina hasta {x} y sube al":"🚶 Walk to {x} and take the","🚶 Sigue caminando hasta {x}":"🚶 Keep walking to {x}","Baja en":"Get off at","🎉 ¡Has llegado a {x}!":"🎉 You've arrived at {x}!","🎉 ¡Has llegado!":"🎉 You've arrived!","tu posición":"your position","Tu posición":"Your position","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ You're already on the fastest route to {x}.","Desde donde estás":"From where you are","Bájate en {x}":"Get off at {x}","Cambiar a esta ruta":"Switch to this route","🔀 Ruta cambiada":"🔀 Route changed","🔀 Nueva ruta: bájate en ":"🔀 New route: get off at ","Buscando salidas…":"Looking for departures…","Preparando cámara…":"Getting the camera ready…","Cámara":"Camera","Apunta el móvil a tu alrededor 📡":"Point your phone around you 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"No compass on this device: showing nearby stops as a list.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"No camera access: showing nearby stops as a list.","Toca para ver próximos transportes":"Tap to see upcoming departures","Toca para ver llegadas":"Tap to see arrivals","Apunta a una parada para ver sus llegadas 🎯":"Point at a stop to see its arrivals 🎯","ahora":"now","Siempre la mejor experiencia disponible":"Always the best experience available","Todas las rutas obligan a caminar mucho":"Every route means a long walk","La que menos, {m} min a pie de una tirada.":"The shortest has a {m} min walk in one go.","Verlas igualmente":"Show them anyway","Buscando rutas más rápidas desde la próxima parada…":"Looking for faster routes from the next stop…","Buscando rutas más rápidas en las próximas paradas…":"Looking for faster routes at the next stops…","No se han podido calcular alternativas ahora mismo.":"Couldn't work out alternatives right now.","Llegas a las {t}":"You arrive at {t}","Ver el recorrido de la línea {l}":"Show the {l} line route","Recorrido de la línea":"Line route","Cerrar":"Close","según los trenes de hoy":"from today's trains","Ahora mismo":"Right now","Favorita":"Favourite","La de siempre a esta hora":"Your usual at this time","Último servicio a las {t}":"Last service at {t}","Próximos {n} minutos":"Next {n} minutes","La zona rayada es lo que tardas en llegar a la parada":"The hatched zone is how long it takes you to reach the stop","no te da tiempo a pie":"you can't make it on foot","ya":"now","{m} min esperando":"{m} min waiting","{m} min a pie":"{m} min walking","Bienvenido a Transport BCN":"Welcome to Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies and FGC. Live in Barcelona, timetables across Catalonia.","Usar mi ubicación":"Use my location","Buscar por número de parada":"Search by stop number","También puedes mantener pulsado el mapa para explorar una zona":"You can also press and hold the map to explore an area","Vuelta a casa":"Getting home","Ahora":"Now","Llegada":"Arrival","sin combinación ahora mismo":"no connection right now","Último sin NitBus":"Last without NitBus","Última de la noche":"Last of the night","si lo pierdes, toca NitBus":"miss it and it's the NitBus","después, NitBus":"after that, NitBus","El metro y el bus de día ya han cerrado":"The metro and daytime buses have closed","vuelves en NitBus":"you go home by NitBus","Ver la ruta a casa":"Show the route home","Calculando…":"Working it out…","Cambiar casa":"Change home","Escribe la dirección de tu casa…":"Type your home address…","Mi casa":"My home","Busca tu casa arriba":"Search for your home above","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Set where you live and I'll tell you how late you can stay out","Definir":"Set","Cambiar":"Change","🏠 Casa guardada":"🏠 Home saved","Primer metro":"First metro","En vivo":"Live","Localizando trenes…":"Locating trains…","{n} trenes en circulación · {t}":"{n} trains running · {t}","hacia {x} · {m} min":"to {x} · {m} min","{l} en vivo":"{l} live"}
+            ca: {"Ocupación por coche":"Ocupació per cotxe","parada anulada":"parada anul·lada","hasta las {t}":"fins a les {t}","hasta el {d}":"fins al {d}","Ir a la {n}":"Vés a la {n}","Acceso":"Accés","andén {x}":"andana {x}","hoy hay una parada anulada en esta ruta":"avui hi ha una parada anul·lada en aquesta ruta","Destino seleccionado":"Destinació seleccionada","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutes a peu Valhalla (FOSSGIS)","Parada o destino…":"Parada o destinació…","Parada {n}":"Parada {n}","Ver sus llegadas":"Mostra'n les arribades","Buscando más opciones…":"Cercant més opcions…","Parada seleccionada":"Parada seleccionada","🚶 Menos a pie":"🚶 Menys a peu","Ruta a casa (mantén pulsado para cambiarla)":"Ruta a casa (mantén premut per canviar-la)","Definir casa":"Defineix casa","En directo":"En directe","Llegadas":"Arribades","Ir a…":"Anar a…","Buscar":"Cerca","Nº de parada":"Núm. de parada","Ver qué pasa cerca de mí":"Mira què passa a prop meu","Busca una dirección o lugar…":"Cerca una adreça o un lloc…","Mantén pulsado el mapa para explorar":"Mantén premut el mapa per explorar","Qué quieres buscar":"Què vols cercar","Buscar transporte cerca de mí":"Cerca transport a prop meu","Ver en realidad aumentada":"Mostra en realitat augmentada","Centrar en mi posición":"Centra en la meva posició","Borrar destino":"Esborra el destí","Recalcular rutas":"Recalcula les rutes","Cerrar rutas":"Tanca les rutes","Favoritas":"Preferides","Recientes":"Recents","Paradas cercanas":"Parades a prop","Compartir parada":"Comparteix la parada","Guardar en favoritas":"Desa a preferides","Actualizar ahora":"Actualitza ara","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Temps real de TMB i TRAM · Horaris d'AMB, FGC, Renfe i la Generalitat · Mapa © OpenStreetMap © OpenFreeMap","completado":"completat","restante":"restant","Te has desviado de la ruta.":"T'has desviat de la ruta.","Recalcular":"Recalcula","Finalizar":"Finalitza","Paradas alrededor":"Parades al voltant","Cerrar realidad aumentada":"Tanca la realitat augmentada","Mueve el móvil para calibrar la brújula 🔄":"Mou el mòbil per calibrar la brúixola 🔄","Error al cargar el mapa. Intenta refrescar la página.":"Error en carregar el mapa. Prova de refrescar la pàgina.","Reintentar":"Torna-ho a provar","No se han podido obtener los tiempos: ":"No s'han pogut obtenir els temps: ","Parada de bus no encontrada en TMB.":"Parada d'autobús no trobada a TMB.","Estación de metro no disponible.":"Estació de metro no disponible.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"Aquesta estació no ofereix temps en temps real (línies automàtiques L9/L10).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"El servei del TRAM no respon ara mateix. Torna-ho a provar.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"Avui no passa el TRAM per aquesta parada (obres o servei especial).","No hay datos de líneas para esta estación.":"No hi ha dades de línies per a aquesta estació.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"El servei de Renfe no respon ara mateix. Torna-ho a provar.","El open data de FGC no responde ahora mismo.":"L'open data d'FGC no respon ara mateix.","Sin salidas previstas en las próximas 2 horas.":"Sense sortides previstes en les pròximes 2 hores.","Horarios del bus interurbano no disponibles.":"Horaris del bus interurbà no disponibles.","Horarios de Renfe no disponibles.":"Horaris de Renfe no disponibles.","Ya estás ahí: {d}.":"Ja hi ets: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Avui ja no queda servei: busco el de demà…","Hoy ya no hay servicio · esto es lo primero de mañana":"Avui ja no hi ha servei · això és el primer de demà","Parada de bus":"Parada de bus","Bus · según horario oficial":"Bus · segons horari oficial","Parada no encontrada en los horarios.":"Parada no trobada als horaris.","Sin salidas previstas en las próximas 8 horas en esta parada.":"Sense sortides previstes en les pròximes 8 hores en aquesta parada.","Sin llegadas previstas ahora mismo en esta parada.":"Sense arribades previstes ara mateix en aquesta parada.","No tengo el trazado de esta línea.":"No tinc el traçat d'aquesta línia.","No tengo el recorrido de este tren ahora mismo.":"No tinc el recorregut d'aquest tren ara mateix.","No encuentro el recorrido de esta línea.":"No trobo el recorregut d'aquesta línia.","No encuentro el recorrido de este bus.":"No trobo el recorregut d'aquest autobús.","No se ha podido localizar el recorrido":"No s'ha pogut localitzar el recorregut","Línea no disponible":"Línia no disponible","Línea de metro no disponible.":"Línia de metro no disponible.","Este dispositivo no tiene GPS.":"Aquest dispositiu no té GPS.","Este dispositivo no soporta GPS.":"Aquest dispositiu no admet GPS.","Este dispositivo no tiene GPS para navegar.":"Aquest dispositiu no té GPS per navegar.","Esta ruta no tiene trazado para navegar.":"Aquesta ruta no té traçat per navegar.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"Necessito la teva ubicació per calcular la ruta. Activa el GPS i torna-ho a provar.","Necesito tu ubicación para situar las paradas.":"Necessito la teva ubicació per situar les parades.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No s'ha trobat cap ruta en transport públic fins allà.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No hi ha parades d'autobús, metro ni tram a menys de 900 m d'aquest punt.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"No has donat permís d'ubicació o el GPS està desactivat. També pots cercar pel número de parada o mantenir premut el mapa per explorar una zona.","📍 Buscando señal GPS...":"📍 Cercant senyal GPS...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Cercant bus, metro i tram a la zona...","🧭 Calculando las mejores rutas…":"🧭 Calculant les millors rutes…","🔗 Buscando enlaces entre redes…":"🔗 Cercant enllaços entre xarxes…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connectant en temps real...","🔗 Enlace copiado":"🔗 Enllaç copiat","Trazando ruta...":"Traçant la ruta...","Buscando paradas cercanas…":"Cercant parades a prop…","Sin salidas previstas ahora mismo aquí.":"Sense sortides previstes ara mateix aquí.","Sin próximos pasos ahora":"Sense pròxims passos ara","hacia":"cap a","Llegando":"Arribant","horario":"horari","Siguiente: {t}":"Següent: {t}","Llegada a destino: {t}":"Arribada a destí: {t}","Siguiente: {m} min":"Següent: {m} min","Andén al {p}%":"Andana al {p}%","Vacío":"Buit","Asientos libres":"Seients lliures","Pocos asientos":"Pocs seients","Solo de pie":"Només dret","Muy lleno":"Molt ple","En hora ✓":"Puntual ✓","Retrasos en la línea":"Retards a la línia","Ocupación ~{p}%":"Ocupació ~{p}%","🚶 a {d} · unos {m} min andando":"🚶 a {d} · uns {m} min a peu","Tiempos en directo de {x}":"Temps en directe de {x}","Estás aquí":"Ets aquí","Estación":"Estació","Sin nombre":"Sense nom","Camina {d} hasta {x}":"Camina {d} fins a {x}","dirección {x}":"direcció {x}","{n} paradas":"{n} parades","llegada ≈{t}":"arribada ≈{t}","Ver las {n} paradas":"Mostra les {n} parades","▶ Iniciar trayecto":"▶ Inicia el trajecte","Iniciar trayecto":"Inicia el trajecte","Desde tu ubicación · {t}":"Des de la teva ubicació · {t}","⚡ Llega antes":"⚡ Arriba abans","{m} min de margen":"{m} min de marge","enlace justo":"enllaç just","⏱ sale en {m} min":"⏱ surt en {m} min","⏱ sale en {h} h {m} min":"⏱ surt en {h} h {m} min","⏱ ¡sale ya!":"⏱ surt ara!","⏱ salió hace {m} min":"⏱ va sortir fa {m} min","+{m} min tarde":"+{m} min tard","{m} min antes":"{m} min abans","en hora":"puntual","retrasos en la línea":"retards a la línia","este punto del mapa":"aquest punt del mapa","en los primeros vagones":"als primers vagons","por el centro del tren":"pel centre del tren","en los últimos vagones":"als últims vagons","cabeza":"capçalera","centro":"centre","cola":"cua","Ve {z}":"Vés {z}","al bajar en {e}, {p}":"en baixar a {e}, {p}","el paso al {l} queda por ahí":"el pas cap a {l} queda per allà","la salida {s} queda por ahí":"la sortida {s} queda per allà","la salida queda por ahí":"la sortida queda per allà","⚠️ Señal GPS débil":"⚠️ Senyal GPS feble","Te has desviado ~{m} m de la ruta.":"T'has desviat ~{m} m de la ruta.","🚶 Camina hasta {x} y sube al":"🚶 Camina fins a {x} i puja al","🚶 Sigue caminando hasta {x}":"🚶 Continua caminant fins a {x}","Baja en":"Baixa a","🎉 ¡Has llegado a {x}!":"🎉 Has arribat a {x}!","🎉 ¡Has llegado!":"🎉 Has arribat!","tu posición":"la teva posició","Tu posición":"La teva posició","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ Ja vas per la ruta més ràpida fins a {x}.","Desde donde estás":"Des d'on ets","Bájate en {x}":"Baixa a {x}","Cambiar a esta ruta":"Canvia a aquesta ruta","🔀 Ruta cambiada":"🔀 Ruta canviada","🔀 Nueva ruta: bájate en ":"🔀 Nova ruta: baixa a ","Buscando salidas…":"Cercant sortides…","Preparando cámara…":"Preparant la càmera…","Cámara":"Càmera","Apunta el móvil a tu alrededor 📡":"Apunta el mòbil al teu voltant 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"Sense brúixola en aquest equip: et mostro les parades a prop en llista.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"Sense accés a la càmera: et mostro les parades a prop en llista.","Toca para ver próximos transportes":"Toca per veure els pròxims transports","Toca para ver llegadas":"Toca per veure les arribades","Apunta a una parada para ver sus llegadas 🎯":"Apunta a una parada per veure'n les arribades 🎯","ahora":"ara","Siempre la mejor experiencia disponible":"Sempre la millor experiència disponible","Todas las rutas obligan a caminar mucho":"Totes les rutes obliguen a caminar molt","La que menos, {m} min a pie de una tirada.":"La que menys, {m} min a peu d'una tirada.","Verlas igualmente":"Mostra-les igualment","Buscando rutas más rápidas desde la próxima parada…":"Cercant rutes més ràpides des de la pròxima parada…","Buscando rutas más rápidas en las próximas paradas…":"Cercant rutes més ràpides a les pròximes parades…","No se han podido calcular alternativas ahora mismo.":"No s'han pogut calcular alternatives ara mateix.","Llegas a las {t}":"Arribes a les {t}","Ver el recorrido de la línea {l}":"Mostra el recorregut de la línia {l}","Recorrido de la línea":"Recorregut de la línia","Cerrar":"Tanca","según los trenes de hoy":"segons els trens d'avui","Ahora mismo":"Ara mateix","Favorita":"Preferida","La de siempre a esta hora":"La de sempre a aquesta hora","Último servicio a las {t}":"Últim servei a les {t}","Próximos {n} minutos":"Pròxims {n} minuts","La zona rayada es lo que tardas en llegar a la parada":"La zona ratllada és el que trigues a arribar a la parada","no te da tiempo a pie":"no hi arribes a peu","ya":"ja","{m} min esperando":"{m} min esperant","{m} min a pie":"{m} min a peu","Bienvenido a Transport BCN":"Benvingut a Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies i FGC. Barcelona en temps real i tota Catalunya amb horaris.","Usar mi ubicación":"Fes servir la meva ubicació","Buscar por número de parada":"Cerca pel número de parada","También puedes mantener pulsado el mapa para explorar una zona":"També pots mantenir premut el mapa per explorar una zona","Vuelta a casa":"Tornada a casa","Ahora":"Ara","Llegada":"Arribada","sin combinación ahora mismo":"sense combinació ara mateix","Último sin NitBus":"Últim sense NitBus","Última de la noche":"Última de la nit","si lo pierdes, toca NitBus":"si el perds, toca NitBus","después, NitBus":"després, NitBus","El metro y el bus de día ya han cerrado":"El metro i el bus de dia ja han tancat","vuelves en NitBus":"tornes en NitBus","Ver la ruta a casa":"Mostra la ruta a casa","Calculando…":"Calculant…","Cambiar casa":"Canvia la casa","Escribe la dirección de tu casa…":"Escriu l'adreça de casa teva…","Mi casa":"Casa meva","Busca tu casa arriba":"Cerca casa teva a dalt","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Marca on vius i et diré fins quan pots quedar-te","Definir":"Defineix","Cambiar":"Canvia","🏠 Casa guardada":"🏠 Casa desada","En vivo":"En directe","Localizando trenes…":"Localitzant trens…","{n} trenes en circulación · {t}":"{n} trens en circulació · {t}","hacia {x} · {m} min":"cap a {x} · {m} min","{l} en vivo":"{l} en directe"},
+            en: {"Ocupación por coche":"Occupancy per car","parada anulada":"stop cancelled","hasta las {t}":"until {t}","hasta el {d}":"until {d}","Ir a la {n}":"Go to {n}","Acceso":"Entrance","andén {x}":"platform {x}","hoy hay una parada anulada en esta ruta":"a stop on this route is cancelled today","Destino seleccionado":"Selected destination","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap · Walking routes Valhalla (FOSSGIS)","Parada o destino…":"Stop or destination…","Parada {n}":"Stop {n}","Ver sus llegadas":"See its arrivals","Buscando más opciones…":"Looking for more options…","Parada seleccionada":"Selected stop","🚶 Menos a pie":"🚶 Less walking","Ruta a casa (mantén pulsado para cambiarla)":"Route home (press and hold to change it)","Definir casa":"Set home","En directo":"Live","Llegadas":"Arrivals","Ir a…":"Go to…","Buscar":"Search","Nº de parada":"Stop number","Ver qué pasa cerca de mí":"See what's near me","Busca una dirección o lugar…":"Search for an address or place…","Mantén pulsado el mapa para explorar":"Press and hold the map to explore","Qué quieres buscar":"What do you want to search","Buscar transporte cerca de mí":"Find transport near me","Ver en realidad aumentada":"View in augmented reality","Centrar en mi posición":"Centre on my position","Borrar destino":"Clear destination","Recalcular rutas":"Recalculate routes","Cerrar rutas":"Close routes","Favoritas":"Favourites","Recientes":"Recent","Paradas cercanas":"Nearby stops","Compartir parada":"Share stop","Guardar en favoritas":"Save to favourites","Actualizar ahora":"Refresh now","Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap":"Live data from TMB and TRAM · Timetables from AMB, FGC, Renfe and the Generalitat · Map © OpenStreetMap © OpenFreeMap","completado":"done","restante":"left","aprox.":"approx.","Te has desviado de la ruta.":"You've gone off route.","Recalcular":"Recalculate","Alternativa":"Alternative","Finalizar":"End","Paradas alrededor":"Stops around you","Cerrar realidad aumentada":"Close augmented reality","Mueve el móvil para calibrar la brújula 🔄":"Move your phone to calibrate the compass 🔄","Error al cargar el mapa. Intenta refrescar la página.":"The map failed to load. Try refreshing the page.","Reintentar":"Try again","No se han podido obtener los tiempos: ":"Couldn't get the times: ","Parada de bus no encontrada en TMB.":"Bus stop not found at TMB.","Estación de metro no disponible.":"Metro station unavailable.","Esta estación no ofrece tiempos en tiempo real (líneas automáticas L9/L10).":"This station has no live times (automated L9/L10 lines).","El servicio del TRAM no responde ahora mismo. Vuelve a intentarlo.":"The TRAM service isn't responding right now. Try again.","Hoy no pasa el TRAM por esta parada (obras o servicio especial).":"No TRAM at this stop today (works or special service).","No hay datos de líneas para esta estación.":"No line data for this station.","El servicio de Renfe no responde ahora mismo. Vuelve a intentarlo.":"The Renfe service isn't responding right now. Try again.","El open data de FGC no responde ahora mismo.":"The FGC open data isn't responding right now.","Sin salidas previstas en las próximas 2 horas.":"No departures in the next 2 hours.","Horarios del bus interurbano no disponibles.":"Intercity bus timetables unavailable.","Horarios de Renfe no disponibles.":"Renfe timetables unavailable.","Ya estás ahí: {d}.":"You are already there: {d}.","🌙 Hoy ya no queda servicio: busco el de mañana…":"🌙 Nothing left today: looking for tomorrow…","Hoy ya no hay servicio · esto es lo primero de mañana":"No service left today · this is the first tomorrow","Parada de bus":"Bus stop","Bus · según horario oficial":"Bus · scheduled times","Parada no encontrada en los horarios.":"Stop not found in the timetables.","Sin salidas previstas en las próximas 8 horas en esta parada.":"No departures in the next 8 hours at this stop.","Sin llegadas previstas ahora mismo en esta parada.":"No arrivals expected at this stop right now.","No tengo el trazado de esta línea.":"I don't have this line's route.","No tengo el recorrido de este tren ahora mismo.":"I don't have this train's route right now.","No encuentro el recorrido de esta línea.":"I can't find this line's route.","No encuentro el recorrido de este bus.":"I can't find this bus's route.","Ruta no disponible":"Route unavailable","No se ha podido localizar el recorrido":"Couldn't locate the route","Línea no disponible":"Line unavailable","Línea de metro no disponible.":"Metro line unavailable.","Este dispositivo no tiene GPS.":"This device has no GPS.","Este dispositivo no soporta GPS.":"This device doesn't support GPS.","Este dispositivo no tiene GPS para navegar.":"This device has no GPS for navigation.","Esta ruta no tiene trazado para navegar.":"This route has no path to navigate.","Necesito tu ubicación para calcular la ruta. Activa el GPS y vuelve a intentarlo.":"I need your location to work out the route. Turn on GPS and try again.","Necesito tu ubicación para situar las paradas.":"I need your location to place the stops.","No se ha encontrado ninguna ruta en transporte público hasta ahí.":"No public transport route found to there.","No hay paradas de bus, metro ni tram a menos de 900 m de este punto.":"No bus, metro or tram stops within 900 m of this point.","No has dado permiso de ubicación o el GPS está desactivado. También puedes buscar por nº de parada o mantener pulsado el mapa para explorar una zona.":"You haven't granted location permission or GPS is off. You can also search by stop number, or press and hold the map to explore an area.","📍 Buscando señal GPS...":"📍 Looking for a GPS signal...","🗺️ Buscando bus, metro y tram en la zona...":"🗺️ Looking for bus, metro and tram nearby...","🧭 Calculando las mejores rutas…":"🧭 Working out the best routes…","🔗 Buscando enlaces entre redes…":"🔗 Looking for links between networks…","vía {x}":"via {x}","⏱️ Conectando en tiempo real...":"⏱️ Connecting to live data...","🔗 Enlace copiado":"🔗 Link copied","Trazando ruta...":"Drawing the route...","Buscando paradas cercanas…":"Looking for nearby stops…","Sin salidas previstas ahora mismo aquí.":"No departures expected here right now.","Sin próximos pasos ahora":"No upcoming steps right now","hacia":"to","Llegando":"Arriving","min":"min","horario":"scheduled","Siguiente: {t}":"Next: {t}","Llegada a destino: {t}":"Arrives at: {t}","Siguiente: {m} min":"Next: {m} min","Andén al {p}%":"Platform {p}% full","Vacío":"Empty","Asientos libres":"Seats available","Pocos asientos":"Few seats","Solo de pie":"Standing only","Muy lleno":"Very full","En hora ✓":"On time ✓","Retrasos en la línea":"Delays on the line","Ocupación ~{p}%":"About {p}% full","🚶 a {d} · unos {m} min andando":"🚶 {d} away · about {m} min on foot","Tiempos en directo de {x}":"Live times for {x}","Estás aquí":"You are here","Parada":"Stop","Estación":"Station","Sin nombre":"Unnamed","Camina {d} hasta {x}":"Walk {d} to {x}","dirección {x}":"towards {x}","{n} paradas":"{n} stops","llegada ≈{t}":"arrives ≈{t}","Ver las {n} paradas":"Show the {n} stops","▶ Iniciar trayecto":"▶ Start trip","Iniciar trayecto":"Start trip","A {x}":"To {x}","Desde tu ubicación · {t}":"From your location · {t}","⚡ Llega antes":"⚡ Arrives first","{m} min de margen":"{m} min buffer","enlace justo":"tight connection","⏱ sale en {m} min":"⏱ leaves in {m} min","⏱ sale en {h} h {m} min":"⏱ leaves in {h} h {m} min","⏱ ¡sale ya!":"⏱ leaving now!","⏱ salió hace {m} min":"⏱ left {m} min ago","+{m} min tarde":"+{m} min late","{m} min antes":"{m} min early","en hora":"on time","retrasos en la línea":"delays on the line","este punto del mapa":"this point on the map","en los primeros vagones":"in the front carriages","por el centro del tren":"in the middle of the train","en los últimos vagones":"in the rear carriages","cabeza":"front","centro":"middle","cola":"rear","Ve {z}":"Ride {z}","al bajar en {e}, {p}":"when you get off at {e}, {p}","el paso al {l} queda por ahí":"the transfer to {l} is at that end","la salida {s} queda por ahí":"exit {s} is at that end","la salida queda por ahí":"the exit is at that end","⚠️ Señal GPS débil":"⚠️ Weak GPS signal","Te has desviado ~{m} m de la ruta.":"You're ~{m} m off the route.","🚶 Camina hasta {x} y sube al":"🚶 Walk to {x} and take the","🚶 Sigue caminando hasta {x}":"🚶 Keep walking to {x}","Baja en":"Get off at","🎉 ¡Has llegado a {x}!":"🎉 You've arrived at {x}!","🎉 ¡Has llegado!":"🎉 You've arrived!","tu posición":"your position","Tu posición":"Your position","✅ Ya vas por la ruta más rápida hasta {x}.":"✅ You're already on the fastest route to {x}.","Desde donde estás":"From where you are","Bájate en {x}":"Get off at {x}","Cambiar a esta ruta":"Switch to this route","🔀 Ruta cambiada":"🔀 Route changed","🔀 Nueva ruta: bájate en ":"🔀 New route: get off at ","Buscando salidas…":"Looking for departures…","Preparando cámara…":"Getting the camera ready…","Cámara":"Camera","Apunta el móvil a tu alrededor 📡":"Point your phone around you 📡","Sin brújula en este equipo: te muestro las paradas cercanas en lista.":"No compass on this device: showing nearby stops as a list.","Sin acceso a cámara: te muestro las paradas cercanas en lista.":"No camera access: showing nearby stops as a list.","Toca para ver próximos transportes":"Tap to see upcoming departures","Toca para ver llegadas":"Tap to see arrivals","Apunta a una parada para ver sus llegadas 🎯":"Point at a stop to see its arrivals 🎯","ahora":"now","Siempre la mejor experiencia disponible":"Always the best experience available","Todas las rutas obligan a caminar mucho":"Every route means a long walk","La que menos, {m} min a pie de una tirada.":"The shortest has a {m} min walk in one go.","Verlas igualmente":"Show them anyway","Buscando rutas más rápidas desde la próxima parada…":"Looking for faster routes from the next stop…","Buscando rutas más rápidas en las próximas paradas…":"Looking for faster routes at the next stops…","No se han podido calcular alternativas ahora mismo.":"Couldn't work out alternatives right now.","Llegas a las {t}":"You arrive at {t}","Ver el recorrido de la línea {l}":"Show the {l} line route","Recorrido de la línea":"Line route","Cerrar":"Close","según los trenes de hoy":"from today's trains","Ahora mismo":"Right now","Favorita":"Favourite","La de siempre a esta hora":"Your usual at this time","Último servicio a las {t}":"Last service at {t}","Próximos {n} minutos":"Next {n} minutes","La zona rayada es lo que tardas en llegar a la parada":"The hatched zone is how long it takes you to reach the stop","no te da tiempo a pie":"you can't make it on foot","ya":"now","{m} min esperando":"{m} min waiting","{m} min a pie":"{m} min walking","Bienvenido a Transport BCN":"Welcome to Transport BCN","Bus, metro, tram, Rodalies y FGC. Barcelona en tiempo real y toda Catalunya con horarios.":"Bus, metro, tram, Rodalies and FGC. Live in Barcelona, timetables across Catalonia.","Usar mi ubicación":"Use my location","Buscar por número de parada":"Search by stop number","También puedes mantener pulsado el mapa para explorar una zona":"You can also press and hold the map to explore an area","Vuelta a casa":"Getting home","Ahora":"Now","Llegada":"Arrival","sin combinación ahora mismo":"no connection right now","Último sin NitBus":"Last without NitBus","Última de la noche":"Last of the night","si lo pierdes, toca NitBus":"miss it and it's the NitBus","después, NitBus":"after that, NitBus","El metro y el bus de día ya han cerrado":"The metro and daytime buses have closed","vuelves en NitBus":"you go home by NitBus","Ver la ruta a casa":"Show the route home","Calculando…":"Working it out…","Cambiar casa":"Change home","Escribe la dirección de tu casa…":"Type your home address…","Mi casa":"My home","Busca tu casa arriba":"Search for your home above","Marca dónde vives y te diré hasta cuándo puedes quedarte":"Set where you live and I'll tell you how late you can stay out","Definir":"Set","Cambiar":"Change","🏠 Casa guardada":"🏠 Home saved","Primer metro":"First metro","En vivo":"Live","Localizando trenes…":"Locating trains…","{n} trenes en circulación · {t}":"{n} trains running · {t}","hacia {x} · {m} min":"to {x} · {m} min","{l} en vivo":"{l} live"}
         };
 
         let lang = 'es';
@@ -1917,6 +1919,16 @@
             </div>`;
         }
 
+        // Lo lleno que viene cada coche del tren (TMB y FGC lo publican). No se
+        // dice cuál es la cabeza: en abierto no consta el orden de los coches.
+        function barrasCoches(coches) {
+            const v = (coches || []).filter(x => x != null && x !== '');
+            if (v.length < 2) return '';
+            return `<span class="occ-bars" title="${esc(t('Ocupación por coche'))}">` +
+                v.map(x => `<i style="height:${Math.max(3, Math.min(14, Math.round(Number(x) / 7) + 3))}px; background:${Number(x) >= 60 ? 'var(--primary)' : Number(x) >= 30 ? 'var(--amber)' : 'var(--green)'}"></i>`).join('') +
+                '</span>';
+        }
+
         function renderDepartures(departures, isSilent) {
             hideError();
             setLoading(null);
@@ -1943,7 +1955,7 @@
                                 <div class="bus-dest-label">${t('hacia')}</div>
                                 <div class="bus-dest">${esc(d.dest)}</div>
                                 ${d.next ? `<div class="bus-next">${esc(d.next)}</div>` : ''}
-                                ${d.occ ? `<div class="occ-badge ${d.occ.high ? 'occ-high' : ''}">${d.occ.icon || '👥'} ${esc(d.occ.label)}</div>` : ''}
+                                ${d.occ ? `<div class="occ-badge ${d.occ.high ? 'occ-high' : ''}">${d.occ.icon || '👥'} ${esc(d.occ.label)}${barrasCoches(d.occ.coches)}</div>` : ''}
                                 ${d.alert ? `<div class="occ-badge occ-high" title="${esc(d.alert)}">⚠️ ${esc(d.alert.length > 64 ? d.alert.slice(0, 63) + '…' : d.alert)}</div>` : ''}
                             </div>
                             <div class="bus-eta">${etaHTML(d.arriveAt, d.sched)}${tight ? '<span class="catch-warn" title="Justo de tiempo llegando andando">🏃</span>' : ''}</div>
@@ -2657,13 +2669,17 @@
             return data.filter(via => via.propers_trens && via.propers_trens.length > 0).map(via => {
                 // ojo: la variable no puede llamarse t, que es la función de traducción
                 const trens = via.propers_trens;
-                const occPct = via.ocupacio_estacio_sortida && via.ocupacio_estacio_sortida.percentatge_ocupacio;
+                // TMB manda lo lleno que viene el tren y cada uno de sus coches
+                const info = trens[0].info_tren || {};
+                const coches = Array.isArray(info.percentatge_ocupacio_cotxes) ? info.percentatge_ocupacio_cotxes : null;
+                const occPct = info.percentatge_ocupacio != null ? info.percentatge_ocupacio
+                    : (via.ocupacio_estacio_sortida && via.ocupacio_estacio_sortida.percentatge_ocupacio);
                 return {
                     line: trens[0].nom_linia, color: metroColor(trens[0].nom_linia), dest: trens[0].desti_trajecte,
                     mins: Math.max(0, Math.round(trens[0].temps_restant / 60)),
                     arriveAt: now + trens[0].temps_restant * 1000,
                     next: trens[1] ? t('Siguiente: {m} min', { m: Math.max(1, Math.round(trens[1].temps_restant / 60)) }) : null,
-                    occ: occPct > 0 ? { label: t('Andén al {p}%', { p: occPct }), high: occPct >= 70 } : null,
+                    occ: occPct > 0 ? { label: t('Ocupación ~{p}%', { p: occPct }), high: occPct >= 70, coches } : null,
                     itinKey: `metro:${via.codi_linia}:${via.codi_via}`,
                     itin: { mode: 'metro', lineCode: via.codi_linia, line: trens[0].nom_linia, stationId: stop.id }
                 };
@@ -3012,61 +3028,126 @@
             } catch { return {}; }
         }
 
-        async function fetchFgcArrivals(stop) {
-            const now = new Date();
-            // horas de servicio en formato GTFS (la madrugada de hoy es 24:xx/25:xx de ayer)
-            let h = now.getHours();
-            if (h < 4) h += 24;
-            const hourFilters = [h, h + 1].map(x => `startswith(departure_time,"${String(x).padStart(2, '0')}:")`).join(' OR ');
-            const where = `parent_station="${stop.code}" AND (${hourFilters})`;
-            const url = `${FGC_API}/viajes-de-hoy/records?select=route_short_name,trip_headsign,departure_time,route_color&where=${encodeURIComponent(where)}&order_by=departure_time&limit=100`;
+        // --- FGC EN DIRECTO: CADA TREN, CON SU HORA Y SU VÍA ---
+        // FGC publica GTFS-RT con CORS: para cada viaje en marcha, la hora
+        // prevista en cada andén (SC2 = Sant Cugat, vía 2). El fichero cambia de
+        // URL en cada actualización, así que primero se pregunta cuál es.
+        const FGC_RT_URL = `${FGC_API}/trip-updates-gtfs_realtime/records?limit=1`;
+        let fgcRtMem = null, fgcRtT = 0, fgcRtReq = null, fgcRtFichero = null;
 
-            const [res, live] = await Promise.all([fetch(url), fgcLiveStatus()]);
-            if (!res.ok) throw new Error(t('El open data de FGC no responde ahora mismo.'));
-            const data = await res.json();
-
-            const nowStr = `${String(h).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
-            const groups = new Map();
-            (data.results || []).forEach(t => {
-                if (!t.departure_time || t.departure_time < nowStr) return;
-                if (t.trip_headsign === stop.name) return; // tren que TERMINA aquí: no sirve para subir
-                const k = t.route_short_name + '|' + t.trip_headsign;
-                (groups.get(k) || groups.set(k, []).get(k)).push(t);
-            });
-
-            const departures = [];
-            groups.forEach((items, k) => {
-                const [line, dest] = k.split('|');
-                const f = items[0];
-                const [fh, fm] = f.departure_time.split(':').map(Number);
-                const dep = new Date();
-                dep.setHours(fh % 24, fm, 0, 0);
-                if (fh >= 24) dep.setDate(dep.getDate() + 1);
-                const st = live[line];
-                const occAvg = st && st.occN ? Math.round(st.occSum / st.occN) : null;
-                departures.push({
-                    line, color: '#' + (f.route_color || 'f07d00'), dest,
-                    mins: Math.max(0, Math.round((dep.getTime() - Date.now()) / 60000)),
-                    arriveAt: dep.getTime(),
-                    next: items[1] ? t('Siguiente: {t}', { t: items[1].departure_time.slice(0, 5) }) : null,
-                    occ: st && st.delayed > 0 ? { label: t('Retrasos en la línea') + ` (${st.delayed})`, high: true }
-                        : (occAvg !== null ? { label: t('Ocupación ~{p}%', { p: occAvg }), high: occAvg >= 60 } : null),
-                    itinKey: `fgc:${line}:${dest}`,
-                    itin: { mode: 'fgc', line, headsign: dest, code: stop.code }
-                });
-            });
-            if (departures.length === 0) throw new Error(t('Sin salidas previstas en las próximas 2 horas.'));
-            return departures;
+        async function fgcRt() {
+            if (fgcRtMem && Date.now() - fgcRtT < 30000) return fgcRtMem;
+            if (fgcRtReq) return fgcRtReq;
+            fgcRtReq = (async () => {
+                const baja = async () => {
+                    if (!fgcRtFichero) {
+                        const r = await fetch(FGC_RT_URL);
+                        const d = r.ok ? await r.json() : null;
+                        fgcRtFichero = (((d || {}).results || [])[0] || {}).file;
+                        fgcRtFichero = fgcRtFichero && fgcRtFichero.url;
+                    }
+                    if (!fgcRtFichero) return null;
+                    const res = await fetch(fgcRtFichero);
+                    if (!res.ok) { fgcRtFichero = null; return null; }
+                    return new Uint8Array(await res.arrayBuffer());
+                };
+                let buf = await baja();
+                if (!buf) { fgcRtFichero = null; buf = await baja(); }   // fichero caducado: se vuelve a preguntar
+                if (!buf) return fgcRtMem || [];
+                const viajes = [];
+                for (const [f, v] of pbRead(buf)) {
+                    if (f !== 2 || !v) continue;                       // entity
+                    const ent = pbRead(v);
+                    const tu = pbOne(ent, 3);
+                    if (!tu) continue;
+                    const campos = pbRead(tu);
+                    const trip = pbOne(campos, 1);
+                    const viaje = { id: trip ? pbTxt(pbOne(pbRead(trip), 1) || new Uint8Array()) : '', paradas: [] };
+                    for (const [g, w] of campos) {
+                        if (g !== 2 || !w) continue;                   // stop_time_update
+                        const stu = pbRead(w);
+                        const anden = pbTxt(pbOne(stu, 4) || new Uint8Array());
+                        const hora = ev => { const x = pbOne(stu, ev); if (!x) return null; const e = pbRead(x); const seg = pbOne(e, 2); return seg ? seg * 1000 : null; };
+                        if (!anden) continue;
+                        viaje.paradas.push({ anden, estacion: anden.replace(/\d+$/, ''), via: (anden.match(/\d+$/) || [''])[0],
+                                             llega: hora(2), sale: hora(3) });
+                    }
+                    if (viaje.paradas.length) viajes.push(viaje);
+                }
+                fgcRtMem = viajes;
+                fgcRtT = Date.now();
+                return viajes;
+            })().catch(() => fgcRtMem || []).finally(() => { fgcRtReq = null; });
+            return fgcRtReq;
         }
 
-        // --- 10D. HISPANO IGUALADINA (bus interurbà; horario oficial del GTFS de la
-        // Generalitat, precompilado semanalmente en catbus.json) ---
-        // Todo el bus interurbano de Catalunya: 111 operadores, las cuatro
-        // provincias (scripts/build_catbus.py). Los 28.000 viajes del día vienen
-        // agrupados en ~8.000 patrones —la misma línea con las mismas paradas y
-        // los mismos minutos entre ellas, repetida a lo largo del día— y de cada
-        // expedición solo se guarda su hora de salida. Así cabe en 2 MB.
-        let catBusData = null, catBusReq = null;
+        // Ocupación por coche del tren concreto (el id del posicionamiento es el
+        // mismo trip_id del GTFS-RT), no la media de toda la línea
+        let fgcTrenesMem = null, fgcTrenesT = 0;
+        async function fgcTrenes() {
+            if (fgcTrenesMem && Date.now() - fgcTrenesT < 30000) return fgcTrenesMem;
+            try {
+                const res = await fetch(`${FGC_API}/posicionament-dels-trens/records?limit=100&select=id,lin,dir,en_hora,ocupacio_m1_percent,ocupacio_ri_percent,ocupacio_mi_percent,ocupacio_m2_percent`);
+                const data = res.ok ? await res.json() : null;
+                const porViaje = new Map();
+                (((data || {}).results) || []).forEach(x => { if (x.id) porViaje.set(String(x.id), x); });
+                fgcTrenesMem = porViaje;
+                fgcTrenesT = Date.now();
+            } catch { fgcTrenesMem = fgcTrenesMem || new Map(); }
+            return fgcTrenesMem;
+        }
+
+        const ocupacionCoches = tren => tren ? [tren.ocupacio_m1_percent, tren.ocupacio_ri_percent,
+            tren.ocupacio_mi_percent, tren.ocupacio_m2_percent].map(x => (x == null ? null : Number(x))) : null;
+
+        async function fetchFgcArrivals(stop) {
+            const d = await ensureFgcSched();
+            const idxs = [];
+            d.stops.forEach((x, i) => { if (String(x[0]).split(':').pop() === String(stop.code)) idxs.push(i); });
+            if (!idxs.length) throw new Error(t('Parada no encontrada en los horarios.'));
+            const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
+            let salidas = idxs.flatMap(idx => scheduleDepartures(d, idx, { color: '#f07d00', mode: 'fgcsched', horizon: 120 }))
+                .filter(x => norm(x.dest) !== norm(stop.name))     // el tren que TERMINA aquí no sirve para subir
+                .sort((a, b) => a.arriveAt - b.arriveAt);
+            const best = new Map();                                // una tarjeta por línea y destino
+            salidas.forEach(x => {
+                x.color = '#' + ((d.lines[x.itin.li] || [])[4] || 'f07d00');
+                const k = x.line + '|' + x.dest;
+                if (!best.has(k)) best.set(k, x);
+            });
+            salidas = [...best.values()];
+            if (!salidas.length) throw new Error(t('Sin salidas previstas en las próximas 2 horas.'));
+
+            // y encima, el tren de verdad: su hora prevista, su vía y lo lleno que viene
+            const [rt, trenes] = await Promise.all([fgcRt().catch(() => []), fgcTrenes().catch(() => new Map())]);
+            const codigo = String(stop.code);
+            const nombreDe = cod => { const e = d.stops.find(x => String(x[0]).split(':').pop() === cod); return e ? e[1] : ''; };
+            salidas.forEach(x => {
+                const cand = rt.map(v => {
+                    const p = v.paradas.find(q => q.estacion === codigo);
+                    const hora = p && (p.sale || p.llega);
+                    if (!hora) return null;
+                    const fin2 = v.paradas[v.paradas.length - 1];
+                    return { v, p, hora, destino: nombreDe(fin2.estacion) };
+                }).filter(Boolean)
+                  .filter(c => Math.abs(c.hora - x.arriveAt) < 12 * 60000)
+                  .sort((a, b) => (norm(b.destino) === norm(x.dest)) - (norm(a.destino) === norm(x.dest))
+                                || Math.abs(a.hora - x.arriveAt) - Math.abs(b.hora - x.arriveAt))[0];
+                if (!cand || norm(cand.destino) !== norm(x.dest)) return;
+                const retraso = Math.round((cand.hora - x.arriveAt) / 60000);
+                x.arriveAt = cand.hora;
+                x.mins = Math.max(0, Math.round((cand.hora - Date.now()) / 60000));
+                x.sched = false;
+                x.via = cand.p.via || null;
+                if (retraso) x.delay = retraso * 60;
+                const coches = ocupacionCoches(trenes.get(cand.v.id));
+                if (coches && coches.some(c => c != null)) {
+                    const media = Math.round(coches.filter(c => c != null).reduce((a, b) => a + b, 0) / coches.filter(c => c != null).length);
+                    x.occ = { label: t('Ocupación ~{p}%', { p: media }), high: media >= 60, coches };
+                }
+            });
+            return salidas.sort((a, b) => a.arriveAt - b.arriveAt);
+        }
 
         async function loadSchedule(url, errMsg) {
             const res = await fetch(url);
@@ -3097,6 +3178,15 @@
                 .then(d => (renfeMDData = d))
                 .catch(e => { renfeMDReq = null; throw e; });
             return renfeMDReq;
+        }
+
+        let fgcSchedData = null, fgcSchedReq = null;
+        function ensureFgcSched() {
+            if (fgcSchedData) return Promise.resolve(fgcSchedData);
+            fgcSchedReq = fgcSchedReq || loadSchedule('./fgc-sched.json', t('Horarios de FGC no disponibles.'))
+                .then(d => (fgcSchedData = d))
+                .catch(e => { fgcSchedReq = null; throw e; });
+            return fgcSchedReq;
         }
 
         function ensureCatBus() {
@@ -3219,6 +3309,26 @@
         async function legLive(leg) {
             const mins = (leg.startTime - Date.now()) / 60000;
             if (!(mins > -3 && mins <= LIVE_HORIZON_MIN)) return null;
+            // FGC publica cada viaje en directo: se busca el mismo tren (misma
+            // estación, mismo destino) y se da su hora prevista
+            if (leg.agencyName === 'FGC') {
+                const cod = String((leg.from || {}).codigo || '').split(':').pop();
+                if (!cod) return null;
+                const rt = await fgcRt().catch(() => []);
+                const d = fgcSchedData;
+                const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
+                const nombreDe = c => { const e = d && d.stops.find(x => String(x[0]).split(':').pop() === c); return e ? e[1] : ''; };
+                let best = null;
+                rt.forEach(v => {
+                    const p = v.paradas.find(q => q.estacion === cod);
+                    const hora = p && (p.sale || p.llega);
+                    if (!hora) return;
+                    if (norm(nombreDe(v.paradas[v.paradas.length - 1].estacion)) !== norm(leg.headsign)) return;
+                    const diff = Math.abs(hora - leg.startTime);
+                    if (!best || diff < best.diff) best = { diff, at: hora };
+                });
+                return best && best.diff <= SAME_TRIP_MIN * 60000 ? { at: best.at } : null;
+            }
             let deps = null;
             try {
                 if (leg.mode === 'BUS' && leg.from.stopCode) {
@@ -3256,12 +3366,6 @@
                 if (!l.transitLeg) return;
                 const slot = container.querySelector(`.jstep-live[data-leg="${i}"]`);
                 if (!slot) return;
-                // FGC no da el paso concreto, pero sí si la línea acumula retrasos
-                if (l.agencyName === 'FGC' && l.routeShortName) {
-                    const byLine = await fgcLiveStatus().catch(() => ({}));
-                    const e = byLine[l.routeShortName];
-                    if (e && e.delayed > 0) { l._lineDelays = true; slot.innerHTML = legEtaHTML(l, null); }
-                }
                 const live = await legLive(l).catch(() => null);
                 if (live && container.isConnected) slot.innerHTML = legEtaHTML(l, live);
             });
@@ -3893,6 +3997,7 @@
                 else if (d.itin.mode === 'amb' || d.itin.mode === 'tmbs') nodes = await ambItinerary(d.itin);
                 else if (d.itin.mode === 'hbus') nodes = await hbusItinerary(d.itin);
                 else if (d.itin.mode === 'rsched') nodes = await hbusItinerary(d.itin, ensureRenfeMD);
+                else if (d.itin.mode === 'fgcsched') nodes = await hbusItinerary(d.itin, ensureFgcSched);
                 else nodes = await tramItinerary(d.itin);
 
                 if (!activeRoute || activeRoute.key !== d.itinKey) return;
@@ -5597,7 +5702,7 @@
             if (redCache) return Promise.resolve(redCache);
             redReq = redReq || (async () => {
                 const ds = [];
-                for (const carga of [ensureCatBus, ensureRenfeMD]) {
+                for (const carga of [ensureCatBus, ensureRenfeMD, ensureFgcSched]) {
                     const d = await carga().catch(() => null);
                     if (d) ds.push(d);
                 }
@@ -6043,7 +6148,8 @@
                             transitLeg: true, mode: esTren ? 'RAIL' : 'BUS',
                             routeShortName: hbusLine(linea[0]), routeColor: esTren ? 'EC0000' : '7b3fa0',
                             headsign: d.heads[p[1]], agencyName: linea[2] || 'Bus interurbà',
-                            from: { name: oStop.name }, to: { name: dStop.name },
+                            from: { name: oStop.name, codigo: String(d.stops[paradas[kO]][0]) },
+                            to: { name: dStop.name, codigo: String(d.stops[paradas[k]][0]) },
                             startTime: dep, endTime: arr, duration: (arr - dep) / 1000,
                             // hora de paso por cada parada de esta expedición (para la
                             // «Alternativa»: a qué hora estarás en Sants, sin adivinar)
@@ -6097,9 +6203,11 @@
                 { rOrigen: 9000, nOrigen: 40, rDestino: 6000, nDestino: 15, ...(opts || {}) });
         }
 
-        // --- Rutas con FGC: se componen con el open data oficial (viajes-de-hoy) y
-        // se fusionan SIEMPRE con el planner, que rara vez propone el tren directo
-        // (p. ej. Pl. Espanya → Santa Coloma de Cervelló) ---
+        // --- Rutas con FGC: con su horario oficial compilado (fgc-sched.json) ---
+        // Antes se emparejaban salidas y llegadas por orden, porque el open data
+        // "viajes-de-hoy" no dice a qué viaje pertenece cada hora: salían trenes
+        // fantasma (Sant Cugat → Pl. Catalunya en 10 min, cuando son 29) y enlaces
+        // imposibles. Ahora cada viaje viene entero del GTFS de FGC.
         function nearestFgc(point, n, maxDist) {
             return FGC_STATIONS
                 .map(([code, sname, slat, slon]) => ({ code, name: sname, lat: slat, lon: slon, dist: getDistance(point.lat, point.lon, slat, slon) }))
@@ -6109,128 +6217,12 @@
                 .map(s => ({ ...s, pie: metrosAPie(point.lat, point.lon, s.lat, s.lon) }));
         }
 
-        // Horas GTFS del día de servicio (la madrugada es 24:xx-27:xx del día anterior)
-        function fgcTimeToEpoch(str) {
-            if (!str) return null;
-            const [h, m, s] = str.split(':').map(Number);
-            if (isNaN(h) || isNaN(m)) return null;
-            const day = new Date();
-            if (day.getHours() < 4) day.setDate(day.getDate() - 1);
-            day.setHours(0, 0, 0, 0);
-            return day.getTime() + (h * 3600 + m * 60 + (s || 0)) * 1000;
-        }
-
-        const fgcTimesCache = new Map(); // parent_station → { t, rows }
-        async function fgcStationTimes(code) {
-            const hit = fgcTimesCache.get(code);
-            if (hit && Date.now() - hit.t < 60000) return hit.rows;
-            const now = new Date();
-            let h = now.getHours();
-            if (h < 4) h += 24;
-            const hourFilters = [h, h + 1, h + 2].map(x => `startswith(departure_time,"${String(x).padStart(2, '0')}:")`).join(' OR ');
-            const where = `parent_station="${code}" AND (${hourFilters})`;
-            const url = `${FGC_API}/viajes-de-hoy/records?select=route_short_name,trip_headsign,departure_time,arrival_time,route_color,shape_id,stop_sequence&where=${encodeURIComponent(where)}&order_by=departure_time&limit=100`;
-            const res = await fetch(url);
-            if (!res.ok) return [];
-            const data = await res.json();
-            const rows = data.results || [];
-            fgcTimesCache.set(code, { t: Date.now(), rows });
-            return rows;
-        }
-
         async function fgcJourneys(origin, dest, whenMs) {
-            const dSts = nearestFgc(dest, 2, 3000);
-            if (!dSts.length) return [];
-            // Las estaciones más cercanas al origen pueden ser todas de la otra red
-            // (desde el centro salen las del Vallès y el destino estar en la de
-            // Llobregat-Anoia): añade siempre la más cercana que comparta línea con
-            // el destino, aunque quede lejos — el acceso hasta ella lo pone el planner.
-            const dLines = new Set(dSts.flatMap(s => FGC_LINES_BY_ST[s.code] || []));
-            const oSts = nearestFgc(origin, 3, 4500);
-            const enlaza = s => (FGC_LINES_BY_ST[s.code] || []).some(l => dLines.has(l));
-            if (dLines.size && !oSts.some(enlaza)) {
-                const vistas = new Set(oSts.map(s => s.code));
-                nearestFgc(origin, 60, 12000).forEach(s => {
-                    if (oSts.length < 5 && !vistas.has(s.code) && enlaza(s)) { oSts.push(s); vistas.add(s.code); }
-                });
-            }
-            if (!oSts.length) return [];
-            const after = whenMs || Date.now();
-            // todas a la vez: de una en una eran 1,3 s antes de empezar
-            await Promise.all([...oSts, ...dSts].map(s => fgcStationTimes(s.code).catch(() => [])));
-
-            const its = [], seen = new Set();
-            for (const oSt of oSts) {
-                for (const dSt of dSts) {
-                    if (oSt.code === dSt.code) continue;
-                    let oRows, dRows;
-                    try { [oRows, dRows] = await Promise.all([fgcStationTimes(oSt.code), fgcStationTimes(dSt.code)]); } catch { continue; }
-                    // El open data no expone trip_id: el mismo tren se casa por patrón
-                    // (línea + destino + trazado) emparejando salidas y llegadas en orden
-                    // FIFO (los trenes de un patrón no se adelantan entre sí). Compartir
-                    // trazado descarta de paso mezclar las redes Vallès / Llobregat-Anoia
-                    const patKey = r => r.route_short_name + '|' + r.trip_headsign + '|' + r.shape_id;
-                    const dByPat = new Map();
-                    dRows.forEach(r => { const k = patKey(r); (dByPat.get(k) || dByPat.set(k, []).get(k)).push(r); });
-                    const oByPat = new Map();
-                    oRows.forEach(r => { const k = patKey(r); if (dByPat.has(k)) (oByPat.get(k) || oByPat.set(k, []).get(k)).push(r); });
-                    const walkO = oSt.pie / 1.25, walkD = dSt.pie / 1.25;
-                    // andando si la estación está cerca; si no, el acceso lo pone
-                    // luego el planner y basta con un margen mínimo razonable
-                    const minLead = (oSt.dist <= 1200 ? walkO : 8 * 60) * 1000;
-                    oByPat.forEach((deps, k) => {
-                        const seqO = deps[0].stop_sequence, seqD = dByPat.get(k)[0].stop_sequence;
-                        if (seqD <= seqO) return; // sentido contrario
-                        const minTravel = (seqD - seqO) * 45000; // filtra llegadas de trenes anteriores a la ventana
-                        const arrTimes = dByPat.get(k).map(r => fgcTimeToEpoch(r.arrival_time || r.departure_time)).filter(Boolean).sort((a, b) => a - b);
-                        deps.sort((a, b) => a.departure_time < b.departure_time ? -1 : 1);
-                        let ai = 0, added = 0;
-                        for (const d of deps) {
-                            const dep = fgcTimeToEpoch(d.departure_time);
-                            if (!dep) continue;
-                            while (ai < arrTimes.length && arrTimes[ai] < dep + minTravel) ai++;
-                            if (ai >= arrTimes.length) break;
-                            const arr = arrTimes[ai++]; // consume siempre: FIFO por tren
-                            if (dep < after + minLead || added >= 2) continue;
-                            const sig = k + '@' + dep;
-                            if (seen.has(sig)) continue;
-                            seen.add(sig); added++;
-                            const legs = [];
-                            if (oSt.dist > 80) legs.push({
-                                transitLeg: false, mode: 'WALK', duration: walkO, distance: oSt.pie,
-                                from: { name: 'Origen' }, to: { name: oSt.name },
-                                startTime: dep - walkO * 1000, endTime: dep,
-                                _pts: [[origin.lat, origin.lon], [oSt.lat, oSt.lon]]
-                            });
-                            legs.push({
-                                transitLeg: true, mode: 'RAIL',
-                                routeShortName: d.route_short_name, routeColor: (d.route_color || 'f07d00'),
-                                headsign: d.trip_headsign, agencyName: 'FGC',
-                                from: { name: oSt.name, stopId: 'fgc:' + oSt.code }, to: { name: dSt.name },
-                                startTime: dep, endTime: arr, duration: (arr - dep) / 1000,
-                                intermediateStops: null,
-                                _pts: [[oSt.lat, oSt.lon], [dSt.lat, dSt.lon]]
-                            });
-                            if (dSt.dist > 80) legs.push({
-                                transitLeg: false, mode: 'WALK', duration: walkD, distance: dSt.pie,
-                                from: { name: dSt.name }, to: { name: 'Destination' },
-                                startTime: arr, endTime: arr + walkD * 1000,
-                                _pts: [[dSt.lat, dSt.lon], [dest.lat, dest.lon]]
-                            });
-                            its.push({
-                                startTime: legs[0].startTime, endTime: legs[legs.length - 1].endTime,
-                                duration: (legs[legs.length - 1].endTime - legs[0].startTime) / 1000,
-                                legs, _oStop: oSt, _dStop: dSt
-                            });
-                        }
-                    });
-                }
-            }
-            const coste = x => x.endTime / 60000 + longestWalkMin(x) * 4;
-            its.sort((a, b) => coste(a) - coste(b));
-            // estación de subida lejana: ofrece también llegar en metro/bus
-            const salida = await chainEgress(dest, await chainAccess(origin, its.slice(0, 5)));
-            return unaPorVehiculo(salida).sort((a, b) => coste(a) - coste(b)).slice(0, 4);
+            let d;
+            try { d = await ensureFgcSched(); } catch { return []; }
+            // las estaciones están lejos unas de otras: desde el centro se llega a
+            // Pl. Espanya en metro para coger la línea de Llobregat-Anoia
+            return schedJourneys(d, origin, dest, whenMs, { rOrigen: 9000, nOrigen: 30, rDestino: 3500, nDestino: 12 });
         }
 
         function legStrip(it) {

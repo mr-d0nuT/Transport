@@ -63,7 +63,10 @@ CODIGO = re.compile(r"^\s*\(([^)]{1,8})\)")
 def fetch_gtfs(fuente):
     """Descarga el GTFS de una fuente. Con GTFS_CACHE apuntando a un directorio
     lo reutiliza entre ejecuciones (cómodo en local, irrelevante en CI). Los del
-    NAP necesitan la clave; sin ella, esa fuente se salta."""
+    NAP necesitan la clave; sin ella, esa fuente se salta. Una fuente puede traer
+    el zip ya montado (FGC publica sus ficheros sueltos)."""
+    if fuente.get("zf"):
+        return fuente["zf"]
     if fuente.get("nap"):
         clave = os.environ.get("NAP_API_KEY", "").strip()
         if not clave:
@@ -171,7 +174,9 @@ def compilar(zf, fuente, acc, horizon):
         codigo = m.group(1) if m else re.sub(r"^L0+", "L", corto) or largo[:6]
         nombre = CODIGO.sub("", largo).strip(" -–") or codigo
         operador = fuente["operador"] or agencies.get(r.get("agency_id", ""), "")
-        routes[r["route_id"]] = (codigo, nombre, operador, fuente.get("modo", "B"))
+        # el color oficial de la línea, si el GTFS lo trae (FGC lo trae)
+        color = (r.get("route_color") or "").strip().lstrip("#")
+        routes[r["route_id"]] = (codigo, nombre, operador, fuente.get("modo", "B"), color)
     if not routes:
         return 0
 
@@ -215,8 +220,21 @@ def compilar(zf, fuente, acc, horizon):
         for d in svc_dates[s]:
             acc.dates[d.strftime("%Y%m%d")].add(si)
 
+    crudo = list(rows("stops.txt"))
+    # Redes que publican una parada por andén (FGC: SC1 y SC2 son Sant Cugat):
+    # cada andén se cuenta en su estación, que es lo que la gente busca
+    anden_a_estacion = {}
+    if fuente.get("por_estacion"):
+        ids = {s.get("stop_id") for s in crudo}
+        for s in crudo:
+            padre = (s.get("parent_station") or "").strip()
+            if padre and padre in ids:
+                anden_a_estacion[s["stop_id"]] = padre
+
     stops_meta = {}
-    for s in rows("stops.txt"):
+    for s in crudo:
+        if s.get("stop_id") in anden_a_estacion:
+            continue
         try:
             lat, lon = round(float(s["stop_lat"]), 5), round(float(s["stop_lon"]), 5)
         except (ValueError, KeyError, TypeError):
@@ -227,9 +245,10 @@ def compilar(zf, fuente, acc, horizon):
 
     trip_stops = collections.defaultdict(list)
     for st in rows("stop_times.txt"):
-        if st["trip_id"] in trips and st["stop_id"] in stops_meta:
+        sid = anden_a_estacion.get(st["stop_id"], st["stop_id"])
+        if st["trip_id"] in trips and sid in stops_meta:
             trip_stops[st["trip_id"]].append(
-                (int(st["stop_sequence"]), st["stop_id"], to_min(st.get("departure_time")), to_min(st.get("arrival_time"))))
+                (int(st["stop_sequence"]), sid, to_min(st.get("departure_time")), to_min(st.get("arrival_time"))))
 
     puestos = 0
     for tid, seq in trip_stops.items():

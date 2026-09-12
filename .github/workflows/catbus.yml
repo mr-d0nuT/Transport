@@ -1,4 +1,4 @@
-name: Actualiza horarios de bus y tren de Catalunya
+name: Actualiza horarios de bus y tren de Catalunya (Generalitat, Renfe y FGC)
 
 on:
   schedule:
@@ -23,6 +23,8 @@ jobs:
         run: python3 scripts/build_catbus.py
       - name: Regenerar renfe-md.json (Regionales y Media Distancia de Renfe)
         run: python3 scripts/build_renfemd.py
+      - name: Regenerar fgc-sched.json (horario oficial de FGC)
+        run: python3 scripts/build_fgc.py
       - name: Comprobar que el resultado tiene sentido
         env:
           NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
@@ -66,11 +68,22 @@ jobs:
           # el fichero encoge de golpe y se acabaron los enlaces bus-tren-bus
           if len(r['stops']) < 200 or trenes < 20000 or len(rodalies) < 10:
               sys.exit('Horario de Renfe incompleto: no se commitea')
+
+          # FGC: sin su horario, las rutas del Vallès y de Llobregat-Anoia
+          # vuelven a emparejar salidas y llegadas a ojo (trenes fantasma)
+          g = json.load(open('fgc-sched.json'))
+          viajes = sum(len(p[4]) // 2 for p in g['pats'])
+          lineas = {l[0] for l in g['lines']}
+          print(f"fgc-sched: {len(g['stops'])} estaciones · {len(g['pats'])} patrones · {viajes} viajes · {len(lineas)} líneas")
+          if len(g['stops']) < 60 or viajes < 8000 or not {'S1', 'S2', 'R5', 'L6'} <= lineas:
+              sys.exit('Horario de FGC incompleto: no se commitea')
+          if not g['dates']:
+              sys.exit('FGC sin calendario: no se commitea')
           PY
       - name: Commit si hay cambios
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A catbus.json renfe-md.json
-          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios de Catalunya actualizados (bus de la Generalitat, urbanos y Renfe)"
+          git add -A catbus.json renfe-md.json fgc-sched.json
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "Horarios de Catalunya actualizados (bus de la Generalitat, urbanos, Renfe y FGC)"
           git push
