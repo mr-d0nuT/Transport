@@ -1822,6 +1822,20 @@
             return `<div class="bus-time ${mins <= 3 ? 'soon' : ''}" data-arrive="${arriveAt}">${mins}<small>${t('min')}</small></div>${tag}`;
         }
 
+        // Una ruta cuyo primer transporte ya se ha ido deja de ser una opción: se
+        // quita de la lista (antes seguía la primera, con "salió hace 4 min")
+        setInterval(() => {
+            if (!journeyItins.length || activeTrip || document.getElementById('journeySection').style.display !== 'block') return;
+            const vivas = journeyItins.filter(it => {
+                const t1 = it.legs.find(l => l.transitLeg);
+                return !t1 || t1.startTime > Date.now() - 60000;
+            });
+            if (vivas.length && vivas.length !== journeyItins.length) {
+                journeyItins = vivas;
+                pintaRutas(journeyItins, false, false);
+            }
+        }, 20000);
+
         // Cuenta atrás de los tramos de una ruta ("en 6 min", "¡sale ya!")
         setInterval(() => {
             document.querySelectorAll('.leg-eta[data-leave]').forEach(el => {
@@ -4451,11 +4465,19 @@
             if (esNumParada(q) && !homePickMode) { sugerenciaParada(q); return; }
             if (q.length < 3) { document.getElementById('destSuggestions').style.display = 'none'; return; }
             destDebounce = setTimeout(async () => {
+                // las paradas que se llaman así salen primero, sin esperar al geocoder
+                paradasPorNombre(q).then(paradas => {
+                    if (!paradas.length || document.getElementById('destInput').value.trim() !== q) return;
+                    const sitios = (window._destSugs || []).filter(x => !x.stop);
+                    window._destSugs = [...paradas, ...sitios].slice(0, 6);
+                    renderSuggestions();
+                }).catch(() => {});
                 try {
                     const res = await fetch(`https://photon.komoot.io/api?q=${encodeURIComponent(q)}&lat=41.39&lon=2.17&limit=8`);
                     const data = await res.json();
                     const seen = new Set();
-                    window._destSugs = (data.features || [])
+                    const paradas = (window._destSugs || []).filter(x => x.stop);
+                    const sitios = (data.features || [])
                         .map(f => {
                             const p = f.properties;
                             const detail = [p.street ? `${p.street}${p.housenumber ? ' ' + p.housenumber : ''}` : null, p.district, p.city]
@@ -4467,6 +4489,7 @@
                         .filter(s => s.lat > 40.5 && s.lat < 42.9 && s.lon > 0.15 && s.lon < 3.34)
                         .filter(s => { const k = s.name + '|' + s.detail; if (seen.has(k)) return false; seen.add(k); return true; })
                         .slice(0, 5);
+                    window._destSugs = [...paradas, ...sitios].slice(0, 6);
                     renderSuggestions();
                 } catch (e) { /* geocoder caído: silencio */ }
             }, 350);
@@ -4486,6 +4509,41 @@
             window._destSugs = [{ parada: code, name: t('Parada {n}', { n: code }), detail: nombre || t('Ver sus llegadas') }];
             renderSuggestions();
         }
+        // Paradas y estaciones que se llaman así (para que "Sant Cugat Centre"
+        // abra la estación y no solo direcciones parecidas)
+        const normBusca = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+        async function paradasPorNombre(q) {
+            const n = normBusca(q);
+            if (n.length < 3) return [];
+            const out = [];
+            const mete = (stop, etiqueta) => {
+                if (out.length >= 30) return;
+                out.push({ stop, name: stop.name, detail: etiqueta, icono: MODE_ICON[stop.type] || '🚏' });
+            };
+            FGC_STATIONS.forEach(([code, name, lat, lon]) => {
+                if (normBusca(name).includes(n)) mete({ type: 'fgc', code, name, lat, lon }, 'FGC');
+            });
+            RENFE_STATIONS.forEach(([code, name, lat, lon, dirs]) => {
+                if (normBusca(name).includes(n)) mete({ type: 'train', code, name, lat, lon, dirs }, 'Renfe');
+            });
+            TRAM_STOPS.forEach(([name, lat, lon, out2, ret]) => {
+                if (normBusca(name).includes(n)) mete({ type: 'tram', name, lat, lon, out: out2, ret }, 'TRAM');
+            });
+            try {
+                (await getMetroStations()).forEach(st => {
+                    if (normBusca(st.name).includes(n)) mete({ type: 'metro', id: st.id, name: st.name, lines: st.lines, lat: st.lat, lon: st.lon }, st.lines || 'Metro');
+                });
+            } catch { /* sin lista de metro seguimos con el resto */ }
+            try {
+                (await getTmbBusStops()).forEach(([code, name, lat, lon]) => {
+                    if (normBusca(name).includes(n)) mete({ type: 'bus', code: String(code), name, lat, lon }, t('Parada {n}', { n: code }));
+                });
+            } catch { /* idem */ }
+            // primero lo que empieza por lo escrito, y las estaciones antes que las paradas de bus
+            const peso = x => (normBusca(x.name).startsWith(n) ? 0 : 1) + (x.stop.type === 'bus' ? .5 : 0);
+            return out.sort((a, b) => peso(a) - peso(b)).slice(0, 4);
+        }
+
         function onBuscaTecla(e) {
             if (e.key === 'Escape') { clearDest(); return; }
             if (e.key !== 'Enter') return;
@@ -4499,7 +4557,7 @@
             box.style.display = sugs.length ? 'block' : 'none';
             box.innerHTML = sugs.map((s, i) => `
                 <div class="dest-suggestion" onclick="pickSuggestion(${i})">
-                    <div class="dest-sug-name">${s.parada ? '🚏' : '📍'} ${esc(s.name)}</div>
+                    <div class="dest-sug-name">${s.stop ? esc(s.icono) : (s.parada ? '🚏' : '📍')} ${esc(s.name)}</div>
                     ${s.detail ? `<div class="dest-sug-detail">${esc(s.detail)}</div>` : ''}
                 </div>`).join('');
         }
@@ -4508,6 +4566,13 @@
             if (!s) return;
             document.getElementById('destSuggestions').style.display = 'none';
             if (s.parada) { searchManual(s.parada); return; }
+            if (s.stop) {                          // una parada: sus llegadas
+                document.getElementById('destInput').blur();
+                clearDest();
+                if (s.stop.lat != null) map.setView([s.stop.lat, s.stop.lon], 16);
+                fetchArrivals(s.stop);
+                return;
+            }
             document.getElementById('destInput').value = s.name;
             if (homePickMode) {                    // estábamos definiendo dónde vives
                 homePickMode = false;
@@ -4635,7 +4700,7 @@
         // definitiva, deja abierta la que tuvieras abierta si sigue en la lista.
         const firmaRuta = it => it.legs.filter(l => l.transitLeg).map(l => (l.routeShortName || l.mode) + '@' + Math.round(l.startTime / 60000)).join('>');
         function pintaRutas(its, parcial, primera) {
-            its.sort((a, b) => journeyScore(a) - journeyScore(b)); // la mejor primera: llegar antes, sin palizas a pie
+            its.sort(ordenaRutas); // la mejor primera: llegar antes, sin palizas a pie ni transbordos de más
             const aPie = descartaCaminatasEvitables(its);
             const iAbierta = [...document.querySelectorAll('#journeyResults .jcard-detail')].findIndex(el => el.style.display === 'block');
             const firmaAbierta = !primera && iAbierta >= 0 && journeyItins[iAbierta] ? firmaRuta(journeyItins[iAbierta]) : null;
@@ -4737,8 +4802,14 @@
             return it.legs.filter(l => !l.transitLeg).reduce((s, l) => s + (l.distance || 0), 0);
         }
         function journeyScore(it) {
-            return it.endTime + Math.max(0, journeyWalkDist(it) - 400) * 1000;
+            // cada transbordo cuesta cuatro minutos: seis buses seguidos no son una
+            // ruta aunque lleguen a la vez (de Horta a Castelldefels salía una así)
+            const tramos = it.legs.filter(l => l.transitLeg).length;
+            return it.endTime + Math.max(0, journeyWalkDist(it) - 400) * 1000
+                 + Math.max(0, tramos - 1) * 4 * 60000;
         }
+        // A igualdad, la que te deja salir más tarde: esperar en el andén no es viajar
+        const ordenaRutas = (a, b) => journeyScore(a) - journeyScore(b) || b.startTime - a.startTime;
 
         // El mismo tren salía tres veces. Renfe lo publica en el horario de
         // Rodalies (R16) y en el de Media Distancia (REG.EXP.), y en este a veces
@@ -6857,31 +6928,37 @@
 
             setLoading(t("⏱️ Conectando en tiempo real..."));
 
-            // Elige la parada más cercana con servicio ahora mismo
-            let found = false;
-            for (let i = 0; i < Math.min(nearbyStops.length, 3); i++) {
-                const stop = nearbyStops[i];
-                if (stop.type === 'train') continue; // el panel de tren es más pesado: solo bajo demanda
-                if (stop.type === 'tram' || stop.type === 'fgc' || stop.type === 'hbus') { fetchArrivals(stop); found = true; break; }
+            // De las de alrededor se abre la que antes tiene algo, no la primera que
+            // conteste: en Sant Cugat abría una parada cuyo bus pasaba en 6 horas
+            const esEstacion = s2 => s2.type === 'metro' || s2.type === 'fgc' || s2.type === 'tram';
+            const candidatas = [...new Set([
+                ...nearbyStops.filter(s2 => s2.type !== 'train').slice(0, 5),
+                ...nearbyStops.filter(esEstacion).slice(0, 3)   // la estación, aunque quede sexta
+            ])];
+            const proximas = await Promise.all(candidatas.map(async s2 => {
                 try {
-                    const url = stop.type === 'bus'
-                        ? `https://api.tmb.cat/v1/ibus/stops/${stop.code}?${TMB_AUTH}`
-                        : `https://api.tmb.cat/v1/imetro/estacions/${stop.id}?${TMB_AUTH}`;
-                    const res = await fetch(url);
-                    if (!res.ok) continue;
-                    const data = await res.json();
-                    const hasService = stop.type === 'bus'
-                        ? (data.data && data.data.ibus && data.data.ibus.length > 0)
-                        : (Array.isArray(data) && data.length > 0);
-                    if (hasService) {
-                        fetchArrivals(stop);
-                        found = true;
-                        break;
-                    }
-                } catch (e) { /* prueba la siguiente */ }
-            }
+                    const deps = await Promise.race([
+                        fetchArrivalsPara(s2),
+                        new Promise(r => setTimeout(() => r([]), 6000))
+                    ]);
+                    const t0 = Math.min(...deps.map(d => d.arriveAt).filter(Boolean));
+                    return { stop: s2, at: isFinite(t0) ? t0 : Infinity };
+                } catch { return { stop: s2, at: Infinity }; }
+            }));
+            const conServicio = proximas.filter(x => isFinite(x.at)).sort((a, b) => a.at - b.at);
+            const mejor = conServicio.find(x => x.at < Date.now() + 90 * 60000) || conServicio[0];
+            fetchArrivals(mejor ? mejor.stop : nearbyStops[0]);
+        }
 
-            if (!found) fetchArrivals(nearbyStops[0]);
+        // Las llegadas de una parada cualquiera, sin tocar la pantalla
+        function fetchArrivalsPara(stop) {
+            if (stop.type === 'bus') return fetchBusArrivals(stop);
+            if (stop.type === 'metro') return fetchMetroArrivals(stop);
+            if (stop.type === 'train') return fetchTrainArrivals(stop);
+            if (stop.type === 'fgc') return fetchFgcArrivals(stop);
+            if (stop.type === 'hbus') return fetchHbusArrivals(stop);
+            if (stop.type === 'tram') return fetchTramArrivals(stop);
+            return Promise.resolve([]);
         }
 
         /* ===================== 15. NAVEGACIÓN EN VIVO ("Iniciar trayecto") ===================== */
@@ -7239,7 +7316,7 @@
                 alts = descartaCaminatasEvitables(alts // ni aquí se cuelan las caminatas evitables
                     .filter(it => it.endTime <= curEta - 120000) // solo si ahorra ≥ 2 min
                     .filter(it => lineSig(it) !== (it._from.esFin ? restoSig : curSig))) // no re-proponer el plan
-                    .sort((a, b) => journeyScore(a) - journeyScore(b))
+                    .sort(ordenaRutas)
                     .filter(it => {
                         const k = it._from.name + '|' + lineSig(it);
                         if (vistas.has(k)) return false;
