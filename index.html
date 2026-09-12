@@ -806,7 +806,8 @@
         .leg-delay.late { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
         .leg-delay.ok { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
         .leg-delay.early { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
-        .sched-tag { font-size: .62rem; color: var(--text-faint); text-align: center; margin-top: 1px; white-space: nowrap; }
+        .bus-time.sched { color: var(--text-soft); font-weight: 800; }
+        .sched-tag { font-size: .72rem; color: var(--text-faint); text-align: center; margin-top: 1px; white-space: nowrap; }
         .jstep-sub b.slack { color: var(--green); }        /* gana a .jstep-body b */
         .jstep-sub b.slack.tight { color: var(--amber); }
         .trip-wagon {
@@ -1841,7 +1842,7 @@
             const walkEl = document.getElementById('walkHint');
             if (stop.dist && stop.walkable) {
                 walkEl.style.display = 'block';
-                walkEl.innerText = t('🚶 a {d} · unos {m} min andando', { d: fmtDist(stop.dist), m: Math.max(1, Math.ceil((stop.pie || stop.dist) / (pasoMs() * 60))) });
+                walkEl.innerText = t('🚶 a {d} · unos {m} min andando', { d: fmtDist(stop.pie || stop.dist), m: Math.max(1, Math.ceil((stop.pie || stop.dist) / (pasoMs() * 60))) });
                 // y en cuanto contesta el servidor de rutas a pie, lo de verdad
                 if (userPos && stop.lat != null && !stop._pieReal) midePies([[[userPos.lat, userPos.lon], [stop.lat, stop.lon]]]).then(([m]) => {
                     if (!m || currentStop !== stop) return;
@@ -1910,8 +1911,13 @@
         // { line, color, dest, mins, arriveAt (epoch ms), next, occ, itin }
         function etaHTML(arriveAt, sched) {
             const secs = Math.round((arriveAt - Date.now()) / 1000);
-            // los horarios (Hispano, NitBus) no son tiempo real: se marcan con la hora
-            const tag = sched ? `<div class="sched-tag">${new Date(arriveAt).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })} · ${t('horario')}</div>` : '';
+            // Un horario no es tiempo real: manda la hora prevista. Antes salía
+            // "LLEGANDO" en rojo parpadeando para un bus que quizá no venía.
+            if (sched) {
+                const hora = new Date(arriveAt).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' });
+                return `<div class="bus-time sched">${hora}</div><div class="sched-tag">${Math.max(0, Math.ceil(secs / 60))} ${t('min')} · ${t('horario')}</div>`;
+            }
+            const tag = '';
             if (secs <= 30) return `<div class="bus-time now" data-arrive="${arriveAt}">${t('Llegando')}</div>${tag}`;
             const mins = Math.ceil(secs / 60);
             return `<div class="bus-time ${mins <= 3 ? 'soon' : ''}" data-arrive="${arriveAt}">${mins}<small>${t('min')}</small></div>${tag}`;
@@ -4662,7 +4668,7 @@
         function wagonTip(it, i) {
             const leg = it && it.legs[i];
             if (!andenesData || !leg || !leg.transitLeg) return null;
-            if (leg.mode !== 'SUBWAY' && !isMetroLine(leg.routeShortName)) return null;
+            if (leg.mode !== 'SUBWAY' && !isMetroLine(leg.routeShortName) && leg.agencyName !== 'FGC') return null;
             if (leg.to.lat == null) return null;
 
             const st = andenStation(leg.to.lat, leg.to.lon, leg.routeShortName);
@@ -4693,9 +4699,14 @@
             }
             if (!target) {
                 // salimos a la calle: el acceso que pilla de camino a lo siguiente
-                const onward = next && next.from.lat != null ? next.from
+                let onward = next && next.from.lat != null ? next.from
                     : (journeyDest && journeyDest.lat != null ? journeyDest : null);
                 if (!onward) return null;
+                // sin escaleras, el vagón que deja más cerca del ascensor
+                if (sinEscaleras()) {
+                    const acc = accesoAccesible(codigoEstacion(leg.to));
+                    if (acc) onward = { lat: acc[1], lon: acc[2] };
+                }
                 const ent = bestEntrance(st, onward);
                 if (!ent) return null;
                 exitName = ent[2] || null;
