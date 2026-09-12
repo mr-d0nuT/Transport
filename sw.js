@@ -1,7 +1,7 @@
 // Service worker de Som-hi!: cachea la carcasa de la app para que
 // arranque al instante y funcione la interfaz sin red. Los datos en tiempo
 // real (TMB, TRAM, Overpass) y los tiles del mapa NUNCA se cachean.
-const CACHE = 'transport-bcn-v64';
+const CACHE = 'transport-bcn-v65';
 const SHELL = ['./', './index.html', './icon-192.png', './favicon-64.png', './manifest.webmanifest', './assets/mark-donut.png'];
 
 self.addEventListener('install', e => {

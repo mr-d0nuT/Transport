@@ -1,6 +1,6 @@
 {
-  "name": "Som-hi: amb transport públic!",
-  "short_name": "Som-hi",
+  "name": "Som-hi! Amb transport públic",
+  "short_name": "Som-hi!",
   "description": "Bus, metro y tram de Barcelona en tiempo real, cerca de ti.",
   "lang": "es",
   "start_url": "./",
