@@ -11,6 +11,7 @@
 //
 // Rutas:
 //   GET  /amb/stops/{código}/realtimes  → próximos buses de una parada de AMB
+//   GET  /amb/disruptions?lang=es       → título y texto de cada aviso, por id
 //   GET  /?url={https://…}              → pasarela GET a un host de la lista
 //   POST /?url={https://…}              → pasarela POST (horarios de Renfe)
 //
@@ -35,7 +36,7 @@ const HOSTS = new Set([
     'gtfsrt.renfe.com'
 ]);
 
-const TTL = { realtimes: 15, paso: 20 }; // segundos
+const TTL = { realtimes: 15, paso: 20, avisos: 900 }; // segundos
 
 function cabecerasCors(origen) {
     const ok = origen && ORIGENES.some(r => r.test(origen));
@@ -84,6 +85,33 @@ async function ambRealtimes(codigo, env) {
     return r;
 }
 
+// Los avisos de servicio ya llegan a la app por el GTFS-RT público de AMB, pero
+// ahí el texto solo está en catalán. La API con clave los da traducidos: aquí se
+// devuelve el título y el texto de cada aviso indexados por su id, que es el
+// mismo que trae el feed, y la app se queda con el idioma del usuario. Se recorta
+// a lo imprescindible (la lista completa son 200 KB de HTML).
+const sinHtml = s => String(s || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/g, ' ')
+    .replace(/&([a-z]+|#\d+);/gi, (m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" }[e] || m))
+    .replace(/\s+/g, ' ').trim();
+
+async function ambDisruptions(idioma, env) {
+    const r = await fetch(`${AMB_API}/disruptions?language=${idioma}`, {
+        headers: { 'x-api-key': env.AMB_API_KEY, 'Accept': 'application/json' }
+    });
+    if (!r.ok) return r;
+    const d = await r.json();
+    const lista = (((d._embedded || {}).disruptions) || []).map(x => ({
+        id: String(x.id || ''),
+        t: sinHtml(x.title).slice(0, 160),
+        d: sinHtml(x.description).slice(0, 600)
+    })).filter(x => x.id);
+    return new Response(JSON.stringify(lista), {
+        status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    });
+}
+
 export default {
     async fetch(request, env, ctx) {
         const cors = cabecerasCors(request.headers.get('Origin') || '');
@@ -98,6 +126,12 @@ export default {
                 if (!env.AMB_API_KEY) return json({ error: 'falta el secreto AMB_API_KEY' }, 500, cors);
                 const codigo = String(parseInt(m[1], 10)); // la API usa el código sin ceros delante
                 res = await cacheado('rt:' + codigo, TTL.realtimes, () => ambRealtimes(codigo, env));
+            } else if (url.pathname === '/amb/disruptions') {
+                if (!env.AMB_API_KEY) return json({ error: 'falta el secreto AMB_API_KEY' }, 500, cors);
+                // AMB solo publica catalán y castellano; para cualquier otro idioma
+                // el castellano se acerca más que dejarlo en catalán
+                const idioma = url.searchParams.get('lang') === 'ca' ? 'ca' : 'es';
+                res = await cacheado('avisos:' + idioma, TTL.avisos, () => ambDisruptions(idioma, env));
             } else if (url.searchParams.has('url')) {
                 let destino;
                 try { destino = new URL(url.searchParams.get('url')); } catch { return json({ error: 'url no válida' }, 400, cors); }
