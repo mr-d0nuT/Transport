@@ -3636,6 +3636,12 @@
             return fgcSchedReq;
         }
 
+        // OJO: esta declaración se perdió una vez al añadir la de FGC justo encima
+        // y ensureCatBus() reventaba en su primera línea con ReferenceError. Como
+        // ensureRed() se traga el error, la app se quedaba sin TODO el bus
+        // interurbano sin decir nada: de Altafulla al cine de les Gavarres
+        // proponía tren y 6,5 km a pie.
+        let catBusData = null, catBusReq = null;
         function ensureCatBus() {
             if (catBusData) return Promise.resolve(catBusData);
             catBusReq = catBusReq || loadSchedule('./catbus.json',
