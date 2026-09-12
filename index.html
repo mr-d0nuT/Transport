@@ -3772,9 +3772,13 @@
                     if (!hora) return;
                     if (norm(nombreDe(v.paradas[v.paradas.length - 1].estacion)) !== norm(leg.headsign)) return;
                     const diff = Math.abs(hora - leg.startTime);
-                    if (!best || diff < best.diff) best = { diff, at: hora };
+                    if (!best || diff < best.diff) best = { diff, at: hora, id: v.id };
                 });
-                return best && best.diff <= SAME_TRIP_MIN * 60000 ? { at: best.at } : null;
+                if (!best || best.diff > SAME_TRIP_MIN * 60000) return null;
+                // ya sabemos qué tren es: si lleva aviso (enlace en bus, solo los
+                // tres primeros coches), se dice aquí y no solo en la parada
+                const av = ((await fgcAvisos().catch(() => new Map())).get(best.id) || [])[0];
+                return { at: best.at, aviso: av ? av.texto : null };
             }
             let deps = null;
             try {
@@ -3816,7 +3820,9 @@
                 const live = await legLive(l).catch(() => null);
                 if (live && container.isConnected) {
                     const coches = live.occ && live.occ.coches ? barrasCoches(live.occ.coches) : '';
-                    slot.innerHTML = legEtaHTML(l, live) + (coches ? ` <span class="occ-badge">${live.occ.icon || '👥'} ${esc(live.occ.label)}${coches}</span>` : '');
+                    slot.innerHTML = legEtaHTML(l, live)
+                        + (coches ? ` <span class="occ-badge">${live.occ.icon || '👥'} ${esc(live.occ.label)}${coches}</span>` : '')
+                        + (live.aviso ? ` <span class="occ-badge occ-high">⚠️ ${esc(live.aviso)}</span>` : '');
                 }
             });
         }
