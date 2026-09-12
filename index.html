@@ -3386,6 +3386,71 @@
             return fgcRtReq;
         }
 
+        // FGC publica también alertas GTFS-RT, y las suyas no van por línea sino
+        // por TREN y estación: «Enllaç amb autobús amb destinació Igualada» (ese
+        // tren no llega en tren: el último tramo se hace en bus) o «Els tres
+        // primers cotxes» (el tren se parte y solo los tres primeros van a tu
+        // destino). Eso no está en ningún horario y es justo lo que te deja
+        // tirado. Se casan por el trip_id, el mismo que ya empareja cada salida
+        // con su tren en directo.
+        const FGC_AVISOS_URL = `${FGC_API}/alerts-gtfs_realtime/records?limit=1`;
+        let fgcAvMem = null, fgcAvT = 0, fgcAvReq = null, fgcAvFichero = null;
+        async function fgcAvisos() {
+            if (fgcAvMem && Date.now() - fgcAvT < 60000) return fgcAvMem;
+            if (fgcAvReq) return fgcAvReq;
+            const textoDe = v => {
+                const trs = pbRead(v).filter(([f]) => f === 1).map(([, tv]) => pbRead(tv));
+                const pick = trs.find(tr => { const l = pbOne(tr, 2); return l && pbTxt(l).slice(0, 2) === lang; }) || trs[0];
+                const x = pick && pbOne(pick, 1);
+                return x ? pbTxt(x) : '';
+            };
+            fgcAvReq = (async () => {
+                const baja = async () => {
+                    if (!fgcAvFichero) {
+                        const r = await fetch(FGC_AVISOS_URL);
+                        const d = r.ok ? await r.json() : null;
+                        const f = (((d || {}).results || [])[0] || {}).file;
+                        fgcAvFichero = f && f.url;
+                    }
+                    if (!fgcAvFichero) return null;
+                    const res = await fetch(fgcAvFichero);
+                    if (!res.ok) { fgcAvFichero = null; return null; }
+                    return new Uint8Array(await res.arrayBuffer());
+                };
+                let buf = await baja();
+                if (!buf) { fgcAvFichero = null; buf = await baja(); }   // el fichero cambia de URL al actualizarse
+                if (!buf) return fgcAvMem || new Map();
+                const ahora = Date.now() / 1000;
+                const porViaje = new Map();
+                for (const [f, v] of pbRead(buf)) {
+                    if (f !== 2 || !v) continue;
+                    const al = pbOne(pbRead(v), 5);
+                    if (!al) continue;
+                    const campos = pbRead(al);
+                    const periodos = campos.filter(([cf]) => cf === 1).map(([, pv]) => pbRead(pv));
+                    if (periodos.length && !periodos.some(p => {
+                        const ini = pbOne(p, 1), fin = pbOne(p, 2);
+                        return (!ini || ini <= ahora) && (!fin || fin >= ahora);
+                    })) continue;
+                    const cab = pbOne(campos, 10);
+                    const texto = cab ? textoDe(cab) : '';
+                    if (!texto) continue;
+                    campos.filter(([cf]) => cf === 5).forEach(([, sv]) => {
+                        const sel = pbRead(sv);
+                        const trip = pbOne(sel, 4), sid = pbOne(sel, 5);
+                        const tid = trip ? pbTxt(pbOne(pbRead(trip), 1) || new Uint8Array()) : '';
+                        if (!tid) return;
+                        const lista = porViaje.get(tid) || porViaje.set(tid, []).get(tid);
+                        if (!lista.some(x => x.texto === texto)) lista.push({ texto, estacion: sid ? pbTxt(sid) : '' });
+                    });
+                }
+                fgcAvMem = porViaje;
+                fgcAvT = Date.now();
+                return porViaje;
+            })().catch(() => fgcAvMem || new Map()).finally(() => { fgcAvReq = null; });
+            return fgcAvReq;
+        }
+
         // Ocupación por coche del tren concreto (el id del posicionamiento es el
         // mismo trip_id del GTFS-RT), no la media de toda la línea
         let fgcTrenesMem = null, fgcTrenesT = 0;
@@ -3471,8 +3536,9 @@
         async function fgcConDirecto(stop, salidas) {
             if (!salidas || !salidas.length) throw new Error(t('Sin salidas previstas en las próximas 2 horas.'));
             const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
-            const [rt, trenes, d] = await Promise.all([
-                fgcRt().catch(() => []), fgcTrenes().catch(() => new Map()), ensureFgcSched().catch(() => null)
+            const [rt, trenes, d, avisos] = await Promise.all([
+                fgcRt().catch(() => []), fgcTrenes().catch(() => new Map()),
+                ensureFgcSched().catch(() => null), fgcAvisos().catch(() => new Map())
             ]);
             const codigo = String(stop.code);
             const nombreDe = cod => { const e = d && d.stops.find(x => String(x[0]).split(':').pop() === cod); return e ? e[1] : ''; };
@@ -3494,6 +3560,11 @@
                 x.sched = false;
                 x.via = cand.p.via || null;
                 if (retraso) x.delay = retraso * 60;
+                const aviso = (avisos.get(cand.v.id) || [])[0];
+                if (aviso) {
+                    const donde = aviso.estacion && aviso.estacion !== codigo ? nombreDe(aviso.estacion) : '';
+                    x.alert = donde ? `${donde}: ${aviso.texto}` : aviso.texto;
+                }
                 const coches = ocupacionCoches(trenes.get(cand.v.id));
                 if (coches && coches.some(c => c != null)) {
                     const media = Math.round(coches.filter(c => c != null).reduce((a, b) => a + b, 0) / coches.filter(c => c != null).length);
