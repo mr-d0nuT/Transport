@@ -1444,8 +1444,10 @@
         function hideRailways(gl) {
             if (!gl || !gl.getStyle) return;
             try {
-                gl.getStyle().layers.forEach(l => {
-                    if (l.id.includes('railway')) {
+                const style = gl.getStyle();
+                if (!style || !style.layers) return;
+                style.layers.forEach(l => {
+                    if (l.id.includes('railway') || l.id.includes('rail')) {
                         gl.setLayoutProperty(l.id, 'visibility', 'none');
                     }
                 });
@@ -1462,11 +1464,13 @@
                     const layer = L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
                     layer.on('add', () => {
                         const gl = layer.getMaplibreMap ? layer.getMaplibreMap() : null;
-                        if (gl) {
-                            const doHide = () => hideRailways(gl);
-                            if (gl.loaded()) doHide();
-                            else gl.once('load', doHide);
-                        }
+                        if (!gl) return;
+                        // Intentar ocultar vías en múltiples momentos para asegurar
+                        gl.on('styledata', () => hideRailways(gl));
+                        gl.on('load', () => hideRailways(gl));
+                        // Retry tras 1s por si los tiles tardan
+                        setTimeout(() => hideRailways(gl), 1000);
+                        setTimeout(() => hideRailways(gl), 3000);
                     });
                     return layer;
                 } catch (e) { /* cae al raster */ }
@@ -1516,15 +1520,31 @@
             backgroundTransitLayer.clearLayers();
             currentZoomBus = showBus;
             
+            // Primero: borde blanco para separar líneas (como T-mobilitat)
             Object.values(loadedShapes).forEach(line => {
                 if (!line.p || line.p.length === 0) return;
                 const isBus = line.t === '3' || line.t === 3;
-                if (isBus && !showBus) return; // Hide buses when zoomed out
+                if (isBus && !showBus) return;
+                
+                L.polyline(line.p, { 
+                    color: '#ffffff', 
+                    weight: isBus ? 4 : 6, 
+                    opacity: 1.0,
+                    offset: line.o || 0,
+                    interactive: false
+                }).addTo(backgroundTransitLayer);
+            });
+            
+            // Después: línea de color por encima del borde blanco
+            Object.values(loadedShapes).forEach(line => {
+                if (!line.p || line.p.length === 0) return;
+                const isBus = line.t === '3' || line.t === 3;
+                if (isBus && !showBus) return;
                 
                 L.polyline(line.p, { 
                     color: '#' + line.c, 
-                    weight: isBus ? 2.5 : 3.5, 
-                    opacity: isBus ? 0.8 : 1.0,
+                    weight: isBus ? 2 : 3.5, 
+                    opacity: 1.0,
                     offset: line.o || 0,
                     interactive: false
                 }).addTo(backgroundTransitLayer);
