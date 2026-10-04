@@ -1513,32 +1513,52 @@
         }
 
         let transitVisible = true;
+        let lastZoomState = null;
 
         function drawBackgroundTransit() {
             if (!loadedShapes) return;
             
             if (!transitVisible) {
                 backgroundTransitLayer.clearLayers();
-                currentZoomBus = null;
+                lastZoomState = null;
                 return;
             }
 
-            const showBus = map.getZoom() >= 13;
-            if (showBus === currentZoomBus && backgroundTransitLayer.getLayers().length > 0) return;
+            const currentZoom = map.getZoom();
+            const isZoomedIn = currentZoom >= 13;
+            
+            // Solo redibujar si cruzamos el umbral
+            if (isZoomedIn === lastZoomState && backgroundTransitLayer.getLayers().length > 0) return;
             
             backgroundTransitLayer.clearLayers();
-            currentZoomBus = showBus;
+            lastZoomState = isZoomedIn;
             
-            Object.values(loadedShapes).forEach(line => {
-                if (!line.p || line.p.length === 0) return;
+            const lines = Object.values(loadedShapes).filter(line => {
+                if (!line.p || line.p.length === 0) return false;
                 const isBus = line.t === '3' || line.t === 3;
-                if (isBus && !showBus) return;
-                
+                return !(isBus && !isZoomedIn);
+            });
+            
+            // Pasada 1: borde blanco separador (estilo T-mobilitat)
+            lines.forEach(line => {
+                const isBus = line.t === '3' || line.t === 3;
+                L.polyline(line.p, { 
+                    color: '#ffffff', 
+                    weight: isBus ? 3.5 : 5, 
+                    opacity: 0.9,
+                    offset: isZoomedIn ? (line.o || 0) * 1.5 : 0, 
+                    interactive: false
+                }).addTo(backgroundTransitLayer);
+            });
+            
+            // Pasada 2: color real de la línea
+            lines.forEach(line => {
+                const isBus = line.t === '3' || line.t === 3;
                 L.polyline(line.p, { 
                     color: '#' + line.c, 
-                    weight: isBus ? 2 : 3, 
+                    weight: isBus ? 1.5 : 2.5, 
                     opacity: 1.0,
-                    offset: line.o || 0,
+                    offset: isZoomedIn ? (line.o || 0) * 1.5 : 0,
                     interactive: false
                 }).addTo(backgroundTransitLayer);
             });
