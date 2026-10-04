@@ -1,21 +1,8 @@
-// Service worker de Som-hi!: cachea la carcasa de la app para que
-// arranque al instante y funcione la interfaz sin red. Los datos en tiempo
-// real (TMB, TRAM, Overpass) y los tiles del mapa NUNCA se cachean.
-const CACHE = 'transport-bcn-v96';
-const SHELL = ['./', './index.html', './styles.css', './app.js', './worker.js', './db.js', './icon-192.png', './favicon-64.png', './manifest.webmanifest', './assets/mark-donut.png'];
+const fs = require('fs');
+let sw = fs.readFileSync('sw.js', 'utf8');
 
-self.addEventListener('install', e => {
-    e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
-    self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-    e.waitUntil(
-        caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-            .then(() => self.clients.claim())
-    );
-});
-
+// Replace the simple fetch handler with a SWR handler
+const fetchHandler = `
 self.addEventListener('fetch', e => {
     const url = new URL(e.request.url);
     
@@ -44,3 +31,7 @@ self.addEventListener('fetch', e => {
         caches.match(e.request).then(r => r || fetch(e.request))
     );
 });
+`;
+
+sw = sw.replace(/self\.addEventListener\('fetch'[\s\S]*\}\);/, fetchHandler.trim());
+fs.writeFileSync('sw.js', sw);

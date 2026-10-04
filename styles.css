@@ -1039,7 +1039,7 @@
         .map-hint-pill { position: fixed !important; z-index: 50 !important; top: 20px !important; bottom: auto !important; left: 50% !important; transform: translateX(-50%) !important; }
 
         .bottom-sheet {
-            position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: 60vh;
+            position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: 85vh;
             background: var(--bg); z-index: 100;
             border-radius: 24px 24px 0 0;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
@@ -1111,3 +1111,5 @@
     position: relative;
     z-index: 1;
 }
+/* Fix Leaflet top controls being hidden by topbar */
+.leaflet-control-container .leaflet-top { top: 75px; }
