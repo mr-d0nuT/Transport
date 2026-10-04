@@ -7580,18 +7580,15 @@ window.PENA_CLIMA = function(it) {
 
         async 
         /* --- TILT-TO-AR --- */
-        let arActive = false;
         if (window.DeviceOrientationEvent) {
             window.addEventListener('deviceorientation', function(event) {
                 if (!event.beta) return;
                 // beta goes from -180 to 180. 90 is vertical, 0 is flat.
                 const tilt = event.beta; 
                 
-                if (tilt > 70 && tilt < 110 && !arActive) {
-                    arActive = true;
+                if (tilt > 70 && tilt < 110 && !arState.open) {
                     if (typeof openAR === 'function') openAR();
-                } else if (tilt < 40 && tilt > -40 && arActive) {
-                    arActive = false;
+                } else if (tilt < 40 && tilt > -40 && arState.open) {
                     if (typeof closeAR === 'function') closeAR();
                 }
             });
