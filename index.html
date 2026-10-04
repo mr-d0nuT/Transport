@@ -1512,40 +1512,33 @@
             }
         }
 
+        let transitVisible = true;
+
         function drawBackgroundTransit() {
             if (!loadedShapes) return;
+            
+            if (!transitVisible) {
+                backgroundTransitLayer.clearLayers();
+                currentZoomBus = null;
+                return;
+            }
+
             const showBus = map.getZoom() >= 13;
             if (showBus === currentZoomBus && backgroundTransitLayer.getLayers().length > 0) return;
             
             backgroundTransitLayer.clearLayers();
             currentZoomBus = showBus;
             
-            const lines = Object.values(loadedShapes).filter(line => {
-                if (!line.p || line.p.length === 0) return false;
+            Object.values(loadedShapes).forEach(line => {
+                if (!line.p || line.p.length === 0) return;
                 const isBus = line.t === '3' || line.t === 3;
-                return !(isBus && !showBus);
-            });
-            
-            // Pasada 1: borde blanco (como T-mobilitat)
-            lines.forEach(line => {
-                const isBus = line.t === '3' || line.t === 3;
-                L.polyline(line.p, { 
-                    color: '#ffffff', 
-                    weight: isBus ? 3.5 : 5, 
-                    opacity: 0.9,
-                    offset: (line.o || 0) * 2, // x2 para mayor separación
-                    interactive: false
-                }).addTo(backgroundTransitLayer);
-            });
-            
-            // Pasada 2: color de la línea
-            lines.forEach(line => {
-                const isBus = line.t === '3' || line.t === 3;
+                if (isBus && !showBus) return;
+                
                 L.polyline(line.p, { 
                     color: '#' + line.c, 
-                    weight: isBus ? 1.5 : 2.5, 
+                    weight: isBus ? 2 : 3, 
                     opacity: 1.0,
-                    offset: (line.o || 0) * 2,
+                    offset: line.o || 0,
                     interactive: false
                 }).addTo(backgroundTransitLayer);
             });
@@ -1562,6 +1555,35 @@
             backgroundTransitLayer = L.layerGroup().addTo(map);
             routeLayer = L.featureGroup().addTo(map);
             loadBackgroundTransit();
+            
+            const toggleControl = L.control({position: 'topright'});
+            toggleControl.onAdd = function () {
+                const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                div.style.backgroundColor = 'var(--bg)';
+                div.style.width = '34px';
+                div.style.height = '34px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'center';
+                div.style.alignItems = 'center';
+                div.style.cursor = 'pointer';
+                div.style.color = 'var(--text)';
+                div.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+                div.onclick = function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    transitVisible = !transitVisible;
+                    if (transitVisible) {
+                        div.style.opacity = '1';
+                        drawBackgroundTransit();
+                    } else {
+                        div.style.opacity = '0.5';
+                        backgroundTransitLayer.clearLayers();
+                        currentZoomBus = null;
+                    }
+                };
+                return div;
+            };
+            toggleControl.addTo(map);
+            
             darkScheme.addEventListener('change', applyMapTheme);
 
             // Mantener pulsado (o clic derecho) en el mapa = explorar esa zona o ir a ella
