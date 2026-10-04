@@ -25,7 +25,7 @@ self.onmessage = async function(e) {
     else if (type === 'FETCH_SHARD') {
         // Carga de JSONs masivos en el hilo secundario para liberar memoria principal
         try {
-            const response = await fetch(\`./tmb-sched/\${data.name}.json\`);
+            const response = await fetch(`./tmb-sched/${data.name}.json`);
             const json = await response.json();
             self.postMessage({ id, results: json });
         } catch (err) {

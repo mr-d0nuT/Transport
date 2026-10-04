@@ -31,10 +31,6 @@
     <button class="map-fab ar" onclick="openAR()" title="Ver en realidad aumentada" data-i18n-label="Ver en realidad aumentada">📷</button>
     <button id="tripRecenter" onclick="recenterTrip()" title="Centrar en mi posición" data-i18n-label="Centrar en mi posición">🧭</button>
     <div class="map-hint-pill"><span data-i18n="Mantén pulsado el mapa para explorar">Mantén pulsado el mapa para explorar</span></div>
-    
-    <div id="bottomSheet" class="bottom-sheet">
-        <div class="sheet-drag-handle"></div>
-        <div class="sheet-content">
 
     <div id="splash-screen">
         <img src="./icon-512.png" alt="" class="img-donut" onerror="this.style.display='none'">
@@ -77,7 +73,9 @@
         <div id="tripAltPanel"></div>
     </div>
 
-    <main>
+    <main id="bottomSheet" class="bottom-sheet">
+        <div class="sheet-drag-handle"></div>
+        <div class="sheet-content">
         
 
 
@@ -148,6 +146,7 @@
         </section>
 
         <footer data-i18n="Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)">Tiempo real de TMB y TRAM · Horarios de AMB, FGC, Renfe y la Generalitat · Mapa © OpenStreetMap © OpenFreeMap · Rutas a pie Valhalla (FOSSGIS)</footer>
+    </div>
     </main>
 
     <!-- Recorrido completo de una línea (se abre desde las correspondencias) -->
@@ -302,7 +301,5 @@
 })();
 </script>
 <!-- ===== /dOnuT badge ===== -->
-        </div>
-    </div>
 </body>
 </html>
