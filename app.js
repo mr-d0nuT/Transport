@@ -8013,28 +8013,14 @@ function hideHUD() {
 
 
 /* --- AHORRO DE BATERÍA (Page Visibility) --- */
-let wasWatchingGPS = false;
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         // Pausar auto-refresco
         if (window._refreshInterval) clearInterval(window._refreshInterval);
-        
-        // Pausar GPS si no estamos en medio de una ruta activa
-        if (!activeTrip && watchId) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-            wasWatchingGPS = true;
-        }
     } else {
         // Reanudar auto-refresco si hay parada seleccionada
-        if (currentStop) {
+        if (typeof currentStop !== 'undefined' && currentStop) {
             fetchArrivals(currentStop, true);
-        }
-        
-        // Reanudar GPS
-        if (wasWatchingGPS) {
-            watchPosition();
-            wasWatchingGPS = false;
         }
     }
 });

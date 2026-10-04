@@ -27,8 +27,10 @@ self.addEventListener('fetch', e => {
                     const fetchPromise = fetch(e.request).then(networkResponse => {
                         cache.put(e.request, networkResponse.clone());
                         return networkResponse;
-                    }).catch(() => {
-                        // Si falla la red, ya devolvimos caché (si había)
+                    }).catch(error => {
+                        // Si falla la red, devolvemos caché si existe, si no, un error genérico
+                        if (cachedResponse) return cachedResponse;
+                        return new Response('', { status: 503, statusText: 'Service Unavailable' });
                     });
                     
                     // Devuelve caché al instante si existe, si no, espera a la red
