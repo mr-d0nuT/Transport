@@ -1971,6 +1971,10 @@
                 renderFavs();
                 highlightMarkers();
                 startCountdown();
+                
+                if (!isSilent) {
+                    drawStopContext(stop, departures);
+                }
             } catch (err) {
                 if (seq !== fetchSeq) return;
                 if (!isSilent) {
@@ -7885,6 +7889,53 @@
             if (stop.type === 'hbus') return fetchHbusArrivals(stop);
             if (stop.type === 'tram') return fetchTramArrivals(stop);
             return Promise.resolve([]);
+        }
+
+        let stopContextCache = {};
+        
+        async function drawStopContext(stop, departures) {
+            routeLayer.clearLayers();
+            
+            const lines = [...new Set(departures.map(d => d.line))].filter(Boolean).slice(0, 10);
+            if (lines.length === 0) return;
+            
+            let kind = 'B';
+            if (stop.type === 'metro') kind = 'M';
+            else if (stop.type === 'tram') kind = 'T';
+            else if (stop.type === 'train') kind = 'R';
+            else if (stop.type === 'fgc') kind = 'F';
+            else if (stop.type === 'hbus') kind = 'B';
+            
+            const stopKeyStr = stopKey(stop);
+            if (!stopContextCache[stopKeyStr]) {
+                const results = await Promise.allSettled(lines.map(line => lineStops(line, kind)));
+                stopContextCache[stopKeyStr] = results.map((r, i) => r.status === 'fulfilled' && r.value ? { line: lines[i], stops: r.value } : null).filter(Boolean);
+            }
+            
+            const contextLines = stopContextCache[stopKeyStr];
+            if (currentStop && stopKey(currentStop) !== stopKeyStr) return; // cambió de parada
+            
+            contextLines.forEach(({ line, stops }) => {
+                if (!stops || stops.length < 2) return;
+                
+                const dep = departures.find(d => d.line === line);
+                const col = dep && dep.color ? (dep.color.startsWith('#') ? dep.color : '#' + dep.color) : '#1a73e8';
+                const pts = stops.map(s => [s.lat, s.lon]);
+                
+                L.polyline(pts, { color: '#ffffff', weight: 6, opacity: 0.8, interactive: false }).addTo(routeLayer);
+                L.polyline(pts, { color: col, weight: 3, opacity: 1, interactive: false }).addTo(routeLayer);
+                
+                stops.forEach(s => {
+                    L.circleMarker([s.lat, s.lon], {
+                        radius: 4,
+                        fillColor: '#ffffff',
+                        fillOpacity: 1,
+                        color: col,
+                        weight: 2,
+                        interactive: true
+                    }).bindPopup(`<b>${esc(s.name)}</b><br><small>${esc(t('Línea'))} ${esc(line)}</small>`).addTo(routeLayer);
+                });
+            });
         }
 
         /* ===================== 15. NAVEGACIÓN EN VIVO ("Iniciar trayecto") ===================== */
