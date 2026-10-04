@@ -1439,21 +1439,6 @@
                 : 'https://tiles.openfreemap.org/styles/positron';
         }
 
-        let loadedShapes = null;
-
-        function hideRailways(gl) {
-            if (!gl || !gl.getStyle) return;
-            try {
-                const style = gl.getStyle();
-                if (!style || !style.layers) return;
-                style.layers.forEach(l => {
-                    if (l.id.includes('railway') || l.id.includes('rail')) {
-                        gl.setLayoutProperty(l.id, 'visibility', 'none');
-                    }
-                });
-            } catch(e) {}
-        }
-
         // MapLibre necesita WebGL: si el dispositivo no lo tiene, se cae al
         // raster de OpenStreetMap antes que dejar el mapa en blanco
         function createBaseLayer() {
@@ -1461,18 +1446,7 @@
                 (typeof maplibregl.supported !== 'function' || maplibregl.supported());
             if (glReady) {
                 try {
-                    const layer = L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
-                    layer.on('add', () => {
-                        const gl = layer.getMaplibreMap ? layer.getMaplibreMap() : null;
-                        if (!gl) return;
-                        // Intentar ocultar vías en múltiples momentos para asegurar
-                        gl.on('styledata', () => hideRailways(gl));
-                        gl.on('load', () => hideRailways(gl));
-                        // Retry tras 1s por si los tiles tardan
-                        setTimeout(() => hideRailways(gl), 1000);
-                        setTimeout(() => hideRailways(gl), 3000);
-                    });
-                    return layer;
+                    return L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
                 } catch (e) { /* cae al raster */ }
             }
             return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1487,81 +1461,11 @@
             if (!gl) return;
             try { 
                 gl.setStyle(mapStyleURL());
-                gl.once('styledata', () => hideRailways(gl));
             }
             catch (e) {
                 map.removeLayer(tileLayer);
                 tileLayer = createBaseLayer().addTo(map);
             }
-        }
-
-        let backgroundTransitLayer;
-        
-        let currentZoomBus = null;
-
-        async function loadBackgroundTransit() {
-            try {
-                if (!loadedShapes) {
-                    const res = await fetch('shapes.json');
-                    loadedShapes = await res.json();
-                }
-                drawBackgroundTransit();
-                map.on('zoomend', drawBackgroundTransit);
-            } catch (e) {
-                console.warn('No se pudieron cargar las líneas de transporte', e);
-            }
-        }
-
-        let transitVisible = true;
-        let lastZoomState = null;
-
-        function drawBackgroundTransit() {
-            if (!loadedShapes) return;
-            
-            if (!transitVisible) {
-                backgroundTransitLayer.clearLayers();
-                lastZoomState = null;
-                return;
-            }
-
-            const currentZoom = map.getZoom();
-            const isZoomedIn = currentZoom >= 13;
-            
-            // Solo redibujar si cruzamos el umbral
-            if (isZoomedIn === lastZoomState && backgroundTransitLayer.getLayers().length > 0) return;
-            
-            backgroundTransitLayer.clearLayers();
-            lastZoomState = isZoomedIn;
-            
-            const lines = Object.values(loadedShapes).filter(line => {
-                if (!line.p || line.p.length === 0) return false;
-                const isBus = line.t === '3' || line.t === 3;
-                return !(isBus && !isZoomedIn);
-            });
-            
-            // Pasada 1: borde blanco separador (estilo T-mobilitat)
-            lines.forEach(line => {
-                const isBus = line.t === '3' || line.t === 3;
-                L.polyline(line.p, { 
-                    color: '#ffffff', 
-                    weight: isBus ? 3.5 : 5, 
-                    opacity: 0.9,
-                    offset: isZoomedIn ? (line.o || 0) * 1.5 : 0, 
-                    interactive: false
-                }).addTo(backgroundTransitLayer);
-            });
-            
-            // Pasada 2: color real de la línea
-            lines.forEach(line => {
-                const isBus = line.t === '3' || line.t === 3;
-                L.polyline(line.p, { 
-                    color: '#' + line.c, 
-                    weight: isBus ? 1.5 : 2.5, 
-                    opacity: 1.0,
-                    offset: isZoomedIn ? (line.o || 0) * 1.5 : 0,
-                    interactive: false
-                }).addTo(backgroundTransitLayer);
-            });
         }
 
         function initMap() {
@@ -1572,37 +1476,10 @@
             tileLayer = createBaseLayer().addTo(map);
             markersLayer = L.layerGroup().addTo(map);
             userMarkerLayer = L.layerGroup().addTo(map);
-            backgroundTransitLayer = L.layerGroup().addTo(map);
             routeLayer = L.featureGroup().addTo(map);
-            loadBackgroundTransit();
             
-            const toggleControl = L.control({position: 'topright'});
-            toggleControl.onAdd = function () {
-                const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                div.style.backgroundColor = 'var(--bg)';
-                div.style.width = '34px';
-                div.style.height = '34px';
-                div.style.display = 'flex';
-                div.style.justifyContent = 'center';
-                div.style.alignItems = 'center';
-                div.style.cursor = 'pointer';
-                div.style.color = 'var(--text)';
-                div.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-                div.onclick = function(e) {
-                    L.DomEvent.stopPropagation(e);
-                    transitVisible = !transitVisible;
-                    if (transitVisible) {
-                        div.style.opacity = '1';
-                        drawBackgroundTransit();
-                    } else {
-                        div.style.opacity = '0.5';
-                        backgroundTransitLayer.clearLayers();
-                        currentZoomBus = null;
-                    }
-                };
-                return div;
-            };
-            toggleControl.addTo(map);
+            // Ya no cargamos todas las líneas de fondo por defecto para evitar saturación
+            // loadBackgroundTransit();
             
             darkScheme.addEventListener('change', applyMapTheme);
 
