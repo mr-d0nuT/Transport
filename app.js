@@ -6027,16 +6027,6 @@ window.PENA_CLIMA = function(it) {
             ensureAndenes();   // lo vamos a necesitar en cuanto se abra un detalle
             document.getElementById('journeySection').style.display = 'block';
 
-            if (minimo > 10) {
-                // SUGERENCIA BICING
-                document.getElementById('journeyLongWalkMsg').innerHTML = `
-                    <div style="background:#E3312C15; padding:12px; border-radius:12px; border-left:4px solid #E3312C; margin-bottom:12px;">
-                        <b>🚲 Sugerencia de Micromovilidad:</b> Tienes más de 10 minutos a pie (${minimo} min). 
-                        <br>Coge un Bicing (estación a 50m) y llegarás en ${Math.round(minimo / 3)} minutos al destino.
-                    </div>
-                    ` + document.getElementById('journeyLongWalkMsg').innerHTML;
-            }
-
             document.getElementById('journeyTitle').innerText = '🧭 ' + t('A {x}', { x: journeyDest.name });
             const sub = journeyManana
                 ? t('Hoy ya no hay servicio · esto es lo primero de mañana')
