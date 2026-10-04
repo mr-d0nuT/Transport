@@ -4521,7 +4521,10 @@ window.PENA_CLIMA = function(it) {
                 // menos cinco minutos antes
                 const gana = l && quedan.find(q => {
                     const m = primero(q);
-                    return m && mismoVehiculo(m, l) && it.endTime > q.endTime - 5 * 60000;
+                    const ultimo = ix => [...ix.legs].reverse().find(x => x.transitLeg);
+                    const u = ultimo(it), mu = ultimo(q);
+                    const misUltimo = (u && mu && u.routeShortName === mu.routeShortName);
+                    return m && mismoVehiculo(m, l) && misUltimo && it.endTime > q.endTime - 5 * 60000;
                 });
                 if (!gana) { quedan.push(it); continue; }
                 // la que se queda hereda el nombre de las pantallas si lo trae la otra
@@ -4678,23 +4681,21 @@ window.PENA_CLIMA = function(it) {
             // El planner de TMB solo cubre el área metropolitana: fuera de ella
             // montamos rutas con los horarios de Renfe (media distancia) y de la
             // Hispano Igualadina (bus interurbano), y fusionamos lo que salga
-            if (!its.some(it => it.legs.some(l => l.transitLeg))) {
-                const [rF, hF, mF, redF] = await Promise.allSettled([
-                    renfeFallbackJourneys(origin, dest, whenMs),
-                    hbusFallbackJourneys(origin, dest, whenMs),
-                    renfeSchedJourneys(origin, dest, whenMs),
-                    // la búsqueda por la red entera: la única que sabe encadenar
-                    // bus del pueblo, tren y bus del final
-                    redJourneys(origin, dest, whenMs)
-                ]);
-                its = [
-                    ...its,
-                    ...(rF.status === 'fulfilled' ? rF.value : []),
-                    ...(hF.status === 'fulfilled' ? hF.value : []),
-                    ...(mF.status === 'fulfilled' ? mF.value : []),
-                    ...(redF.status === 'fulfilled' ? redF.value : [])
-                ];
-            }
+            // Siempre ejecutamos la búsqueda por la red entera (RAPTOR) para encontrar
+            // combinaciones de tren+bus que el planner de TMB ignora (ej: BCN -> Esparreguera)
+            const [rF, hF, mF, redF] = await Promise.allSettled([
+                (!its.some(it => it.legs.some(l => l.transitLeg))) ? renfeFallbackJourneys(origin, dest, whenMs) : Promise.resolve([]),
+                (!its.some(it => it.legs.some(l => l.transitLeg))) ? hbusFallbackJourneys(origin, dest, whenMs) : Promise.resolve([]),
+                (!its.some(it => it.legs.some(l => l.transitLeg))) ? renfeSchedJourneys(origin, dest, whenMs) : Promise.resolve([]),
+                redJourneys(origin, dest, whenMs)
+            ]);
+            its = [
+                ...its,
+                ...(rF.status === 'fulfilled' ? rF.value : []),
+                ...(hF.status === 'fulfilled' ? hF.value : []),
+                ...(mF.status === 'fulfilled' ? mF.value : []),
+                ...(redF.status === 'fulfilled' ? redF.value : [])
+            ];
             // Sigue sin haber nada: será un viaje que ninguna red cubre entera
             // (Altafulla → Esparreguera). Se compone por relevos.
             if (!its.some(it => it.legs.some(l => l.transitLeg))) {
@@ -5603,76 +5604,90 @@ window.PENA_CLIMA = function(it) {
                     .slice(0, 1200));
             }
 
-            // mejor destino: lo que se tarda en llegar más lo que queda a pie
-            let mejorG = -1, mejorFin = INF;
+            // extraer múltiples destinos (alternativas reales)
+            const candidatos = [];
             for (const [g, dd] of destinos) {
                 if (label[g] >= INF) continue;
-                const fin = label[g] + A_PIE_MIN(dd);
-                if (fin < mejorFin) { mejorFin = fin; mejorG = g; }
+                candidatos.push({ g, fin: label[g] + A_PIE_MIN(dd), dd });
             }
-            if (mejorG < 0) return [];
-
-            // deshacer el camino: del destino hacia atrás
-            const pasos = [];
-            let g = mejorG, guarda = 0;
-            while (g != null && padre[g] && guarda++ < 40) {
-                pasos.unshift({ g, p: padre[g] });
-                g = padre[g].desde;
-            }
-            if (!pasos.some(x => x.p.tipo === 'viaje')) return [];
-
-            const legs = [];
-            const enMs = min => T0 + Math.round(min) * 60000;
-            const nombre = gi => red.ds[red.dsOf[gi]].stops[red.locOf[gi]][1];
-            pasos.forEach((paso, i) => {
-                const { g: gi, p } = paso;
-                if (p.tipo === 'pie') {
-                    if (!p.metros || p.metros < 80) return;
-                    const fin = label[gi];
-                    legs.push({
-                        transitLeg: false, mode: 'WALK', duration: A_PIE_MIN(p.metros) * 60, distance: p.metros,
-                        from: { name: p.desde == null ? 'Origen' : nombre(p.desde) }, to: { name: nombre(gi) },
-                        startTime: enMs(fin - A_PIE_MIN(p.metros)), endTime: enMs(fin),
-                        _pts: [p.desde == null ? [origin.lat, origin.lon] : [red.lat[p.desde], red.lon[p.desde]],
-                               [red.lat[gi], red.lon[gi]]]
-                    });
-                    return;
+            if (!candidatos.length) return [];
+            
+            candidatos.sort((a, b) => a.fin - b.fin);
+            const mejorFinTotal = candidatos[0].fin;
+            
+            const viajesSalida = [];
+            const lineasVistas = new Set();
+            
+            for (const { g: mejorG, fin: mejorFin, dd: restan } of candidatos) {
+                if (mejorFin > mejorFinTotal + 120) continue; // max 2h extra
+                if (viajesSalida.length >= 4) break;
+                
+                const pasos = [];
+                let g = mejorG, guarda = 0;
+                while (g != null && padre[g] && guarda++ < 40) {
+                    pasos.unshift({ g, p: padre[g] });
+                    g = padre[g].desde;
                 }
-                const d = red.ds[p.di], pat = d.pats[p.pi], linea = d.lines[pat[0]];
-                const esTren = linea[3] === 'T';
-                const cum = d._cum[p.pi];
-                // la hora de paso por cada parada sale del propio patrón: con ella la
-                // «Alternativa» sabe a qué hora estarás en Sants sin tener que adivinar
-                const tramo = pat[2].slice(p.k, p.j + 1).map((si, n) => {
-                    const s = d.stops[si];
-                    return { name: s[1], lat: s[2], lon: s[3], arrival: enMs(p.dep + cum[p.k + n] - cum[p.k]) };
+                if (!pasos.some(x => x.p.tipo === 'viaje')) continue;
+                
+                const ultimoViaje = pasos.slice().reverse().find(x => x.p.tipo === 'viaje');
+                const sigla = ultimoViaje ? (ultimoViaje.p.di + '-' + ultimoViaje.p.pi) : 'x';
+                if (lineasVistas.has(sigla)) continue; // diversificar alternativas
+                lineasVistas.add(sigla);
+                
+                const legs = [];
+                const enMs = min => T0 + Math.round(min) * 60000;
+                const nombre = gi => red.ds[red.dsOf[gi]].stops[red.locOf[gi]][1];
+                
+                pasos.forEach((paso) => {
+                    const { g: gi, p } = paso;
+                    if (p.tipo === 'pie') {
+                        if (!p.metros || p.metros < 80) return;
+                        const fin = label[gi];
+                        legs.push({
+                            transitLeg: false, mode: 'WALK', duration: A_PIE_MIN(p.metros) * 60, distance: p.metros,
+                            from: { name: p.desde == null ? 'Origen' : nombre(p.desde) }, to: { name: nombre(gi) },
+                            startTime: enMs(fin - A_PIE_MIN(p.metros)), endTime: enMs(fin),
+                            _pts: [p.desde == null ? [origin.lat, origin.lon] : [red.lat[p.desde], red.lon[p.desde]],
+                                   [red.lat[gi], red.lon[gi]]]
+                        });
+                        return;
+                    }
+                    const d = red.ds[p.di], pat = d.pats[p.pi], linea = d.lines[pat[0]];
+                    const esTren = linea[3] === 'T';
+                    const cum = d._cum[p.pi];
+                    const tramo = pat[2].slice(p.k, p.j + 1).map((si, n) => {
+                        const s = d.stops[si];
+                        return { name: s[1], lat: s[2], lon: s[3], arrival: enMs(p.dep + cum[p.k + n] - cum[p.k]) };
+                    });
+                    legs.push({
+                        transitLeg: true, mode: esTren ? 'RAIL' : 'BUS',
+                        routeShortName: hbusLine(linea[0]), routeColor: esTren ? 'EC0000' : '7b3fa0',
+                        headsign: d.heads[pat[1]], agencyName: linea[2] || '',
+                        from: { name: tramo[0].name }, to: { name: tramo[tramo.length - 1].name },
+                        startTime: enMs(p.dep), endTime: enMs(p.llega), duration: (p.llega - p.dep) * 60,
+                        intermediateStops: null, _stops: tramo,
+                        _pts: tramo.map(x => [x.lat, x.lon])
+                    });
                 });
-                legs.push({
-                    transitLeg: true, mode: esTren ? 'RAIL' : 'BUS',
-                    routeShortName: hbusLine(linea[0]), routeColor: esTren ? 'EC0000' : '7b3fa0',
-                    headsign: d.heads[pat[1]], agencyName: linea[2] || '',
-                    from: { name: tramo[0].name }, to: { name: tramo[tramo.length - 1].name },
-                    startTime: enMs(p.dep), endTime: enMs(p.llega), duration: (p.llega - p.dep) * 60,
-                    intermediateStops: null, _stops: tramo,
-                    _pts: tramo.map(x => [x.lat, x.lon])
+                
+                if (restan > 80) legs.push({
+                    transitLeg: false, mode: 'WALK', duration: A_PIE_MIN(restan) * 60, distance: restan,
+                    from: { name: nombre(mejorG) }, to: { name: 'Destination' },
+                    startTime: enMs(label[mejorG]), endTime: enMs(mejorFin),
+                    _pts: [[red.lat[mejorG], red.lon[mejorG]], [dest.lat, dest.lon]]
                 });
-            });
-
-            const restan = destinos.get(mejorG);
-            if (restan > 80) legs.push({
-                transitLeg: false, mode: 'WALK', duration: A_PIE_MIN(restan) * 60, distance: restan,
-                from: { name: nombre(mejorG) }, to: { name: 'Destination' },
-                startTime: enMs(label[mejorG]), endTime: enMs(mejorFin),
-                _pts: [[red.lat[mejorG], red.lon[mejorG]], [dest.lat, dest.lon]]
-            });
-            if (!legs.length) return [];
-            const juntos = fusionaCaminatas(legs);
-            const viaje = {
-                startTime: juntos[0].startTime, endTime: juntos[juntos.length - 1].endTime,
-                duration: (juntos[juntos.length - 1].endTime - juntos[0].startTime) / 1000,
-                legs: juntos, _red: true
-            };
-            if (opts.unaSola) return [viaje];
+                
+                if (legs.length) {
+                    const juntos = fusionaCaminatas(legs);
+                    viajesSalida.push({
+                        startTime: juntos[0].startTime, endTime: juntos[juntos.length - 1].endTime,
+                        duration: (juntos[juntos.length - 1].endTime - juntos[0].startTime) / 1000,
+                        legs: juntos, _red: true
+                    });
+                }
+            }
+            return viajesSalida;
             // la siguiente opción: la misma búsqueda un minuto después de subirse
             // a lo primero, que es como se pregunta "¿y si pierdo este?"
             const primer = juntos.find(l => l.transitLeg);
