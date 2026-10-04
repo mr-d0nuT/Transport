@@ -4890,7 +4890,7 @@ window.PENA_CLIMA = function(it) {
         }
 
         async function renfeFallbackJourneys(origin, dest, whenMs) {
-            const destStations = nearestRenfe(dest, 2, 4000);
+            const destStations = nearestRenfe(dest, 2, 4000).filter(s => s.pie <= 600);
             const origStations = nearestRenfe(origin, 3, 8000);
             if (!destStations.length || !origStations.length) return [];
 
@@ -5566,7 +5566,7 @@ window.PENA_CLIMA = function(it) {
             };
 
             const salida = cercanas(origin, radio);
-            const llegada = cercanas(dest, radio);
+            const llegada = cercanas(dest, 500).filter(x => x.dd <= 600); // max 500m real a pie hasta destino
             if (!salida.length || !llegada.length) return [];
             const destinos = new Map(llegada.map(x => [x.g, x.dd]));
 
@@ -5904,7 +5904,7 @@ window.PENA_CLIMA = function(it) {
             // tantas paradas que las 25 primeras no llegaban ni a 1,5 km, así que
             // el bus de Igualada, que sale de la Diagonal, no se veía nunca.
             const oNear = new Map(near(origin, rOrigen, nOrigen).map(s => [s.i, s]));
-            const dNear = new Map(near(dest, rDestino, nDestino).map(s => [s.i, s]));
+            const dNear = new Map(near(dest, rDestino, nDestino).filter(s => s.pie <= 600).map(s => [s.i, s]));
             if (!oNear.size || !dNear.size) return [];
 
             const now = new Date(whenMs || Date.now());
