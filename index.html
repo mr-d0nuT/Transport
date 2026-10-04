@@ -1440,73 +1440,16 @@
         }
 
         let loadedShapes = null;
-        let isWebGL = false;
 
         function hideRailways(gl) {
             if (!gl || !gl.getStyle) return;
-            const style = gl.getStyle();
-            if (style && style.layers) {
-                style.layers.forEach(l => {
+            try {
+                gl.getStyle().layers.forEach(l => {
                     if (l.id.includes('railway')) {
                         gl.setLayoutProperty(l.id, 'visibility', 'none');
                     }
                 });
-            }
-        }
-
-        async function loadBackgroundTransitGL(gl) {
-            try {
-                if (!loadedShapes) {
-                    const res = await fetch('shapes.json');
-                    loadedShapes = await res.json();
-                }
-                const features = Object.values(loadedShapes).filter(l => l.p && l.p.length > 0).map(line => {
-                    return {
-                        type: 'Feature',
-                        geometry: {
-                            type: 'LineString',
-                            coordinates: line.p.map(pt => [pt[1], pt[0]])
-                        },
-                        properties: {
-                            color: '#' + line.c,
-                            offset: line.o || 0,
-                            isBus: (line.t === '3' || line.t === 3)
-                        }
-                    };
-                });
-                
-                if (gl.getSource('transit-shapes')) return;
-
-                gl.addSource('transit-shapes', {
-                    type: 'geojson',
-                    data: { type: 'FeatureCollection', features: features }
-                });
-                
-                gl.addLayer({
-                    id: 'transit-lines',
-                    type: 'line',
-                    source: 'transit-shapes',
-                    layout: {
-                        'line-join': 'round',
-                        'line-cap': 'round'
-                    },
-                    paint: {
-                        'line-color': ['get', 'color'],
-                        'line-width': ['case', ['==', ['get', 'isBus'], true], 2.5, 4.0],
-                        'line-offset': ['case', ['==', ['get', 'isBus'], true], 1.5, ['get', 'offset']],
-                        'line-opacity': [
-                            'case',
-                            ['==', ['get', 'isBus'], true],
-                            ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.6], 
-                            1.0
-                        ]
-                    }
-                }); 
-            } catch (e) {
-                console.warn('MapLibre GL addLayer failed, falling back to Leaflet SVG', e);
-                isWebGL = false;
-                drawBackgroundTransit();
-            }
+            } catch(e) {}
         }
 
         // MapLibre necesita WebGL: si el dispositivo no lo tiene, se cae al
@@ -1514,26 +1457,19 @@
         function createBaseLayer() {
             const glReady = window.maplibregl && L.maplibreGL &&
                 (typeof maplibregl.supported !== 'function' || maplibregl.supported());
-            isWebGL = glReady;
             if (glReady) {
                 try {
                     const layer = L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
                     layer.on('add', () => {
                         const gl = layer.getMaplibreMap ? layer.getMaplibreMap() : null;
                         if (gl) {
-                            if (gl.loaded()) {
-                                hideRailways(gl);
-                                loadBackgroundTransitGL(gl);
-                            } else {
-                                gl.once('load', () => {
-                                    hideRailways(gl);
-                                    loadBackgroundTransitGL(gl);
-                                });
-                            }
+                            const doHide = () => hideRailways(gl);
+                            if (gl.loaded()) doHide();
+                            else gl.once('load', doHide);
                         }
                     });
                     return layer;
-                } catch (e) { isWebGL = false; /* cae al raster */ }
+                } catch (e) { /* cae al raster */ }
             }
             return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: MAP_ATTRIB, maxZoom: 20, maxNativeZoom: 19
@@ -1560,7 +1496,6 @@
         let currentZoomBus = null;
 
         async function loadBackgroundTransit() {
-            if (isWebGL) return; // Si hay WebGL, las formas se cargan directamente en MapLibre
             try {
                 if (!loadedShapes) {
                     const res = await fetch('shapes.json');
@@ -1574,7 +1509,7 @@
         }
 
         function drawBackgroundTransit() {
-            if (!loadedShapes || isWebGL) return;
+            if (!loadedShapes) return;
             const showBus = map.getZoom() >= 13;
             if (showBus === currentZoomBus && backgroundTransitLayer.getLayers().length > 0) return;
             
