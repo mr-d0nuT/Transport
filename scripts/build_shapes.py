@@ -1,4 +1,4 @@
-import urllib.request, zipfile, io, csv, json, os
+import urllib.request, zipfile, io, csv, json, os, math
 
 def fetch_gtfs(url):
     req = urllib.request.Request(url, headers={"User-Agent": "transport-bcn-build/1.0"})
@@ -23,13 +23,39 @@ def get_fgc_gtfs():
 def clean_dict(d):
     return {k.strip(): v.strip() for k, v in d.items() if k and v}
 
+def offset_polyline(points, offset_meters):
+    if len(points) < 2 or offset_meters == 0: return points
+    offset_pts = []
+    for i in range(len(points)):
+        if i == 0:
+            p1, p2 = points[0], points[1]
+        elif i == len(points) - 1:
+            p1, p2 = points[-2], points[-1]
+        else:
+            p1, p2 = points[i-1], points[i+1]
+        lat1, lon1 = p1
+        lat2, lon2 = p2
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        plon = -dlat
+        plat = dlon
+        length = math.hypot(plat, plon)
+        if length == 0:
+            offset_pts.append(points[i])
+            continue
+        lat_offset = (plat / length) * (offset_meters / 111320.0)
+        lon_offset = (plon / length) * (offset_meters / (111320.0 * math.cos(math.radians(points[i][0]))))
+        offset_pts.append((points[i][0] + lat_offset, points[i][1] + lon_offset))
+    return offset_pts
+
+global_idx = 0
+
 def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None):
+    global global_idx
     if isinstance(gtfs_source, str):
-        print(f"Fetching {gtfs_source}...")
         try:
             zf = fetch_gtfs(gtfs_source)
         except Exception as e:
-            print(f"Error: {e}")
             return
     else:
         zf = gtfs_source
@@ -71,36 +97,37 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None):
                 sid = r.get("shape_id")
                 if sid in trip_shapes:
                     if sid not in shapes_pts: shapes_pts[sid] = []
-                    shapes_pts[sid].append((int(r["shape_pt_sequence"]), float(r["shape_pt_lat"]), float(r["shape_pt_lon"])))
+                    shapes_pts[sid].append((int(r["shape_pt_sequence"]), float(r.get("shape_pt_lat", 0)), float(r.get("shape_pt_lon", 0))))
                     
     for rid, sids in trip_routes.items():
         best_sid = max(sids, key=lambda sid: len(shapes_pts.get(sid, []))) if sids else None
         if best_sid and best_sid in shapes_pts:
             pts = sorted(shapes_pts[best_sid])
-            # BBOX para recortar a Catalunya
             pts = [(lat, lon) for _, lat, lon in pts if 40.5 < lat < 43.0 and 0.1 < lon < 3.5]
             if not pts: continue
-            simplified = [[round(lat, 5), round(lon, 5)] for lat, lon in pts[::2]] # downsample 2x
+            # Calculate offset: alternate left and right by 15 meters
+            offset = ((global_idx % 7) - 3) * 20 # -60, -40, -20, 0, 20, 40, 60 meters
+            global_idx += 1
+            pts_offset = offset_polyline(pts, offset)
+            
+            simplified = [[round(lat, 5), round(lon, 5)] for lat, lon in pts_offset[::2]] # downsample 2x
             out_dict[rid] = {"c": routes[rid], "p": simplified}
 
 def main():
     tmb_url = "https://api.tmb.cat/v1/static/datasets/gtfs.zip?app_id=f87364db&app_key=fb9898a5d8988e645bba1a6eaa956b65"
     renfe_url = "https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip"
-    tram_url = "https://opendata.tram.cat/GTFS/TRAM_GTFS.zip"
     
     shapes = {}
     extract_shapes(tmb_url, shapes, {"1"}, "E20613") # Metro TMB
-    print("Fetching FGC...")
     try:
         fgc_zf = get_fgc_gtfs()
         extract_shapes(fgc_zf, shapes, {"2"}, "000000") # FGC
-    except Exception as e:
-        print("FGC error:", e)
+    except:
+        pass
     extract_shapes(renfe_url, shapes, {"2"}, "EF3340") # Rodalies
     
     with open("shapes.json", "w", encoding="utf-8") as f:
         json.dump(shapes, f, separators=(",", ":"))
-    print(f"Saved {len(shapes)} shapes.")
 
 if __name__ == "__main__":
     main()
