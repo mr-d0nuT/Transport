@@ -1,21 +1,26 @@
-import urllib.request, zipfile, io, csv, json
+
+import urllib.request, zipfile, io, csv, json, ssl
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
 
 def fetch_gtfs(url):
     req = urllib.request.Request(url, headers={"User-Agent": "transport-bcn-build/1.0"})
-    raw = urllib.request.urlopen(req, timeout=600).read()
+    raw = urllib.request.urlopen(req, timeout=600, context=ctx).read()
     return zipfile.ZipFile(io.BytesIO(raw))
 
 def get_fgc_gtfs():
     PORTAL = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/gtfs_zip/records?limit=20"
     req = urllib.request.Request(PORTAL, headers={"User-Agent": "transport-bcn-build/1.0"})
-    datos = json.loads(urllib.request.urlopen(req, timeout=120).read())
+    datos = json.loads(urllib.request.urlopen(req, timeout=120, context=ctx).read())
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for item in datos.get("results", []):
             f = item.get("file") or {}
             nombre = f.get("filename", "")
             if nombre in {"routes.txt", "trips.txt", "shapes.txt"}:
-                with urllib.request.urlopen(urllib.request.Request(f["url"], headers={"User-Agent": "transport-bcn-build/1.0"}), timeout=600) as fr:
+                with urllib.request.urlopen(urllib.request.Request(f["url"], headers={"User-Agent": "transport-bcn-build/1.0"}), timeout=600, context=ctx) as fr:
                     z.writestr(nombre, fr.read())
     return zipfile.ZipFile(buf)
 
@@ -77,7 +82,7 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None, 
         best_sid = max(sids, key=lambda sid: len(shapes_pts.get(sid, []))) if sids else None
         if best_sid and best_sid in shapes_pts:
             pts = sorted(shapes_pts[best_sid])
-            pts = [(lat, lon) for _, lat, lon in pts if 40.5 < lat < 43.0 and 0.1 < lon < 3.5]
+            pts = [(lat, lon) for _, lat, lon in pts]
             if not pts: continue
             
             simplified = [[round(lat, 5), round(lon, 5)] for lat, lon in pts[::downsample]] 
