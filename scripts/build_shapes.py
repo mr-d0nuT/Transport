@@ -24,7 +24,7 @@ def clean_dict(d):
 
 global_idx = 0
 
-def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None):
+def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None, downsample=2):
     global global_idx
     if isinstance(gtfs_source, str):
         try:
@@ -40,15 +40,10 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None):
             r = clean_dict(r_raw)
             rtype = r.get("route_type", "")
             if allowed_types is None or rtype in allowed_types:
-                rname = (r.get("route_short_name") or r.get("route_long_name") or "").upper()
                 color = r.get("route_color")
                 if not color or color.lower() == "ffffff" or color == "000000":
                     color = force_color or "5f6670"
-                # Check if it's a bus
-                if "BUS" in rname or rtype == "3":
-                    # If it is a bus, we assign it!
-                    pass
-                routes[r["route_id"]] = color.upper()
+                routes[r["route_id"]] = (color.upper(), rtype)
                 
     if not routes: return
     
@@ -82,33 +77,33 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None):
             pts = [(lat, lon) for _, lat, lon in pts if 40.5 < lat < 43.0 and 0.1 < lon < 3.5]
             if not pts: continue
             
-            # Sub-sample points to save space. We can take 1 out of every 2 points, 
-            # but for buses we might want 1 out of every 3 points because they are so detailed.
-            # Let's check route_type via the first trip? We didn't store route_type.
-            # We will just downsample all by 2x.
-            simplified = [[round(lat, 5), round(lon, 5)] for lat, lon in pts[::2]] 
+            simplified = [[round(lat, 5), round(lon, 5)] for lat, lon in pts[::downsample]] 
             
-            # assign a pixel offset between -6 and +6
             offset_px = ((global_idx % 7) - 3) * 3 
             global_idx += 1
             
-            out_dict[rid] = {"c": routes[rid], "p": simplified, "o": offset_px}
+            color, rtype = routes[rid]
+            out_dict[rid] = {"c": color, "t": rtype, "p": simplified, "o": offset_px}
 
 def main():
     tmb_url = "https://api.tmb.cat/v1/static/datasets/gtfs.zip?app_id=f87364db&app_key=fb9898a5d8988e645bba1a6eaa956b65"
     renfe_url = "https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip"
     tram_url = "https://opendata.tram.cat/GTFS/TRAM_GTFS.zip"
+    amb_url = "https://www.ambmobilitat.cat/OpenData/google_transit.zip"
+    gen_url = "https://analisi.transparenciacatalunya.cat/download/bca2-b4i3/application/zip"
     
     shapes = {}
-    extract_shapes(tmb_url, shapes, {"1", "3"}, "E20613") # Metro TMB + Buses TMB
+    extract_shapes(tmb_url, shapes, {"1", "3"}, "E20613", downsample=2) # Metro + Bus TMB
+    extract_shapes(amb_url, shapes, {"3"}, "FFD700", downsample=3) # AMB Buses (yellow default if empty)
+    extract_shapes(gen_url, shapes, {"3"}, "5f6670", downsample=5) # Generalitat Interurbans (gray default)
     try:
         fgc_zf = get_fgc_gtfs()
-        extract_shapes(fgc_zf, shapes, {"2"}, "000000") # FGC
+        extract_shapes(fgc_zf, shapes, {"2"}, "000000", downsample=2) # FGC
     except:
         pass
-    extract_shapes(renfe_url, shapes, {"2"}, "EF3340") # Rodalies
+    extract_shapes(renfe_url, shapes, {"2"}, "EF3340", downsample=2) # Rodalies
     try:
-        extract_shapes(tram_url, shapes, {"0"}, "008F4C") # TRAM
+        extract_shapes(tram_url, shapes, {"0"}, "008F4C", downsample=2) # TRAM
     except:
         pass
         

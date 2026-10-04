@@ -1439,14 +1439,26 @@
                 : 'https://tiles.openfreemap.org/styles/positron';
         }
 
+        async function fetchStyle(url) {
+            try {
+                const res = await fetch(url);
+                const style = await res.json();
+                style.layers = style.layers.filter(l => !l.id.includes('railway'));
+                return style;
+            } catch (e) {
+                return url; // Fallback
+            }
+        }
+
         // MapLibre necesita WebGL: si el dispositivo no lo tiene, se cae al
         // raster de OpenStreetMap antes que dejar el mapa en blanco
-        function createBaseLayer() {
+        async function createBaseLayer() {
             const glReady = window.maplibregl && L.maplibreGL &&
                 (typeof maplibregl.supported !== 'function' || maplibregl.supported());
             if (glReady) {
                 try {
-                    return L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
+                    const style = await fetchStyle(mapStyleURL());
+                    return L.maplibreGL({ style: style, attribution: MAP_ATTRIB });
                 } catch (e) { /* cae al raster */ }
             }
             return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1456,41 +1468,67 @@
 
         // Al cambiar claro/oscuro basta con recargar el estilo; si la capa es la
         // raster de respaldo no hay nada que cambiar
-        function applyMapTheme() {
+        async function applyMapTheme() {
             const gl = tileLayer && tileLayer.getMaplibreMap && tileLayer.getMaplibreMap();
             if (!gl) return;
-            try { gl.setStyle(mapStyleURL()); }
+            try { 
+                const style = await fetchStyle(mapStyleURL());
+                gl.setStyle(style); 
+            }
             catch (e) {
                 map.removeLayer(tileLayer);
-                tileLayer = createBaseLayer().addTo(map);
+                tileLayer = await createBaseLayer();
+                tileLayer.addTo(map);
             }
         }
 
         let backgroundTransitLayer;
         
+        let loadedShapes = null;
+        let currentZoomBus = null;
+
         async function loadBackgroundTransit() {
             try {
                 const res = await fetch('shapes.json');
-                const data = await res.json();
-                Object.values(data).forEach(line => {
-                    if (line.p && line.p.length > 0) {
-                        L.polyline(line.p, { 
-                            color: '#' + line.c, 
-                            weight: 3.5, 
-                            opacity: 1.0,
-                            offset: line.o || 0,
-                            interactive: false // Para que no bloquee los clics en las paradas que están debajo
-                        }).addTo(backgroundTransitLayer);
-                    }
-                });
+                loadedShapes = await res.json();
+                drawBackgroundTransit();
+                map.on('zoomend', drawBackgroundTransit);
             } catch (e) {
                 console.warn('No se pudieron cargar las líneas de transporte', e);
             }
         }
 
-        function initMap() {
-            map = L.map('map', { zoomControl: true, maxZoom: 20 }).setView([41.3879, 2.1699], 14);
-            tileLayer = createBaseLayer().addTo(map);
+        function drawBackgroundTransit() {
+            if (!loadedShapes) return;
+            const showBus = map.getZoom() >= 13;
+            if (showBus === currentZoomBus && backgroundTransitLayer.getLayers().length > 0) return;
+            
+            backgroundTransitLayer.clearLayers();
+            currentZoomBus = showBus;
+            
+            Object.values(loadedShapes).forEach(line => {
+                if (!line.p || line.p.length === 0) return;
+                const isBus = line.t === '3' || line.t === 3;
+                if (isBus && !showBus) return; // Hide buses when zoomed out
+                
+                L.polyline(line.p, { 
+                    color: '#' + line.c, 
+                    weight: isBus ? 2.5 : 3.5, 
+                    opacity: isBus ? 0.8 : 1.0,
+                    offset: line.o || 0,
+                    interactive: false
+                }).addTo(backgroundTransitLayer);
+            });
+        }
+
+        async function initMap() {
+            map = L.map('map', { 
+                zoomControl: true, 
+                maxZoom: 20,
+                preferCanvas: true // Use Canvas renderer by default for performance
+            }).setView([41.3879, 2.1699], 14);
+            tileLayer = await createBaseLayer();
+            tileLayer.addTo(map);
             markersLayer = L.layerGroup().addTo(map);
             userMarkerLayer = L.layerGroup().addTo(map);
             backgroundTransitLayer = L.layerGroup().addTo(map);
