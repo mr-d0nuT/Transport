@@ -1439,6 +1439,9 @@
                 : 'https://tiles.openfreemap.org/styles/positron';
         }
 
+        let loadedShapes = null;
+        let isWebGL = false;
+
         function hideRailways(gl) {
             if (!gl || !gl.getStyle) return;
             const style = gl.getStyle();
@@ -1451,20 +1454,76 @@
             }
         }
 
+        async function loadBackgroundTransitGL(gl) {
+            try {
+                if (!loadedShapes) {
+                    const res = await fetch('shapes.json');
+                    loadedShapes = await res.json();
+                }
+                const features = Object.values(loadedShapes).filter(l => l.p && l.p.length > 0).map(line => {
+                    return {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: line.p.map(pt => [pt[1], pt[0]]) // GeoJSON is [lon, lat]
+                        },
+                        properties: {
+                            color: '#' + line.c,
+                            offset: line.o || 0,
+                            isBus: line.t === '3' || line.t === 3
+                        }
+                    };
+                });
+                
+                if (gl.getSource('transit-shapes')) return; // Ya existe
+
+                gl.addSource('transit-shapes', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: features }
+                });
+                
+                gl.addLayer({
+                    id: 'transit-lines',
+                    type: 'line',
+                    source: 'transit-shapes',
+                    layout: {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    paint: {
+                        'line-color': ['get', 'color'],
+                        'line-width': ['case', ['get', 'isBus'], 2.5, 4.0],
+                        'line-offset': ['get', 'offset'],
+                        'line-opacity': [
+                            'case',
+                            ['get', 'isBus'],
+                            ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.8], // Fade in buses
+                            1.0
+                        ]
+                    }
+                }, gl.getStyle().layers.find(l => l.id.includes('label')) ? gl.getStyle().layers.find(l => l.id.includes('label')).id : undefined); 
+                // Insertamos debajo de las etiquetas (labels) si existen
+            } catch (e) { console.warn('Error loading shapes in WebGL', e); }
+        }
+
         // MapLibre necesita WebGL: si el dispositivo no lo tiene, se cae al
         // raster de OpenStreetMap antes que dejar el mapa en blanco
         function createBaseLayer() {
             const glReady = window.maplibregl && L.maplibreGL &&
                 (typeof maplibregl.supported !== 'function' || maplibregl.supported());
+            isWebGL = glReady;
             if (glReady) {
                 try {
                     const layer = L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
                     layer.on('add', () => {
                         const gl = layer.getMaplibreMap ? layer.getMaplibreMap() : null;
-                        if (gl) gl.once('styledata', () => hideRailways(gl));
+                        if (gl) gl.once('styledata', () => {
+                            hideRailways(gl);
+                            loadBackgroundTransitGL(gl);
+                        });
                     });
                     return layer;
-                } catch (e) { /* cae al raster */ }
+                } catch (e) { isWebGL = false; /* cae al raster */ }
             }
             return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: MAP_ATTRIB, maxZoom: 20, maxNativeZoom: 19
@@ -1492,9 +1551,12 @@
         let currentZoomBus = null;
 
         async function loadBackgroundTransit() {
+            if (isWebGL) return; // Si hay WebGL, las formas se cargan directamente en MapLibre
             try {
-                const res = await fetch('shapes.json');
-                loadedShapes = await res.json();
+                if (!loadedShapes) {
+                    const res = await fetch('shapes.json');
+                    loadedShapes = await res.json();
+                }
                 drawBackgroundTransit();
                 map.on('zoomend', drawBackgroundTransit);
             } catch (e) {
@@ -1503,7 +1565,7 @@
         }
 
         function drawBackgroundTransit() {
-            if (!loadedShapes) return;
+            if (!loadedShapes || isWebGL) return;
             const showBus = map.getZoom() >= 13;
             if (showBus === currentZoomBus && backgroundTransitLayer.getLayers().length > 0) return;
             
