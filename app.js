@@ -4451,7 +4451,7 @@ window.PENA_CLIMA = function(it) {
     // Si está lloviendo, penalizar caminar fuera de estaciones (y primar el metro)
     let outdoorWalk = 0;
     it.legs.forEach(l => {
-        if (!l.transitLeg) outdoorWalk += l.distance;
+        if (!l.transitLeg) outdoorWalk += (l.distance || 0);
     });
     return outdoorWalk * 2000; // Penalización inmensa por caminar bajo la lluvia
 };
@@ -4600,7 +4600,7 @@ window.PENA_CLIMA = function(it) {
             const sinDuplicados = lista => {
                 const seen = new Set();
                 return lista.filter(it => {
-                    const sig = it.legs.filter(l => l.transitLeg).map(l => (l.routeShortName || '') + '@' + (l.from.stopId || '')).join('>');
+                    const sig = it.legs.filter(l => l.transitLeg).map(l => (l.routeShortName || '') + '@' + (l.from ? (l.from.stopId || l.from.name || '') : '')).join('>');
                     if (seen.has(sig)) return false;
                     seen.add(sig);
                     return true;
@@ -6009,7 +6009,7 @@ window.PENA_CLIMA = function(it) {
                 const color = l.routeColor ? '#' + l.routeColor : (l.mode === 'BUS' ? '#da291c' : '#008e78');
                 const nombre = esc(l.routeShortName || l.mode);
                 return `<div class="rb-seg" style="width:${pct}%; background:${color}"
-                    title="${nombre} · ${esc(l.from.name)} → ${esc(l.to.name)}">
+                    title="${nombre} · ${esc((l.from && l.from.name) || '')} → ${esc((l.to && l.to.name) || '')}">
                     ${pct > 13 ? `<span class="rb-lbl">${nombre}</span>` : ''}</div>`;
             }).join('');
 
