@@ -7607,7 +7607,7 @@ window.PENA_CLIMA = function(it) {
             });
         }
 
-        function openAR() {
+        async function openAR() {
             if (arState.open) return;
             document.getElementById('arOverlay').style.display = 'block';
             arState.open = true;
@@ -7964,7 +7964,7 @@ window.PENA_CLIMA = function(it) {
             document.getElementById('arFallback').style.display = 'none';
             document.getElementById('arOverlay').style.display = 'none';
             arState.heading = null;
-        }\n
+        }
 /* --- HUD A LA CARRERA (Acelerómetro) --- */
 let hudEnabled = true;
 let isRunning = false;
