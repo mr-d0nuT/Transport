@@ -54,11 +54,13 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None, 
             r = clean_dict(r_raw)
             if r.get("route_id") in routes:
                 shape_id = r.get("shape_id")
+                direction = r.get("direction_id", "0")
                 if shape_id:
-                    trip_shapes[shape_id] = r["route_id"]
-                    if r["route_id"] not in trip_routes:
-                        trip_routes[r["route_id"]] = set()
-                    trip_routes[r["route_id"]].add(shape_id)
+                    route_dir = f"{r['route_id']}_{direction}"
+                    trip_shapes[shape_id] = route_dir
+                    if route_dir not in trip_routes:
+                        trip_routes[route_dir] = set()
+                    trip_routes[route_dir].add(shape_id)
                     
     shapes_pts = {}
     if "shapes.txt" in zf.namelist():
@@ -70,7 +72,8 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None, 
                     if sid not in shapes_pts: shapes_pts[sid] = []
                     shapes_pts[sid].append((int(r["shape_pt_sequence"]), float(r.get("shape_pt_lat", 0)), float(r.get("shape_pt_lon", 0))))
                     
-    for rid, sids in trip_routes.items():
+    for route_dir, sids in trip_routes.items():
+        rid = route_dir.split("_")[0]
         best_sid = max(sids, key=lambda sid: len(shapes_pts.get(sid, []))) if sids else None
         if best_sid and best_sid in shapes_pts:
             pts = sorted(shapes_pts[best_sid])
@@ -83,7 +86,7 @@ def extract_shapes(gtfs_source, out_dict, allowed_types=None, force_color=None, 
             global_idx += 1
             
             color, rtype = routes[rid]
-            out_dict[rid] = {"c": color, "t": rtype, "p": simplified, "o": offset_px}
+            out_dict[route_dir] = {"c": color, "t": rtype, "p": simplified, "o": offset_px}
 
 def main():
     tmb_url = "https://api.tmb.cat/v1/static/datasets/gtfs.zip?app_id=f87364db&app_key=fb9898a5d8988e645bba1a6eaa956b65"
@@ -93,17 +96,17 @@ def main():
     gen_url = "https://analisi.transparenciacatalunya.cat/download/bca2-b4i3/application/zip"
     
     shapes = {}
-    extract_shapes(tmb_url, shapes, {"1", "3"}, "E20613", downsample=2) # Metro + Bus TMB
-    extract_shapes(amb_url, shapes, {"3"}, "FFD700", downsample=3) # AMB Buses (yellow default if empty)
-    extract_shapes(gen_url, shapes, {"3"}, "5f6670", downsample=5) # Generalitat Interurbans (gray default)
+    extract_shapes(tmb_url, shapes, {"1", "3"}, "E20613", downsample=2)
+    extract_shapes(amb_url, shapes, {"3"}, "FFD700", downsample=3)
+    extract_shapes(gen_url, shapes, {"3"}, "5f6670", downsample=5)
     try:
         fgc_zf = get_fgc_gtfs()
-        extract_shapes(fgc_zf, shapes, {"2"}, "000000", downsample=2) # FGC
+        extract_shapes(fgc_zf, shapes, {"2"}, "000000", downsample=2)
     except:
         pass
-    extract_shapes(renfe_url, shapes, {"2"}, "EF3340", downsample=2) # Rodalies
+    extract_shapes(renfe_url, shapes, {"2"}, "EF3340", downsample=2)
     try:
-        extract_shapes(tram_url, shapes, {"0"}, "008F4C", downsample=2) # TRAM
+        extract_shapes(tram_url, shapes, {"0"}, "008F4C", downsample=2)
     except:
         pass
         

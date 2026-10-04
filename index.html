@@ -1493,7 +1493,7 @@
                     paint: {
                         'line-color': ['get', 'color'],
                         'line-width': ['case', ['get', 'isBus'], 2.5, 4.0],
-                        'line-offset': ['case', ['get', 'isBus'], 0, ['get', 'offset']], // Los buses van por el centro de la calle, sin offset para evitar espaguetis
+                        'line-offset': ['case', ['get', 'isBus'], 1.5, ['get', 'offset']], // Los buses se separan 1.5px a la derecha de su sentido de marcha
                         'line-opacity': [
                             'case',
                             ['get', 'isBus'],
