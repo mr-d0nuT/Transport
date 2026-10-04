@@ -1,8 +1,8 @@
 // Service worker de Som-hi!: cachea la carcasa de la app para que
 // arranque al instante y funcione la interfaz sin red. Los datos en tiempo
 // real (TMB, TRAM, Overpass) y los tiles del mapa NUNCA se cachean.
-const CACHE = 'transport-bcn-v86';
-const SHELL = ['./', './index.html', './icon-192.png', './favicon-64.png', './manifest.webmanifest', './assets/mark-donut.png'];
+const CACHE = 'transport-bcn-v87';
+const SHELL = ['./', './index.html', './styles.css', './app.js', './icon-192.png', './favicon-64.png', './manifest.webmanifest', './assets/mark-donut.png'];
 
 self.addEventListener('install', e => {
     e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
@@ -18,45 +18,29 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
     const url = new URL(e.request.url);
-
-    // Navegación: red primero (para recibir actualizaciones), caché de respaldo
-    if (e.request.mode === 'navigate') {
+    
+    // Si es una llamada a las APIs (TMB, TRAM, Overpass), aplicamos Stale-While-Revalidate
+    if (url.hostname.includes('api.tmb.cat') || url.hostname.includes('overpass-api.de') || url.hostname.includes('tram.cat')) {
         e.respondWith(
-            fetch(e.request).then(res => {
-                const copy = res.clone();
-                caches.open(CACHE).then(c => c.put('./index.html', copy));
-                return res;
-            }).catch(() => caches.match('./index.html'))
+            caches.open('transport-bcn-api-cache').then(cache => {
+                return cache.match(e.request).then(cachedResponse => {
+                    const fetchPromise = fetch(e.request).then(networkResponse => {
+                        cache.put(e.request, networkResponse.clone());
+                        return networkResponse;
+                    }).catch(() => {
+                        // Si falla la red, ya devolvimos caché (si había)
+                    });
+                    
+                    // Devuelve caché al instante si existe, si no, espera a la red
+                    return cachedResponse || fetchPromise;
+                });
+            })
         );
         return;
     }
 
-    // Los datos precompilados se regeneran cada semana o cada mes (horarios de la
-    // Hispano y andenes del metro): red primero, caché de respaldo
-    if (url.origin === location.origin &&
-        /(catbus|renfe-md|fgc-sched|andenes-metro|correspondencias|tram-sched)\.json$|^.*\/(amb-bus|tmb-sched)\/.*\.json$/.test(url.pathname)) {
-        e.respondWith(
-            fetch(e.request).then(res => {
-                const copy = res.clone();
-                caches.open(CACHE).then(c => c.put(e.request, copy));
-                return res;
-            }).catch(() => caches.match(e.request))
-        );
-        return;
-    }
-
-    // Recursos propios y librerías CDN: caché primero (son versionados/estables)
-    const isShellAsset = url.origin === location.origin || url.hostname === 'unpkg.com';
-    if (isShellAsset && e.request.method === 'GET') {
-        e.respondWith(
-            caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
-                if (res.ok || res.type === 'opaque') {
-                    const copy = res.clone();
-                    caches.open(CACHE).then(c => c.put(e.request, copy));
-                }
-                return res;
-            }))
-        );
-    }
-    // Todo lo demás (APIs, tiles) va directo a red
+    // Para estáticos locales (HTML, CSS, JS, etc), Cache First estándar
+    e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request))
+    );
 });
