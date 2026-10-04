@@ -1520,32 +1520,32 @@
             backgroundTransitLayer.clearLayers();
             currentZoomBus = showBus;
             
-            // Primero: borde blanco para separar líneas (como T-mobilitat)
-            Object.values(loadedShapes).forEach(line => {
-                if (!line.p || line.p.length === 0) return;
+            const lines = Object.values(loadedShapes).filter(line => {
+                if (!line.p || line.p.length === 0) return false;
                 const isBus = line.t === '3' || line.t === 3;
-                if (isBus && !showBus) return;
-                
+                return !(isBus && !showBus);
+            });
+            
+            // Pasada 1: borde blanco (como T-mobilitat)
+            lines.forEach(line => {
+                const isBus = line.t === '3' || line.t === 3;
                 L.polyline(line.p, { 
                     color: '#ffffff', 
-                    weight: isBus ? 4 : 6, 
-                    opacity: 1.0,
-                    offset: line.o || 0,
+                    weight: isBus ? 3.5 : 5, 
+                    opacity: 0.9,
+                    offset: (line.o || 0) * 2, // x2 para mayor separación
                     interactive: false
                 }).addTo(backgroundTransitLayer);
             });
             
-            // Después: línea de color por encima del borde blanco
-            Object.values(loadedShapes).forEach(line => {
-                if (!line.p || line.p.length === 0) return;
+            // Pasada 2: color de la línea
+            lines.forEach(line => {
                 const isBus = line.t === '3' || line.t === 3;
-                if (isBus && !showBus) return;
-                
                 L.polyline(line.p, { 
                     color: '#' + line.c, 
-                    weight: isBus ? 2 : 3.5, 
+                    weight: isBus ? 1.5 : 2.5, 
                     opacity: 1.0,
-                    offset: line.o || 0,
+                    offset: (line.o || 0) * 2,
                     interactive: false
                 }).addTo(backgroundTransitLayer);
             });
