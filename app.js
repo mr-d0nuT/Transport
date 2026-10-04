@@ -5462,11 +5462,11 @@ window.PENA_CLIMA = function(it) {
                     base[di] = lat.length;
                     d.stops.forEach((s, i) => { lat.push(s[2]); lon.push(s[3]); dsOf.push(di); locOf.push(i); });
                 });
-                // rejilla de ~500 m para encontrar transbordos a pie sin comparar
+                // rejilla de ~1 km para encontrar transbordos a pie sin comparar
                 // diez mil paradas con diez mil paradas
                 const grid = new Map();
                 for (let g = 0; g < lat.length; g++) {
-                    const k = Math.round(lat[g] / 0.005) + ':' + Math.round(lon[g] / 0.005);
+                    const k = Math.round(lat[g] / 0.01) + ':' + Math.round(lon[g] / 0.01);
                     let v = grid.get(k); if (!v) grid.set(k, v = []);
                     v.push(g);
                 }
@@ -5485,7 +5485,7 @@ window.PENA_CLIMA = function(it) {
             // Cuatro vehículos: del pueblo al apeadero, tren, enlace y bus final.
             // Con tres se quedaba a las puertas de Argentona.
             const rondas = opts.rondas || 4;
-            const radio = opts.radio || 1200;   // metros hasta la primera parada
+            const radio = opts.radio || 2000;   // metros hasta la primera parada
             const desde = whenMs || Date.now();
 
             // día de servicio: de madrugada circula todavía el día anterior, con
@@ -5532,13 +5532,13 @@ window.PENA_CLIMA = function(it) {
             });
 
             const vecinas = g => {
-                const cy = Math.round(red.lat[g] / 0.005), cx = Math.round(red.lon[g] / 0.005);
+                const cy = Math.round(red.lat[g] / 0.01), cx = Math.round(red.lon[g] / 0.01);
                 const out = [];
                 for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
                     const v = red.grid.get((cy + a) + ':' + (cx + b));
                     if (v) for (const h of v) if (h !== g) {
                         const dd = getDistance(red.lat[g], red.lon[g], red.lat[h], red.lon[h]);
-                        if (dd <= 500) out.push({ h, dd: metrosAPie(red.lat[g], red.lon[g], red.lat[h], red.lon[h]) });
+                        if (dd <= 1500) out.push({ h, dd: metrosAPie(red.lat[g], red.lon[g], red.lat[h], red.lon[h]) });
                     }
                 }
                 return out;
