@@ -1497,12 +1497,11 @@
                         'line-opacity': [
                             'case',
                             ['get', 'isBus'],
-                            ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.6], // Fade in buses, un poco más transparentes
+                            ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.6], 
                             1.0
                         ]
                     }
-                }, gl.getStyle().layers.find(l => l.id.includes('label')) ? gl.getStyle().layers.find(l => l.id.includes('label')).id : undefined); 
-                // Insertamos debajo de las etiquetas (labels) si existen
+                }); 
             } catch (e) { console.warn('Error loading shapes in WebGL', e); }
         }
 
