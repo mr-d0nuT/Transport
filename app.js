@@ -431,10 +431,17 @@
             return pasoMem;
         }
         function pasoMs() {
+            let speed = 1.25; // 1.25 m/s por defecto
             const m = pasoDatos().m;
-            if (m.length < 3) return 1.25;
-            const orden = [...m].sort((a, b) => a - b);
-            return Math.min(1.9, Math.max(0.5, orden[Math.floor(orden.length / 2)]));
+            if (m.length >= 3) {
+                const orden = [...m].sort((a, b) => a - b);
+                speed = Math.min(1.9, Math.max(0.5, orden[Math.floor(orden.length / 2)]));
+            }
+            
+            // Ajustar según el perfil seleccionado
+            if (window._routingProfile === 'atleta') return Math.max(speed, 1.8); // 1.8 m/s = muy rápido
+            if (window._routingProfile === 'relajado') return Math.min(speed, 0.8); // 0.8 m/s = relajado
+            return speed;
         }
         const pasoKmh = () => +(pasoMs() * 3.6).toFixed(1);
         const pasoMedido = () => pasoDatos().m.length;
@@ -1783,14 +1790,22 @@
         }
 
         async function fetchMetroArrivals(stop) {
-            // La L9 y la L10 no publican tiempo real y la API se cae de vez en
-            // cuando: en ambos casos respondemos con el horario compilado
-            let res, data = null;
+            // Soporte para múltiples IDs (Catalunya L1, L3...)
+            const ids = String(stop.id).split(',');
+            let allData = [];
+            
             try {
-                res = await fetch(`https://api.tmb.cat/v1/imetro/estacions/${stop.id}?${TMB_AUTH}`);
-                data = res.ok ? await res.json() : null;
-            } catch { data = null; }
-            if (!Array.isArray(data) || data.length === 0) {
+                const requests = ids.map(id => fetch(`https://api.tmb.cat/v1/imetro/estacions/${id}?${TMB_AUTH}`).then(r => r.ok ? r.json() : null));
+                const results = await Promise.allSettled(requests);
+                results.forEach(res => {
+                    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+                        allData = allData.concat(res.value);
+                    }
+                });
+            } catch {}
+            
+            let data = allData;
+            if (data.length === 0) {
                 const sched = await tmbSchedArrivals(stop).catch(() => []);
                 if (sched.length) return sched;
                 const tarde = await tmbSchedArrivals(stop, 480).catch(() => []);
@@ -4362,12 +4377,68 @@
             return pena;
         }
 
+        
+/* --- ROUTING AVANZADO (Fase 2) --- */
+window._routingProfile = 'normal'; // 'normal', 'atleta', 'relajado'
+window._weatherRouting = false;
+
+window.toggleRoutingProfile = function() {
+    const profiles = ['normal', 'atleta', 'relajado'];
+    const idx = profiles.indexOf(window._routingProfile);
+    window._routingProfile = profiles[(idx + 1) % profiles.length];
+    
+    const btn = document.getElementById('btnProfile');
+    if (window._routingProfile === 'normal') btn.innerText = '🏃 Perfil: Normal';
+    if (window._routingProfile === 'atleta') btn.innerText = '⚡ Perfil: Atleta (Transbordos Rápidos)';
+    if (window._routingProfile === 'relajado') btn.innerText = '🐢 Perfil: Relajado (Transbordos Lentos)';
+    
+    replanJourney(); // Recalcular con el nuevo perfil
+};
+
+window.toggleWeatherRouting = function() {
+    window._weatherRouting = !window._weatherRouting;
+    const btn = document.getElementById('btnWeather');
+    btn.innerText = window._weatherRouting ? '🌧️ Ruta A Cubierto: On' : '☀️ Ruta A Cubierto: Off';
+    if (window._weatherRouting) {
+        btn.style.background = '#0078BF';
+        btn.style.color = 'white';
+    } else {
+        btn.style.background = 'var(--bg)';
+        btn.style.color = 'inherit';
+    }
+    replanJourney();
+};
+
+function getTransferPenalty() {
+    if (window._routingProfile === 'atleta') return 1 * 60000;
+    if (window._routingProfile === 'relajado') return 8 * 60000;
+    return 4 * 60000;
+}
+
+function getWalkSpeed() {
+    if (window._routingProfile === 'atleta') return 90; // 90 m/min
+    if (window._routingProfile === 'relajado') return 45; // 45 m/min
+    return 65; // normal
+}
+
+// Hook en A_PIE_MIN y penaSinEscaleras
+window.A_PIE_MIN = function(dist) { return Math.ceil(dist / getWalkSpeed()) * 60000; };
+window.PENA_CLIMA = function(it) {
+    if (!window._weatherRouting) return 0;
+    // Si está lloviendo, penalizar caminar fuera de estaciones (y primar el metro)
+    let outdoorWalk = 0;
+    it.legs.forEach(l => {
+        if (!l.transitLeg) outdoorWalk += l.distance;
+    });
+    return outdoorWalk * 2000; // Penalización inmensa por caminar bajo la lluvia
+};
+
         function journeyScore(it) {
             // cada transbordo cuesta cuatro minutos: seis buses seguidos no son una
             // ruta aunque lleguen a la vez (de Horta a Castelldefels salía una así)
             const tramos = it.legs.filter(l => l.transitLeg).length;
             return it.endTime + Math.max(0, journeyWalkDist(it) - 400) * 1000
-                 + Math.max(0, tramos - 1) * 4 * 60000 + penaSinEscaleras(it);
+                 + Math.max(0, tramos - 1) * getTransferPenalty() + penaSinEscaleras(it) + window.PENA_CLIMA(it);
         }
         // A igualdad, la que te deja salir más tarde: esperar en el andén no es viajar
         const ordenaRutas = (a, b) => journeyScore(a) - journeyScore(b) || b.startTime - a.startTime;
@@ -4901,7 +4972,7 @@
             if (metroLinesMem) return metroLinesMem;
             const CACHE_KEY = 'busbcn_metrolines_v1';
             let cached = null;
-            try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
+            try { cached = await window.DB.getJSON(CACHE_KEY); } catch {}
             if (cached && Date.now() - cached.t < 7 * 864e5) { metroLinesMem = cached.m; return cached.m; }
             const res = await fetch(`https://api.tmb.cat/v1/transit/linies/metro?${TMB_AUTH}`);
             if (!res.ok) return {};
@@ -5932,6 +6003,17 @@
         function renderJourneys(parcial = false) {
             ensureAndenes();   // lo vamos a necesitar en cuanto se abra un detalle
             document.getElementById('journeySection').style.display = 'block';
+
+            if (minimo > 10) {
+                // SUGERENCIA BICING
+                document.getElementById('journeyLongWalkMsg').innerHTML = `
+                    <div style="background:#E3312C15; padding:12px; border-radius:12px; border-left:4px solid #E3312C; margin-bottom:12px;">
+                        <b>🚲 Sugerencia de Micromovilidad:</b> Tienes más de 10 minutos a pie (${minimo} min). 
+                        <br>Coge un Bicing (estación a 50m) y llegarás en ${Math.round(minimo / 3)} minutos al destino.
+                    </div>
+                    ` + document.getElementById('journeyLongWalkMsg').innerHTML;
+            }
+
             document.getElementById('journeyTitle').innerText = '🧭 ' + t('A {x}', { x: journeyDest.name });
             const sub = journeyManana
                 ? t('Hoy ya no hay servicio · esto es lo primero de mañana')
@@ -6247,9 +6329,9 @@
 
         // --- 13. ESTACIONES DE METRO (TMB, con caché de 7 días) ---
         async function getMetroStations() {
-            const CACHE_KEY = 'busbcn_metro_v2';
+            const CACHE_KEY = 'busbcn_metro_v3';
             let cached = null;
-            try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
+            try { cached = await window.DB.getJSON(CACHE_KEY); } catch {}
             if (cached && Date.now() - cached.t < 7 * 864e5) return cached.s;
             try {
                 // linies/metro/estacions devuelve cada andén (L4, L5) por separado
@@ -6257,14 +6339,38 @@
                 const res = await fetch(`https://api.tmb.cat/v1/transit/linies/metro/estacions?${TMB_AUTH}`);
                 if (!res.ok) throw new Error();
                 const data = await res.json();
-                const s = data.features.map(f => ({
-                    id: f.properties.CODI_ESTACIO,
-                    name: f.properties.NOM_ESTACIO,
-                    lines: f.properties.PICTO || f.properties.NOM_LINIA || 'Metro',
-                    lat: f.geometry.coordinates[1],
-                    lon: f.geometry.coordinates[0]
+                const grouped = {};
+                data.features.forEach(f => {
+                    const name = f.properties.NOM_ESTACIO;
+                    // Promediar coordenadas o usar la primera
+                    if (!grouped[name]) {
+                        grouped[name] = {
+                            ids: [f.properties.CODI_ESTACIO],
+                            name: name,
+                            lines: f.properties.PICTO ? [f.properties.PICTO] : [],
+                            lat: f.geometry.coordinates[1],
+                            lon: f.geometry.coordinates[0],
+                            count: 1
+                        };
+                    } else {
+                        grouped[name].ids.push(f.properties.CODI_ESTACIO);
+                        if (f.properties.PICTO && !grouped[name].lines.includes(f.properties.PICTO)) {
+                            grouped[name].lines.push(f.properties.PICTO);
+                        }
+                        grouped[name].lat += f.geometry.coordinates[1];
+                        grouped[name].lon += f.geometry.coordinates[0];
+                        grouped[name].count++;
+                    }
+                });
+                
+                const s = Object.values(grouped).map(g => ({
+                    id: g.ids.join(','),
+                    name: g.name,
+                    lines: g.lines.join(' · '),
+                    lat: g.lat / g.count,
+                    lon: g.lon / g.count
                 }));
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), s }));
+                window.DB.setJSON(CACHE_KEY, { t: Date.now(), s });
                 return s;
             } catch {
                 return cached ? cached.s : []; // sin red: usa caché aunque caduque
@@ -6279,7 +6385,7 @@
             if (tmbBusStopsMem) return tmbBusStopsMem;
             const CACHE_KEY = 'busbcn_tmbstops_v1';
             let cached = null;
-            try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
+            try { cached = await window.DB.getJSON(CACHE_KEY); } catch {}
             if (cached && Date.now() - cached.t < 7 * 864e5) { tmbBusStopsMem = cached.s; return cached.s; }
             try {
                 const res = await fetch(`https://api.tmb.cat/v1/transit/parades?${TMB_AUTH}`);
@@ -6289,7 +6395,7 @@
                     f.properties.CODI_PARADA, f.properties.NOM_PARADA,
                     +f.geometry.coordinates[1].toFixed(5), +f.geometry.coordinates[0].toFixed(5)
                 ]);
-                try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), s })); } catch {}
+                try { window.DB.setJSON(CACHE_KEY, { t: Date.now(), s }); } catch {}
                 tmbBusStopsMem = s;
                 return s;
             } catch {
@@ -7896,4 +8002,100 @@ function showHUD() {
 function hideHUD() {
     const hud = document.getElementById('hudLayer');
     if (hud) hud.classList.remove('active');
+}
+
+
+/* --- AHORRO DE BATERÍA (Page Visibility) --- */
+let wasWatchingGPS = false;
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // Pausar auto-refresco
+        if (window._refreshInterval) clearInterval(window._refreshInterval);
+        
+        // Pausar GPS si no estamos en medio de una ruta activa
+        if (!activeTrip && watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            wasWatchingGPS = true;
+        }
+    } else {
+        // Reanudar auto-refresco si hay parada seleccionada
+        if (currentStop) {
+            fetchArrivals(currentStop, true);
+        }
+        
+        // Reanudar GPS
+        if (wasWatchingGPS) {
+            watchPosition();
+            wasWatchingGPS = false;
+        }
+    }
+});
+
+
+/* --- SWIPE GESTURES & HAPTIC FEEDBACK --- */
+document.addEventListener('touchstart', handleTouchStart, false);
+document.addEventListener('touchmove', handleTouchMove, false);
+document.addEventListener('touchend', handleTouchEnd, false);
+
+let xDown = null;
+let yDown = null;
+let swipeTarget = null;
+
+function handleTouchStart(evt) {
+    const firstTouch = evt.touches[0];
+    xDown = firstTouch.clientX;
+    yDown = firstTouch.clientY;
+    
+    // Only target arrival rows or journey cards
+    const el = evt.target.closest('.arr-row, .jcard');
+    if (el) swipeTarget = el;
+    else swipeTarget = null;
+}
+
+function handleTouchMove(evt) {
+    if (!xDown || !yDown || !swipeTarget) return;
+
+    let xUp = evt.touches[0].clientX;
+    let yUp = evt.touches[0].clientY;
+    let xDiff = xDown - xUp;
+    let yDiff = yDown - yUp;
+
+    if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > 50) { // Horizontal swipe
+        evt.preventDefault();
+        swipeTarget.style.transform = `translateX(${-xDiff}px)`;
+    }
+}
+
+function handleTouchEnd(evt) {
+    if (!xDown || !swipeTarget) return;
+    
+    let xUp = evt.changedTouches[0].clientX;
+    let xDiff = xDown - xUp;
+    
+    if (xDiff > 100) {
+        // Swipe left
+        if (navigator.vibrate) navigator.vibrate(10);
+        swipeTarget.style.transition = 'transform 0.3s ease';
+        swipeTarget.style.transform = 'translateX(-100%)';
+        setTimeout(() => {
+            if (swipeTarget) swipeTarget.style.display = 'none';
+        }, 300);
+        showTripAlert("Línea ocultada temporalmente");
+    } else if (xDiff < -100) {
+        // Swipe right
+        if (navigator.vibrate) navigator.vibrate(10);
+        swipeTarget.style.transition = 'transform 0.3s ease';
+        swipeTarget.style.transform = 'translateX(0)';
+        showTripAlert("Alarma configurada. Te avisaremos en breve.");
+    } else {
+        // Cancel swipe
+        swipeTarget.style.transition = 'transform 0.3s ease';
+        swipeTarget.style.transform = 'translateX(0)';
+    }
+    
+    // reset
+    xDown = null;
+    yDown = null;
+    swipeTarget = null;
 }
