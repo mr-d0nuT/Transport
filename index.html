@@ -1493,11 +1493,11 @@
                     paint: {
                         'line-color': ['get', 'color'],
                         'line-width': ['case', ['get', 'isBus'], 2.5, 4.0],
-                        'line-offset': ['get', 'offset'],
+                        'line-offset': ['case', ['get', 'isBus'], 0, ['get', 'offset']], // Los buses van por el centro de la calle, sin offset para evitar espaguetis
                         'line-opacity': [
                             'case',
                             ['get', 'isBus'],
-                            ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.8], // Fade in buses
+                            ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 0.6], // Fade in buses, un poco más transparentes
                             1.0
                         ]
                     }
