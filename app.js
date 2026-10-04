@@ -5528,7 +5528,7 @@ window.PENA_CLIMA = function(it) {
             // Cuatro vehículos: del pueblo al apeadero, tren, enlace y bus final.
             // Con tres se quedaba a las puertas de Argentona.
             const rondas = opts.rondas || 4;
-            const radio = opts.radio || 2000;   // metros hasta la primera parada
+            const radio = opts.radio || 1500;   // metros hasta la primera parada (max 20 min a pie)
             const desde = whenMs || Date.now();
 
             // día de servicio: de madrugada circula todavía el día anterior, con
@@ -5557,7 +5557,10 @@ window.PENA_CLIMA = function(it) {
                 const out = [];
                 for (let g = 0; g < red.n; g++) {
                     const dd = getDistance(pt.lat, pt.lon, red.lat[g], red.lon[g]);
-                    if (dd <= max) out.push({ g, dd: metrosAPie(pt.lat, pt.lon, red.lat[g], red.lon[g]) });
+                    if (dd <= max) {
+                        const mPie = metrosAPie(pt.lat, pt.lon, red.lat[g], red.lon[g]);
+                        if (mPie <= max * 1.3) out.push({ g, dd: mPie });
+                    }
                 }
                 return out.sort((a, b) => a.dd - b.dd).slice(0, 60);
             };
@@ -5581,7 +5584,10 @@ window.PENA_CLIMA = function(it) {
                     const v = red.grid.get((cy + a) + ':' + (cx + b));
                     if (v) for (const h of v) if (h !== g) {
                         const dd = getDistance(red.lat[g], red.lon[g], red.lat[h], red.lon[h]);
-                        if (dd <= 1500) out.push({ h, dd: metrosAPie(red.lat[g], red.lon[g], red.lat[h], red.lon[h]) });
+                        if (dd <= 1500) {
+                            const mPie = metrosAPie(red.lat[g], red.lon[g], red.lat[h], red.lon[h]);
+                            if (mPie <= 1800) out.push({ h, dd: mPie });
+                        }
                     }
                 }
                 return out;
