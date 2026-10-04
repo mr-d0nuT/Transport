@@ -15,6 +15,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="assets/leaflet.polylineoffset.js"></script>
 
     <!-- Teselas vectoriales de OpenFreeMap (gratis y sin API key) sobre Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
@@ -1477,6 +1478,7 @@
                             color: '#' + line.c, 
                             weight: 3.5, 
                             opacity: 1.0,
+                            offset: line.o || 0,
                             interactive: false // Para que no bloquee los clics en las paradas que están debajo
                         }).addTo(backgroundTransitLayer);
                     }
