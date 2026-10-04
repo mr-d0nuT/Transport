@@ -7473,18 +7473,20 @@
 
         // --- 13. ESTACIONES DE METRO (TMB, con caché de 7 días) ---
         async function getMetroStations() {
-            const CACHE_KEY = 'busbcn_metro_v1';
+            const CACHE_KEY = 'busbcn_metro_v2';
             let cached = null;
             try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
             if (cached && Date.now() - cached.t < 7 * 864e5) return cached.s;
             try {
-                const res = await fetch(`https://api.tmb.cat/v1/transit/estacions?${TMB_AUTH}`);
+                // linies/metro/estacions devuelve cada andén (L4, L5) por separado
+                // con su CODI_ESTACIO específico para que imetro pueda pedir los trenes de ESA línea
+                const res = await fetch(`https://api.tmb.cat/v1/transit/linies/metro/estacions?${TMB_AUTH}`);
                 if (!res.ok) throw new Error();
                 const data = await res.json();
                 const s = data.features.map(f => ({
-                    id: f.properties.ID_ESTACIO,
+                    id: f.properties.CODI_ESTACIO,
                     name: f.properties.NOM_ESTACIO,
-                    lines: (String(f.properties.PICTO || '').match(/L\d+[NS]?|FM/g) || []).join(' · '),
+                    lines: f.properties.PICTO || f.properties.NOM_LINIA || 'Metro',
                     lat: f.geometry.coordinates[1],
                     lon: f.geometry.coordinates[0]
                 }));
