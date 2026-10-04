@@ -484,7 +484,7 @@
         const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
         // Identificador único de una parada (para chips, marcadores y favoritos)
-        const stopKey = s => `${s.type}:${s.type === 'metro' ? s.id : (s.type === 'tram' ? s.out : s.code)}`;
+        const stopKey = s => `${s.type}:${s.type === 'metro' ? (s._realId || s.id) : (s.type === 'tram' ? s.out : s.code)}`;
 
         // Recupera los datos completos de una estación de Renfe por código
         function renfeStation(code) {
@@ -6329,7 +6329,7 @@ window.PENA_CLIMA = function(it) {
 
         // --- 13. ESTACIONES DE METRO (TMB, con caché de 7 días) ---
         async function getMetroStations() {
-            const CACHE_KEY = 'busbcn_metro_v3';
+            const CACHE_KEY = 'busbcn_metro_v4';
             let cached = null;
             try { cached = await window.DB.getJSON(CACHE_KEY); } catch {}
             if (cached && Date.now() - cached.t < 7 * 864e5) return cached.s;
@@ -6339,37 +6339,31 @@ window.PENA_CLIMA = function(it) {
                 const res = await fetch(`https://api.tmb.cat/v1/transit/linies/metro/estacions?${TMB_AUTH}`);
                 if (!res.ok) throw new Error();
                 const data = await res.json();
-                const grouped = {};
+                                // Agrupar IDs por nombre de estación
+                const idsByName = {};
+                const linesByName = {};
                 data.features.forEach(f => {
                     const name = f.properties.NOM_ESTACIO;
-                    // Promediar coordenadas o usar la primera
-                    if (!grouped[name]) {
-                        grouped[name] = {
-                            ids: [f.properties.CODI_ESTACIO],
-                            name: name,
-                            lines: f.properties.PICTO ? [f.properties.PICTO] : [],
-                            lat: f.geometry.coordinates[1],
-                            lon: f.geometry.coordinates[0],
-                            count: 1
-                        };
-                    } else {
-                        grouped[name].ids.push(f.properties.CODI_ESTACIO);
-                        if (f.properties.PICTO && !grouped[name].lines.includes(f.properties.PICTO)) {
-                            grouped[name].lines.push(f.properties.PICTO);
-                        }
-                        grouped[name].lat += f.geometry.coordinates[1];
-                        grouped[name].lon += f.geometry.coordinates[0];
-                        grouped[name].count++;
+                    if (!idsByName[name]) {
+                        idsByName[name] = [];
+                        linesByName[name] = new Set();
                     }
+                    idsByName[name].push(f.properties.CODI_ESTACIO);
+                    if (f.properties.PICTO) linesByName[name].add(f.properties.PICTO);
                 });
                 
-                const s = Object.values(grouped).map(g => ({
-                    id: g.ids.join(','),
-                    name: g.name,
-                    lines: g.lines.join(' · '),
-                    lat: g.lat / g.count,
-                    lon: g.lon / g.count
-                }));
+                // Generar los 171 marcadores independientes, pero cada uno lleva TODOS los IDs de su estación
+                const s = data.features.map(f => {
+                    const name = f.properties.NOM_ESTACIO;
+                    return {
+                        id: idsByName[name].join(','), // Todos los IDs de esta estación para que imetro los baje todos
+                        name: name,
+                        lines: Array.from(linesByName[name]).join(' · '), // Muestra L4 · L5 en la UI
+                        lat: f.geometry.coordinates[1],
+                        lon: f.geometry.coordinates[0],
+                        _realId: f.properties.CODI_ESTACIO // Clave única real del andén
+                    };
+                });
                 window.DB.setJSON(CACHE_KEY, { t: Date.now(), s });
                 return s;
             } catch {
