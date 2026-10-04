@@ -4357,7 +4357,7 @@ function fetchShardWorker(name) {
         // planner de TMB las propone igual (ignora maxWalkDistance, comprobado) y
         // encima las pone primero porque "llega antes". Se apartan y solo se
         // enseñan si no hay nada mejor y tú dices que sí.
-        const MAX_WALK_MIN = 12;
+        const MAX_WALK_MIN = 6;  // ~500 m: más que eso se aparta y se pregunta
         let pendingWalkItins = [];   // rutas con caminata larga, en espera
 
         const longestWalkMin = it => it.legs
@@ -6366,16 +6366,17 @@ window.PENA_CLIMA = function(it) {
 
         function renderWalkWarning() {
             const minimo = Math.min(...pendingWalkItins.map(longestWalkMin));
+            const metros = Math.round(minimo * 80); // ~80 m/min de media
             document.getElementById('journeySection').style.display = 'block';
             document.getElementById('journeyTitle').innerText = '🧭 ' + t('A {x}', { x: journeyDest.name });
             document.getElementById('journeySub').innerText = t('Desde tu ubicación · {t}', { t: new Date().toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' }) });
             document.getElementById('journeyResults').innerHTML = `
                 <div class="walk-warn">
                     <div class="walk-warn-top"><span class="walk-warn-ico">🚶</span>
-                        <div><b>${t('Todas las rutas obligan a caminar mucho')}</b>
-                            <div class="walk-warn-sub">${t('La que menos, {m} min a pie de una tirada.', { m: minimo })}</div></div>
+                        <div><b>${t('No hay rutas sin caminatas largas')}</b>
+                            <div class="walk-warn-sub">${t('La mejor opción incluye caminar {m} min (~{d} m) de una tirada. Puede que no haya transporte público entre dos puntos del trayecto a esta hora.', { m: minimo, d: metros })}</div></div>
                     </div>
-                    <button class="btn btn-search walk-warn-btn" onclick="showLongWalkRoutes()">${t('Verlas igualmente')}</button>
+                    <button class="btn btn-search walk-warn-btn" onclick="showLongWalkRoutes()">${t('Mostrar rutas con caminata')}</button>
                 </div>`;
             routeLayer.clearLayers();
         }
