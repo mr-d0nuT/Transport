@@ -1033,9 +1033,9 @@
         body { overflow: hidden; background: var(--bg); }
         #map { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 1 !important; border-radius: 0 !important; }
         
-        .map-fab { position: fixed !important; z-index: 50 !important; top: 20px !important; right: 20px !important; }
-        .map-fab.ar { top: 70px !important; }
-        #tripRecenter { position: fixed !important; z-index: 50 !important; top: 120px !important; right: 20px !important; }
+        .map-fab { position: fixed !important; z-index: 50 !important; top: 80px !important; right: 20px !important; }
+        .map-fab.ar { top: 130px !important; }
+        #tripRecenter { position: fixed !important; z-index: 50 !important; top: 180px !important; right: 20px !important; }
         .map-hint-pill { position: fixed !important; z-index: 50 !important; top: 20px !important; bottom: auto !important; left: 50% !important; transform: translateX(-50%) !important; }
 
         .bottom-sheet {

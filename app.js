@@ -3885,6 +3885,21 @@ function fetchShardWorker(name) {
         const fmtTime = ts => new Date(ts).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' });
 
         // Decodificador estándar de polilíneas codificadas (Google/OTP)
+        
+        function decodePolyline6(str) {
+            const pts = []; let index = 0, lat = 0, lon = 0;
+            while (index < str.length) {
+                for (const which of [0, 1]) {
+                    let result = 0, shift = 0, b;
+                    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+                    const delta = (result & 1) ? ~(result >> 1) : (result >> 1);
+                    if (which === 0) lat += delta; else lon += delta;
+                }
+                pts.push([lat / 1e6, lon / 1e6]);
+            }
+            return pts;
+        }
+
         function decodePolyline(str) {
             const pts = []; let index = 0, lat = 0, lon = 0;
             while (index < str.length) {
@@ -6250,7 +6265,23 @@ window.PENA_CLIMA = function(it) {
                 const pts = l._pts || ((l.legGeometry && l.legGeometry.points) ? decodePolyline(l.legGeometry.points) : null);
                 if (!pts) return;
                 if (!l.transitLeg) {
-                    L.polyline(pts, { color: '#5f6670', weight: 4, opacity: .7, dashArray: '2,8' }).addTo(routeLayer);
+                    
+                    const walkLayer = L.polyline(pts, { color: '#5f6670', weight: 4, opacity: .7, dashArray: '2,8' }).addTo(routeLayer);
+                    // Callejeo real asíncrono
+                    if (pts.length === 2 && getDistance(pts[0][0], pts[0][1], pts[1][0], pts[1][1]) > 40) {
+                        const q = { locations: [{lat: pts[0][0], lon: pts[0][1]}, {lat: pts[1][0], lon: pts[1][1]}], costing: "pedestrian" };
+                        fetch('https://valhalla1.openstreetmap.de/route?json=' + encodeURIComponent(JSON.stringify(q)))
+                            .then(r => r.json())
+                            .then(d => {
+                                if (d && d.trip && d.trip.legs && d.trip.legs[0] && d.trip.legs[0].shape && seq === drawSeq) {
+                                    const realShape = decodePolyline6(d.trip.legs[0].shape);
+                                    l._pts = realShape;
+                                    walkLayer.setLatLngs(realShape);
+                                    if (window.tripItin === it) drawTripRemaining(); // update trip lines if active
+                                }
+                            }).catch(() => {});
+                    }
+
                 } else {
                     const color = l.routeColor ? '#' + l.routeColor : '#da291c';
                     L.polyline(pts, { color, weight: 5, opacity: .85 }).addTo(routeLayer);
