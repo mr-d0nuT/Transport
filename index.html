@@ -1460,8 +1460,8 @@
                 try {
                     const layer = L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
                     layer.on('add', () => {
-                        const gl = layer.getMap();
-                        gl.once('styledata', () => hideRailways(gl));
+                        const gl = layer.getMaplibreMap ? layer.getMaplibreMap() : null;
+                        if (gl) gl.once('styledata', () => hideRailways(gl));
                     });
                     return layer;
                 } catch (e) { /* cae al raster */ }
@@ -1474,7 +1474,7 @@
         // Al cambiar claro/oscuro basta con recargar el estilo; si la capa es la
         // raster de respaldo no hay nada que cambiar
         function applyMapTheme() {
-            const gl = tileLayer.getMap ? tileLayer.getMap() : null;
+            const gl = tileLayer && tileLayer.getMaplibreMap ? tileLayer.getMaplibreMap() : null;
             if (!gl) return;
             try { 
                 gl.setStyle(mapStyleURL());
