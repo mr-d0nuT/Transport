@@ -4702,6 +4702,48 @@ window.PENA_CLIMA = function(it) {
                 const relevos = await relayJourneys(origin, dest).catch(() => []);
                 its = [...its, ...relevos];
             }
+            // Intenta parchear caminatas largas (ej. Sants -> Maria Cristina) usando TMB
+            its = await (async (rutas) => {
+                for (const it of rutas) {
+                    if (!it._red) continue; // solo afecta a rutas ensambladas por RAPTOR (que no tienen metro)
+                    
+                    let i = 0;
+                    while (i < it.legs.length) {
+                        const leg = it.legs[i];
+                        if (leg.mode === 'WALK' && leg.distance > 800) {
+                            const pt1 = leg._pts[0];
+                            const pt2 = leg._pts[leg._pts.length - 1];
+                            if (!pt1 || !pt2) { i++; continue; }
+                            
+                            const d = new Date(leg.startTime);
+                            const p2 = n => String(n).padStart(2, '0');
+                            let url = `https://api.tmb.cat/v1/planner/plan?${TMB_AUTH}` +
+                                `&fromPlace=${pt1[0]},${pt1[1]}&toPlace=${pt2[0]},${pt2[1]}` +
+                                `&mode=TRANSIT,WALK&numItineraries=1&locale=es` +
+                                `&date=${p2(d.getMonth()+1)}-${p2(d.getDate())}-${d.getFullYear()}&time=${p2(d.getHours())}:${p2(d.getMinutes())}`;
+                            
+                            try {
+                                const r = await fetch(url).then(x => x.json());
+                                if (r && r.plan && r.plan.itineraries && r.plan.itineraries[0]) {
+                                    const subIt = r.plan.itineraries[0];
+                                    if (subIt.legs.some(l => l.transitLeg)) {
+                                        // Verificar si no llegamos muy tarde para el siguiente vehículo
+                                        const sig = it.legs[i + 1];
+                                        if (!sig || subIt.endTime <= sig.startTime) {
+                                            // ¡Encaja! Insertar los sub-legs
+                                            it.legs.splice(i, 1, ...subIt.legs);
+                                            i += subIt.legs.length - 1;
+                                        }
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        i++;
+                    }
+                }
+                return rutas;
+            })(its);
+
             return await remata(its);
             } finally { terminado = true; }
         }
