@@ -7,6 +7,29 @@
             }
         }, 1600);
 
+        
+/* --- WEB WORKER (Cálculos pesados y JSON) --- */
+const dataWorker = new Worker('worker.js');
+const workerCallbacks = {};
+let workerMsgId = 0;
+
+dataWorker.onmessage = function(e) {
+    const { id, results, error } = e.data;
+    if (workerCallbacks[id]) {
+        if (error) workerCallbacks[id].reject(new Error('Worker error'));
+        else workerCallbacks[id].resolve(results);
+        delete workerCallbacks[id];
+    }
+};
+
+function fetchShardWorker(name) {
+    return new Promise((resolve, reject) => {
+        const id = ++workerMsgId;
+        workerCallbacks[id] = { resolve, reject };
+        dataWorker.postMessage({ id, type: 'FETCH_SHARD', data: { name } });
+    });
+}
+
         // --- 1B. IDIOMAS ---
         // El diccionario (I18N, más abajo) va indexado por el texto en castellano:
         // lo que falte por traducir sale en castellano en vez de quedarse en blanco.

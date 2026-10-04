@@ -1068,3 +1068,46 @@
 #hudLine { font-size: 8rem; font-weight: 900; line-height: 1; margin: 0; }
 #hudTime { font-size: 15rem; font-weight: 900; line-height: 1; margin: 0; }
 #hudUnit { font-size: 3rem; font-weight: bold; }
+
+
+/* --- TARJETAS FULL-BLEED (Color de línea de fondo) --- */
+.arr-row {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    border-radius: 12px;
+}
+
+.arr-row::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    /* Utiliza la variable CSS --line-color inyectada dinámicamente en app.js */
+    background: color-mix(in srgb, var(--line-color, var(--text-soft)) 15%, transparent);
+    z-index: -1;
+    pointer-events: none;
+}
+
+
+/* --- TARJETAS FULL-BLEED (Color de línea de fondo) --- */
+.bus-card {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.bus-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /* color-mix para mezclar el color de la línea con transparente al 90% */
+    background: color-mix(in srgb, var(--line, var(--primary)) 12%, transparent);
+    z-index: -1;
+    pointer-events: none; /* Que no bloquee clicks */
+}
+
+/* El contenido debe ir encima del pseudo-elemento */
+.bus-card-content, .bus-card-top, .bus-card-bottom {
+    position: relative;
+    z-index: 1;
+}
