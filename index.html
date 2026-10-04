@@ -1439,26 +1439,31 @@
                 : 'https://tiles.openfreemap.org/styles/positron';
         }
 
-        async function fetchStyle(url) {
-            try {
-                const res = await fetch(url);
-                const style = await res.json();
-                style.layers = style.layers.filter(l => !l.id.includes('railway'));
-                return style;
-            } catch (e) {
-                return url; // Fallback
+        function hideRailways(gl) {
+            if (!gl || !gl.getStyle) return;
+            const style = gl.getStyle();
+            if (style && style.layers) {
+                style.layers.forEach(l => {
+                    if (l.id.includes('railway')) {
+                        gl.setLayoutProperty(l.id, 'visibility', 'none');
+                    }
+                });
             }
         }
 
         // MapLibre necesita WebGL: si el dispositivo no lo tiene, se cae al
         // raster de OpenStreetMap antes que dejar el mapa en blanco
-        async function createBaseLayer() {
+        function createBaseLayer() {
             const glReady = window.maplibregl && L.maplibreGL &&
                 (typeof maplibregl.supported !== 'function' || maplibregl.supported());
             if (glReady) {
                 try {
-                    const style = await fetchStyle(mapStyleURL());
-                    return L.maplibreGL({ style: style, attribution: MAP_ATTRIB });
+                    const layer = L.maplibreGL({ style: mapStyleURL(), attribution: MAP_ATTRIB });
+                    layer.on('add', () => {
+                        const gl = layer.getMap();
+                        gl.once('styledata', () => hideRailways(gl));
+                    });
+                    return layer;
                 } catch (e) { /* cae al raster */ }
             }
             return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1468,17 +1473,16 @@
 
         // Al cambiar claro/oscuro basta con recargar el estilo; si la capa es la
         // raster de respaldo no hay nada que cambiar
-        async function applyMapTheme() {
-            const gl = tileLayer && tileLayer.getMaplibreMap && tileLayer.getMaplibreMap();
+        function applyMapTheme() {
+            const gl = tileLayer.getMap ? tileLayer.getMap() : null;
             if (!gl) return;
             try { 
-                const style = await fetchStyle(mapStyleURL());
-                gl.setStyle(style); 
+                gl.setStyle(mapStyleURL());
+                gl.once('styledata', () => hideRailways(gl));
             }
             catch (e) {
                 map.removeLayer(tileLayer);
-                tileLayer = await createBaseLayer();
-                tileLayer.addTo(map);
+                tileLayer = createBaseLayer().addTo(map);
             }
         }
 
@@ -1521,14 +1525,12 @@
             });
         }
 
-        async function initMap() {
+        function initMap() {
             map = L.map('map', { 
                 zoomControl: true, 
-                maxZoom: 20,
-                preferCanvas: true // Use Canvas renderer by default for performance
+                maxZoom: 20
             }).setView([41.3879, 2.1699], 14);
-            tileLayer = await createBaseLayer();
-            tileLayer.addTo(map);
+            tileLayer = createBaseLayer().addTo(map);
             markersLayer = L.layerGroup().addTo(map);
             userMarkerLayer = L.layerGroup().addTo(map);
             backgroundTransitLayer = L.layerGroup().addTo(map);
