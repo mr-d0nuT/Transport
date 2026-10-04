@@ -1465,12 +1465,35 @@
             }
         }
 
+        let backgroundTransitLayer;
+        
+        async function loadBackgroundTransit() {
+            try {
+                const res = await fetch('shapes.json');
+                const data = await res.json();
+                Object.values(data).forEach(line => {
+                    if (line.p && line.p.length > 0) {
+                        L.polyline(line.p, { 
+                            color: '#' + line.c, 
+                            weight: 3.5, 
+                            opacity: 0.65,
+                            interactive: false // Para que no bloquee los clics en las paradas que están debajo
+                        }).addTo(backgroundTransitLayer);
+                    }
+                });
+            } catch (e) {
+                console.warn('No se pudieron cargar las líneas de transporte', e);
+            }
+        }
+
         function initMap() {
             map = L.map('map', { zoomControl: true, maxZoom: 20 }).setView([41.3879, 2.1699], 14);
             tileLayer = createBaseLayer().addTo(map);
             markersLayer = L.layerGroup().addTo(map);
             userMarkerLayer = L.layerGroup().addTo(map);
+            backgroundTransitLayer = L.layerGroup().addTo(map);
             routeLayer = L.featureGroup().addTo(map);
+            loadBackgroundTransit();
             darkScheme.addEventListener('change', applyMapTheme);
 
             // Mantener pulsado (o clic derecho) en el mapa = explorar esa zona o ir a ella

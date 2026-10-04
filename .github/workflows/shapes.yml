@@ -1,0 +1,33 @@
+name: Construir Shapes (Geometrías)
+
+on:
+  schedule:
+    - cron: "0 5 1 * *" # Cada mes
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Download and build shapes
+      run: python3 scripts/build_shapes.py
+      
+    - name: Commit changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add shapes.json
+        if ! git diff-index --quiet HEAD; then
+          git commit -m "Update shapes"
+          git push
+        fi
