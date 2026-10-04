@@ -862,7 +862,7 @@ function fetchShardWorker(name) {
                 const stem = alto - 12 - top - 18;
                 return `<button class="tl-dep${inalcanzable ? ' miss' : ''}${x.min > ventana * .8 ? ' far' : ''}"
                     style="left:${pct(x.min)}%; top:${top}px; background:${x.d.color}${x.d.textColor ? ';color:' + x.d.textColor : ''}; --stem:${Math.max(6, stem)}px"
-                    onclick="toggleItinerary(${departures.indexOf(x.d)}, this.closest('.bus-list').querySelectorAll('.bus-card')[${departures.indexOf(x.d)}])"
+                    onclick="toggleItinerary(${departures.indexOf(x.d)}, this.closest?.('.bus-list').querySelectorAll('.bus-card')[${departures.indexOf(x.d)}])"
                     title="${esc(x.d.dest || '')}${inalcanzable ? ' · ' + esc(t('no te da tiempo a pie')) : ''}">
                     ${esc(x.d.line)} <small>${inalcanzable ? '🏃' : ''}${x.min < 1 ? esc(t('ya')) : Math.round(x.min) + "'"}</small></button>`;
             }).join('');
@@ -8025,7 +8025,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* --- SWIPE GESTURES & HAPTIC FEEDBACK --- */
 document.addEventListener('touchstart', handleTouchStart, false);
-document.addEventListener('touchmove', handleTouchMove, false);
+document.addEventListener('touchmove', handleTouchMove, { passive: false });
 document.addEventListener('touchend', handleTouchEnd, false);
 
 let xDown = null;
@@ -8038,7 +8038,7 @@ function handleTouchStart(evt) {
     yDown = firstTouch.clientY;
     
     // Only target arrival rows or journey cards
-    const el = evt.target.closest('.arr-row, .jcard');
+    const el = evt.target.closest?.('.arr-row, .jcard');
     if (el) swipeTarget = el;
     else swipeTarget = null;
 }

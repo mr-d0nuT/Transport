@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const onTouchStart = (e) => {
         // Only allow dragging from the handle OR if we are dragging down and at scrollTop 0
-        const isHandle = e.target.closest('.sheet-drag-handle');
+        const isHandle = e.target.closest?.('.sheet-drag-handle');
         if (!isHandle && sheetContent.scrollTop > 0) return;
         
         isDragging = true;
@@ -57,13 +57,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const dy = e.touches[0].clientY - startY;
         
         // If dragging down from content but not at top, ignore
-        if (!e.target.closest('.sheet-drag-handle') && dy < 0 && sheetContent.scrollTop > 0) {
+        if (!e.target.closest?.('.sheet-drag-handle') && dy > 0 && sheetContent.scrollTop > 0) {
+            isDragging = false;
+            return;
+        }
+        // If dragging up from content and sheet is fully expanded, let it scroll
+        if (!e.target.closest?.('.sheet-drag-handle') && dy < 0 && initialTranslateY <= updateSnapPoints().max) {
             isDragging = false;
             return;
         }
         
         // Prevent scrolling content while dragging sheet
-        if (isDragging && e.target.closest('.sheet-drag-handle')) {
+        if (isDragging && e.cancelable) {
             e.preventDefault(); 
         }
         
