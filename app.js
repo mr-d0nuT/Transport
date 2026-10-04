@@ -5502,7 +5502,7 @@ window.PENA_CLIMA = function(it) {
             // Solo se miran las paradas que están de camino: sin esto, un viaje de
             // veinte kilómetros acabaría explorando toda Catalunya.
             const dOD = getDistance(origin.lat, origin.lon, dest.lat, dest.lon);
-            const margen = Math.max(15000, dOD * 0.8);
+            const margen = Math.max(100000, dOD * 2.5);
             const deCamino = g => getDistance(origin.lat, origin.lon, red.lat[g], red.lon[g]) +
                                   getDistance(red.lat[g], red.lon[g], dest.lat, dest.lon) <= dOD + margen;
 
