@@ -1113,3 +1113,16 @@
 }
 /* Fix Leaflet top controls being hidden by topbar */
 .leaflet-control-container .leaflet-top { top: 75px; }
+
+@media (min-width: 700px) {
+    .bottom-sheet {
+        top: 80px; bottom: 20px; left: 20px;
+        width: 420px;
+        height: auto !important;
+        transform: none !important;
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .sheet-drag-handle { display: none; }
+    .map-fab { right: 32px; }
+}
